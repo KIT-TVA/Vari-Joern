@@ -2,5 +2,10 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/antenna" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/featjar/base" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/featjar/feature-model" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/featjar/formula" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/featjar/gradle-plugins" vcs="Git" />
   </component>
 </project>
