@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="18" />
+    <bytecodeTargetLevel target="18">
+      <module name="base" target="11" />
+      <module name="base.main" target="11" />
+      <module name="base.test" target="11" />
+      <module name="feature-model" target="11" />
+      <module name="feature-model.main" target="11" />
+      <module name="feature-model.test" target="11" />
+      <module name="formula" target="11" />
+      <module name="formula.main" target="11" />
+      <module name="formula.test" target="11" />
+    </bytecodeTargetLevel>
   </component>
 </project>
