@@ -43,13 +43,14 @@ public class AntennaComposer implements Composer {
 
         try (Stream<Path> sourceFiles = Files.walk(this.sourceLocation)) {
             for (Path sourcePath : (Iterable<Path>) sourceFiles::iterator) {
-                if (!sourcePath.endsWith(".java")) continue;
+                if (!sourcePath.getFileName().toString().endsWith(".java")) continue;
                 if (!Files.isRegularFile(sourcePath)) continue;
 
-                Path relativePath = sourcePath.relativize(this.sourceLocation);
+                Path relativePath = this.sourceLocation.relativize(sourcePath);
                 Path destinationPath = destination.resolve(relativePath);
                 File sourceFile = new File(sourcePath.toString());
                 File destinationFile = new File(destinationPath.toString());
+                Files.createDirectories(destinationPath.getParent());
                 //noinspection ResultOfMethodCallIgnored
                 destinationFile.createNewFile();
 

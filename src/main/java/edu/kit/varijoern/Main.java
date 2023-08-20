@@ -23,6 +23,7 @@ public class Main {
     private static final int STATUS_COMMAND_LINE_USAGE_ERROR = 64;
     private static final int STATUS_INVALID_CONFIG = 78;
     private static final int STATUS_IO_ERROR = 74;
+    private static final int STATUS_INTERNAL_ERROR = 70;
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -80,10 +81,13 @@ public class Main {
                     System.err.println("Invalid feature name has been found");
                     return STATUS_INVALID_CONFIG;
                 } catch (IOException e) {
-                    System.err.printf("An IO error occurred: %s%n", e.getMessage());
+                    System.err.println("An IO error occurred:");
+                    e.printStackTrace();
                     return STATUS_IO_ERROR;
                 } catch (ComposerException e) {
-                    throw new RuntimeException(e);
+                    System.err.println("A composer error occurred:");
+                    e.printStackTrace();
+                    return STATUS_INTERNAL_ERROR;
                 }
             }
         }
