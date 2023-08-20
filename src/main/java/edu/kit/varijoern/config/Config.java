@@ -1,5 +1,6 @@
 package edu.kit.varijoern.config;
 
+import edu.kit.varijoern.samplers.SamplerConfig;
 import org.tomlj.Toml;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlParseError;
@@ -10,7 +11,10 @@ import java.nio.file.Path;
 import java.util.stream.Collectors;
 
 public class Config {
+    private static final String ITERATIONS_FIELD_NAME = "iterations";
+    private static final String SAMPLER_FIELD_NAME = "sampler";
     private final long iterations;
+    private final SamplerConfig samplerConfig;
 
     /**
      * Parses the configuration file at the specified location. The file format is assumed to be TOML.
@@ -34,10 +38,15 @@ public class Config {
         } catch (TomlInvalidTypeException e) {
             throw new InvalidConfigException("Invalid type of option `iterations`", e);
         }
+
+        if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
+            throw new InvalidConfigException("`sampler` section is missing");
+        this.samplerConfig = SamplerConfig.readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME));
     }
 
     /**
      * Indicates how many sampler-composer-analyzer cycles should be executed.
+     *
      * @return how many sampler-composer-analyzer cycles should be executed
      */
     public long getIterations() {
