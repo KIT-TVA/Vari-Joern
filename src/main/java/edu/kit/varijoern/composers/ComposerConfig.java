@@ -6,27 +6,12 @@ import edu.kit.varijoern.config.TomlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-
 public abstract class ComposerConfig {
     private static final String NAME_FIELD_NAME = "name";
-    private static final String DESTINATION_FIELD_NAME = "destination";
     private final String name;
-    private final Path destinationDirectory;
 
     protected ComposerConfig(TomlTable toml) throws InvalidConfigException {
         this.name = getComposerName(toml);
-        try {
-            this.destinationDirectory = Path.of(
-                TomlUtils.getMandatoryString(
-                    DESTINATION_FIELD_NAME,
-                    toml,
-                    "Composer destination is missing or not a string")
-            );
-        } catch (InvalidPathException e) {
-            throw new InvalidConfigException("Composer destination is not a valid path", e);
-        }
     }
 
     @NotNull
@@ -49,9 +34,5 @@ public abstract class ComposerConfig {
 
     public String getName() {
         return name;
-    }
-
-    public Path getDestinationDirectory() {
-        return destinationDirectory;
     }
 }
