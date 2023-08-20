@@ -1,5 +1,6 @@
 package edu.kit.varijoern.config;
 
+import edu.kit.varijoern.analyzers.AnalyzerConfig;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.samplers.SamplerConfig;
 import org.tomlj.Toml;
@@ -17,11 +18,14 @@ public class Config {
     private static final String SAMPLER_FIELD_NAME = "sampler";
     private static final String COMPOSER_FIELD_NAME = "composer";
     private static final String FEATURE_MODEL_FIELD_NAME = "feature-model";
+    private static final String ERR_SECTION_MISSING_FMT = "`%s` section is missing";
+    private static final String ANALYZER_FIELD_NAME = "analyzer";
 
     private final long iterations;
+    private final Path featureModelPath;
     private final SamplerConfig samplerConfig;
     private final ComposerConfig composerConfig;
-    private final Path featureModelPath;
+    private final AnalyzerConfig analyzerConfig;
 
     /**
      * Parses the configuration file at the specified location. The file format is assumed to be TOML.
@@ -55,12 +59,16 @@ public class Config {
         }
 
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
-            throw new InvalidConfigException("`sampler` section is missing");
+            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
         this.samplerConfig = SamplerConfig.readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME));
 
         if (!parsedConfig.isTable(COMPOSER_FIELD_NAME))
-            throw new InvalidConfigException("`composer` section is missing");
+            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, COMPOSER_FIELD_NAME));
         this.composerConfig = ComposerConfig.readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME));
+
+        if (!parsedConfig.isTable(ANALYZER_FIELD_NAME))
+            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
+        this.analyzerConfig = AnalyzerConfig.readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME));
     }
 
     /**
@@ -82,5 +90,9 @@ public class Config {
 
     public Path getFeatureModelPath() {
         return featureModelPath;
+    }
+
+    public AnalyzerConfig getAnalyzerConfig() {
+        return analyzerConfig;
     }
 }

@@ -7,6 +7,8 @@ import de.ovgu.featureide.fm.core.base.impl.FMFactoryManager;
 import de.ovgu.featureide.fm.core.base.impl.FMFormatManager;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
+import edu.kit.varijoern.analyzers.Analyzer;
+import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.config.Config;
@@ -52,15 +54,20 @@ public class Main {
         FMFactoryManager.getInstance().setWorkspaceLoader(new CoreFactoryWorkspaceLoader());
         IFeatureModel featureModel = FeatureModelManager.load(config.getFeatureModelPath());
 
-        Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
-        Composer composer = config.getComposerConfig().newComposer(featureModel);
         Path tmpDir;
+        Path analyzerTmpDirectory;
         try {
             tmpDir = Files.createTempDirectory("vari-joern");
+            analyzerTmpDirectory = tmpDir.resolve("analyzer");
+            Files.createDirectories(analyzerTmpDirectory);
         } catch (IOException e) {
             System.err.printf("Failed to create temporary directory: %s%n", e.getMessage());
             return STATUS_IO_ERROR;
         }
+
+        Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
+        Composer composer = config.getComposerConfig().newComposer();
+        Analyzer analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
 
         for (int i = 0; i < config.getIterations(); i++) {
             List<List<String>> sample = sampler.sample();
@@ -86,6 +93,18 @@ public class Main {
                     return STATUS_IO_ERROR;
                 } catch (ComposerException e) {
                     System.err.println("A composer error occurred:");
+                    e.printStackTrace();
+                    return STATUS_INTERNAL_ERROR;
+                }
+
+                try {
+                    analyzer.analyze(composerDestination);
+                } catch (IOException e) {
+                    System.err.println("An I/O error occurred while running the analyzer");
+                    e.printStackTrace();
+                    return STATUS_IO_ERROR;
+                } catch (AnalyzerFailureException e) {
+                    System.err.println("The analysis did not complete successfully.");
                     e.printStackTrace();
                     return STATUS_INTERNAL_ERROR;
                 }

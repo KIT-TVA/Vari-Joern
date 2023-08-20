@@ -27,7 +27,7 @@ public class AntennaComposerConfig extends ComposerConfig {
     }
 
     @Override
-    public Composer newComposer(IFeatureModel featureModel) {
+    public Composer newComposer() {
         return new AntennaComposer(this.sourceLocation);
     }
 

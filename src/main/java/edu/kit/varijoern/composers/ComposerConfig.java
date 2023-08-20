@@ -30,7 +30,7 @@ public abstract class ComposerConfig {
         };
     }
 
-    public abstract Composer newComposer(IFeatureModel featureModel);
+    public abstract Composer newComposer();
 
     public String getName() {
         return name;
