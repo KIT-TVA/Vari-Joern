@@ -18,6 +18,8 @@ import java.util.stream.Stream;
  * A composer that runs the Antenna preprocessor on each {@code .java} file in a directory and its subdirectories.
  */
 public class AntennaComposer implements Composer {
+    public static final String NAME = "antenna";
+
     private final Path sourceLocation;
 
     /**

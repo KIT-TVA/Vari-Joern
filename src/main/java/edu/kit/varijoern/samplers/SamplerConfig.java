@@ -2,6 +2,7 @@ package edu.kit.varijoern.samplers;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.config.TomlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
@@ -17,10 +18,10 @@ public abstract class SamplerConfig {
 
     @NotNull
     private static String getSamplerName(TomlTable toml) throws InvalidConfigException {
-        if (!toml.isString(NAME_FIELD_NAME)) {
-            throw new InvalidConfigException("Sampler name is missing or not a string");
-        }
-        return Objects.requireNonNull(toml.getString(NAME_FIELD_NAME));
+        return TomlUtils.getMandatoryString(NAME_FIELD_NAME,
+            toml,
+            "Sampler name is missing or not a string"
+        );
     }
 
     public static SamplerConfig readConfig(TomlTable toml) throws InvalidConfigException {

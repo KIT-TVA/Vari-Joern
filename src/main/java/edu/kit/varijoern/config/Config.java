@@ -1,5 +1,6 @@
 package edu.kit.varijoern.config;
 
+import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.samplers.SamplerConfig;
 import org.tomlj.Toml;
 import org.tomlj.TomlInvalidTypeException;
@@ -13,8 +14,10 @@ import java.util.stream.Collectors;
 public class Config {
     private static final String ITERATIONS_FIELD_NAME = "iterations";
     private static final String SAMPLER_FIELD_NAME = "sampler";
+    private static final String COMPOSER_FIELD_NAME = "composer";
     private final long iterations;
     private final SamplerConfig samplerConfig;
+    private final ComposerConfig composerConfig;
 
     /**
      * Parses the configuration file at the specified location. The file format is assumed to be TOML.
@@ -42,6 +45,10 @@ public class Config {
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
             throw new InvalidConfigException("`sampler` section is missing");
         this.samplerConfig = SamplerConfig.readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME));
+
+        if (!parsedConfig.isTable(COMPOSER_FIELD_NAME))
+            throw new InvalidConfigException("`composer` section is missing");
+        this.composerConfig = ComposerConfig.readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME));
     }
 
     /**
@@ -51,5 +58,13 @@ public class Config {
      */
     public long getIterations() {
         return iterations;
+    }
+
+    public SamplerConfig getSamplerConfig() {
+        return samplerConfig;
+    }
+
+    public ComposerConfig getComposerConfig() {
+        return composerConfig;
     }
 }
