@@ -8,6 +8,7 @@ import org.tomlj.TomlParseError;
 import org.tomlj.TomlParseResult;
 
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 
@@ -15,9 +16,12 @@ public class Config {
     private static final String ITERATIONS_FIELD_NAME = "iterations";
     private static final String SAMPLER_FIELD_NAME = "sampler";
     private static final String COMPOSER_FIELD_NAME = "composer";
+    private static final String FEATURE_MODEL_FIELD_NAME = "feature-model";
+
     private final long iterations;
     private final SamplerConfig samplerConfig;
     private final ComposerConfig composerConfig;
+    private final Path featureModelPath;
 
     /**
      * Parses the configuration file at the specified location. The file format is assumed to be TOML.
@@ -37,9 +41,17 @@ public class Config {
         }
 
         try {
-            this.iterations = parsedConfig.getLong("iterations", () -> 1);
+            this.iterations = parsedConfig.getLong(ITERATIONS_FIELD_NAME, () -> 1);
         } catch (TomlInvalidTypeException e) {
             throw new InvalidConfigException("Invalid type of option `iterations`", e);
+        }
+
+        if (!parsedConfig.isString(FEATURE_MODEL_FIELD_NAME))
+            throw new InvalidConfigException("Feature model path is missing or not a string");
+        try {
+            this.featureModelPath = Path.of(parsedConfig.getString(FEATURE_MODEL_FIELD_NAME));
+        } catch (InvalidPathException e) {
+            throw new InvalidConfigException("Feature model path is invalid", e);
         }
 
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
@@ -66,5 +78,9 @@ public class Config {
 
     public ComposerConfig getComposerConfig() {
         return composerConfig;
+    }
+
+    public Path getFeatureModelPath() {
+        return featureModelPath;
     }
 }

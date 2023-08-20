@@ -40,7 +40,7 @@ public abstract class ComposerConfig {
     public static ComposerConfig readConfig(TomlTable toml) throws InvalidConfigException {
         String samplerName = getComposerName(toml);
         return switch (samplerName) {
-            case "bla" -> null;
+            case "antenna" -> new AntennaComposerConfig(toml);
             default -> throw new InvalidConfigException(String.format("Unknown composer \"%s\"", samplerName));
         };
     }
