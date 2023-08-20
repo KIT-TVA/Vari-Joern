@@ -12,6 +12,7 @@ public class ComposerException extends Exception {
     }
 
     public ComposerException(String message, Throwable cause) {
+        super(message, cause);
     }
 
     public ComposerException(Throwable cause) {
