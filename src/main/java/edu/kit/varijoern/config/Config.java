@@ -55,23 +55,31 @@ public class Config {
 
         if (!parsedConfig.isString(FEATURE_MODEL_FIELD_NAME))
             throw new InvalidConfigException("Feature model path is missing or not a string");
+        Path featureModelPath;
         try {
-            this.featureModelPath = Path.of(parsedConfig.getString(FEATURE_MODEL_FIELD_NAME));
+            featureModelPath = Path.of(parsedConfig.getString(FEATURE_MODEL_FIELD_NAME));
         } catch (InvalidPathException e) {
             throw new InvalidConfigException("Feature model path is invalid", e);
         }
+        if (!featureModelPath.isAbsolute()) {
+            featureModelPath = configLocation.getParent().resolve(featureModelPath);
+        }
+        this.featureModelPath = featureModelPath;
 
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
-        this.samplerConfig = SamplerConfigFactory.getInstance().readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME));
+        this.samplerConfig = SamplerConfigFactory.getInstance()
+            .readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME), configLocation);
 
         if (!parsedConfig.isTable(COMPOSER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, COMPOSER_FIELD_NAME));
-        this.composerConfig = ComposerConfigFactory.getInstance().readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME));
+        this.composerConfig = ComposerConfigFactory.getInstance()
+            .readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME), configLocation);
 
         if (!parsedConfig.isTable(ANALYZER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
-        this.analyzerConfig = AnalyzerConfigFactory.getInstance().readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME));
+        this.analyzerConfig = AnalyzerConfigFactory.getInstance()
+            .readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME), configLocation);
     }
 
     /**

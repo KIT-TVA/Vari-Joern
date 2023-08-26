@@ -4,6 +4,8 @@ import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
 import org.tomlj.TomlTable;
 
+import java.nio.file.Path;
+
 public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerConfig, Composer> {
     private static final ComposerConfigFactory instance = new ComposerConfigFactory();
 
@@ -15,9 +17,10 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
     }
 
     @Override
-    protected ComposerConfig newConfigFromName(String componentName, TomlTable toml) throws InvalidConfigException {
+    protected ComposerConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
+        throws InvalidConfigException {
         return switch (componentName) {
-            case "antenna" -> new AntennaComposerConfig(toml);
+            case "antenna" -> new AntennaComposerConfig(toml, configPath);
             default -> throw new InvalidConfigException(String.format("Unknown composer \"%s\"", componentName));
         };
     }

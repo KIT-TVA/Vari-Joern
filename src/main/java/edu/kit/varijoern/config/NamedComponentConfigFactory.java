@@ -2,6 +2,8 @@ package edu.kit.varijoern.config;
 
 import org.tomlj.TomlTable;
 
+import java.nio.file.Path;
+
 public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig<T>, T> {
     private static final String NAME_FIELD_NAME = "name";
 
@@ -13,12 +15,13 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
         );
     }
 
-    public C readConfig(TomlTable toml) throws InvalidConfigException {
+    public C readConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
         String componentName = getComponentName(toml, getComponentType());
-        return newConfigFromName(componentName, toml);
+        return newConfigFromName(componentName, toml, configPath);
     }
 
-    protected abstract C newConfigFromName(String componentName, TomlTable toml) throws InvalidConfigException;
+    protected abstract C newConfigFromName(String componentName, TomlTable toml, Path configPath)
+        throws InvalidConfigException;
 
     public abstract String getComponentType();
 }
