@@ -4,6 +4,7 @@ import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfig;
 import org.tomlj.TomlTable;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 public abstract class AnalyzerConfig extends NamedComponentConfig<Analyzer> {
@@ -22,5 +23,5 @@ public abstract class AnalyzerConfig extends NamedComponentConfig<Analyzer> {
      * @param tempPath the directory to use for temporary data
      * @return the new {@link Analyzer}
      */
-    public abstract Analyzer newAnalyzer(Path tempPath);
+    public abstract Analyzer newAnalyzer(Path tempPath) throws IOException;
 }

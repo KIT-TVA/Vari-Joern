@@ -4,11 +4,12 @@ import edu.kit.varijoern.config.InvalidConfigException;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 public class JoernAnalyzerConfig extends AnalyzerConfig {
     private static final String COMMAND_NAME_FIELD_NAME = "command";
-    private static final String JOERN_DEFAULT_COMMAND = "joern-scan";
+    private static final String JOERN_DEFAULT_COMMAND = "joern";
     private final String commandName;
 
     public JoernAnalyzerConfig(TomlTable toml) throws InvalidConfigException {
@@ -21,7 +22,7 @@ public class JoernAnalyzerConfig extends AnalyzerConfig {
     }
 
     @Override
-    public Analyzer newAnalyzer(Path workspacePath) {
+    public Analyzer newAnalyzer(Path workspacePath) throws IOException {
         return new JoernAnalyzer(this.commandName, workspacePath);
     }
 

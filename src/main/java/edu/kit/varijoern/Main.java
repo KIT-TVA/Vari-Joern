@@ -67,7 +67,14 @@ public class Main {
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
         Composer composer = config.getComposerConfig().newComposer();
-        Analyzer analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
+        Analyzer analyzer = null;
+        try {
+            analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
+        } catch (IOException e) {
+            System.err.println("Failed to instantiate composer:");
+            e.printStackTrace();
+            return STATUS_IO_ERROR;
+        }
 
         for (int i = 0; i < config.getIterations(); i++) {
             List<List<String>> sample = sampler.sample();
