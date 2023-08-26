@@ -1,8 +1,11 @@
 package edu.kit.varijoern.config;
 
 import edu.kit.varijoern.analyzers.AnalyzerConfig;
+import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.composers.ComposerConfig;
+import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.samplers.SamplerConfig;
+import edu.kit.varijoern.samplers.SamplerConfigFactory;
 import org.tomlj.Toml;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlParseError;
@@ -60,15 +63,15 @@ public class Config {
 
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
-        this.samplerConfig = SamplerConfig.readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME));
+        this.samplerConfig = SamplerConfigFactory.getInstance().readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME));
 
         if (!parsedConfig.isTable(COMPOSER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, COMPOSER_FIELD_NAME));
-        this.composerConfig = ComposerConfig.readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME));
+        this.composerConfig = ComposerConfigFactory.getInstance().readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME));
 
         if (!parsedConfig.isTable(ANALYZER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
-        this.analyzerConfig = AnalyzerConfig.readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME));
+        this.analyzerConfig = AnalyzerConfigFactory.getInstance().readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME));
     }
 
     /**

@@ -1,7 +1,5 @@
 package edu.kit.varijoern;
 
-import antenna.preprocessor.v3.PPException;
-
 /**
  * Indicates that a feature name is not supported.
  */
