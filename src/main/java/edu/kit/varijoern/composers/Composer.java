@@ -13,8 +13,7 @@ public interface Composer {
      *
      * @param features    a list of enabled features
      * @param destination a {@link Path} to an existing empty directory into which the resulting code should be saved
-     * @return a {@link Path} to the location of the composed code.
-     * Should be {@code destination} or a subdirectory thereof.
+     * @return a {@link CompositionInformation} instance containing information about this composer pass
      * @throws IllegalFeatureNameException if one of the specified features has an invalid name
      * @throws ComposerException           when the composer failed due to invalid source code
      */
