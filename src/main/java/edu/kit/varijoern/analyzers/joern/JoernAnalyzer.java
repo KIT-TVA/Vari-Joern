@@ -1,5 +1,11 @@
-package edu.kit.varijoern.analyzers;
+package edu.kit.varijoern.analyzers.joern;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.analyzers.Analyzer;
+import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
 
@@ -7,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 
 public class JoernAnalyzer implements Analyzer {
@@ -38,6 +45,20 @@ public class JoernAnalyzer implements Analyzer {
                 UUID.randomUUID()
             )
         );
+        runJoern(sourceLocation, outFile);
+        List<JoernFinding> findings = this.parseFindings(outFile);
+        return new JoernAnalysisResult(findings);
+    }
+
+    /**
+     * Runs Joern on the specified source code. The results are saved in the JSON format in the specified file.
+     *
+     * @param sourceLocation the location of the source code
+     * @param outFile        the path of the file to save the findings in
+     * @throws IOException              if an I/O error occurred
+     * @throws AnalyzerFailureException if Joern exited with a non-zero exit code
+     */
+    private void runJoern(Path sourceLocation, Path outFile) throws IOException, AnalyzerFailureException {
         Process joernProcess = Runtime.getRuntime().exec(
             new String[]{
                 this.command,
@@ -62,6 +83,12 @@ public class JoernAnalyzer implements Analyzer {
         stderrGobbler.waitFor();
         if (joernExitCode != 0)
             throw new AnalyzerFailureException(String.format("joern exited with %d", joernExitCode));
-        return null; // TODO: parse results and return them
+    }
+
+    private List<JoernFinding> parseFindings(Path findingsFile) throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
+        });
     }
 }

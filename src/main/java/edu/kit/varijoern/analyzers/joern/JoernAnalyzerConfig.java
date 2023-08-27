@@ -1,5 +1,7 @@
-package edu.kit.varijoern.analyzers;
+package edu.kit.varijoern.analyzers.joern;
 
+import edu.kit.varijoern.analyzers.Analyzer;
+import edu.kit.varijoern.analyzers.AnalyzerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;

@@ -16,6 +16,7 @@ dependencies {
     implementation 'org.tomlj:tomlj:1.1.0'
     implementation 'org.jetbrains:annotations:23.0.0'
     implementation 'org.jodd:jodd-util:6.2.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 }

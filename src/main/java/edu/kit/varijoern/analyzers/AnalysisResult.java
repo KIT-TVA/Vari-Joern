@@ -1,13 +1,13 @@
 package edu.kit.varijoern.analyzers;
 
 public abstract class AnalysisResult {
-    private final int findings;
+    private final int numFindings;
 
-    protected AnalysisResult(int findings) {
-        this.findings = findings;
+    protected AnalysisResult(int numFindings) {
+        this.numFindings = numFindings;
     }
 
-    public int getFindings() {
-        return findings;
+    public int getNumFindings() {
+        return numFindings;
     }
 }
