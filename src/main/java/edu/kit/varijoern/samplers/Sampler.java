@@ -1,5 +1,6 @@
 package edu.kit.varijoern.samplers;
 
+import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -10,5 +11,5 @@ public interface Sampler {
      *
      * @return a list of feature combinations
      */
-    @NotNull List<List<String>> sample();
+    @NotNull List<List<String>> sample(List<AnalysisResult> analysisResults);
 }

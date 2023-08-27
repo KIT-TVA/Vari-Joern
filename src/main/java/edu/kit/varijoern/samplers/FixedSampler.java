@@ -1,5 +1,6 @@
 package edu.kit.varijoern.samplers;
 
+import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -13,7 +14,7 @@ public class FixedSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<List<String>> sample() {
+    public @NotNull List<List<String>> sample(List<AnalysisResult> analysisResults) {
         return List.of(features);
     }
 }

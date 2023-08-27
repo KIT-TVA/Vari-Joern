@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.Analyzer;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
+import edu.kit.varijoern.composers.CompositionInformation;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
 
@@ -38,7 +39,9 @@ public class JoernAnalyzer implements Analyzer {
     }
 
     @Override
-    public AnalysisResult analyze(Path sourceLocation) throws IOException, AnalyzerFailureException {
+    public AnalysisResult analyze(CompositionInformation compositionInformation)
+        throws IOException, AnalyzerFailureException {
+        Path sourceLocation = compositionInformation.getLocation();
         Path outFile = this.workspacePath.resolve(
             String.format("%s-%s.json",
                 sourceLocation.subpath(sourceLocation.getNameCount() - 1, sourceLocation.getNameCount()),

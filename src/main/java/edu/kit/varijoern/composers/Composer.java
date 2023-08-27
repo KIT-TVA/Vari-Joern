@@ -19,6 +19,6 @@ public interface Composer {
      * @throws ComposerException           when the composer failed due to invalid source code
      */
     @NotNull
-    Path compose(@NotNull List<String> features, @NotNull Path destination)
+    CompositionInformation compose(@NotNull List<String> features, @NotNull Path destination)
         throws IllegalFeatureNameException, IOException, ComposerException;
 }

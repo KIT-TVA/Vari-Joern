@@ -7,10 +7,12 @@ import de.ovgu.featureide.fm.core.base.impl.FMFactoryManager;
 import de.ovgu.featureide.fm.core.base.impl.FMFormatManager;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
+import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.Analyzer;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
+import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.samplers.Sampler;
@@ -18,6 +20,7 @@ import edu.kit.varijoern.samplers.Sampler;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
@@ -76,8 +79,10 @@ public class Main {
             return STATUS_IO_ERROR;
         }
 
+        List<AnalysisResult> analysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
-            List<List<String>> sample = sampler.sample();
+            List<List<String>> sample = sampler.sample(analysisResults);
+            analysisResults = new ArrayList<>();
             for (int j = 0; j < sample.size(); j++) {
                 String destinationDirectoryName = String.format("%d-%d", i, j);
                 Path composerDestination = tmpDir.resolve(destinationDirectoryName);
@@ -89,7 +94,7 @@ public class Main {
                 }
                 List<String> features = sample.get(j);
 
-                Path composedSourceLocation;
+                CompositionInformation composedSourceLocation;
                 try {
                     composedSourceLocation = composer.compose(features, composerDestination);
                 } catch (IllegalFeatureNameException e) {
@@ -106,7 +111,7 @@ public class Main {
                 }
 
                 try {
-                    analyzer.analyze(composedSourceLocation);
+                    analysisResults.add(analyzer.analyze(composedSourceLocation));
                 } catch (IOException e) {
                     System.err.println("An I/O error occurred while running the analyzer");
                     e.printStackTrace();

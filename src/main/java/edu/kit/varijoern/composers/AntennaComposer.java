@@ -32,7 +32,7 @@ public class AntennaComposer implements Composer {
     }
 
     @Override
-    public @NotNull Path compose(@NotNull List<String> features, @NotNull Path destination)
+    public CompositionInformation compose(@NotNull List<String> features, @NotNull Path destination)
         throws IllegalFeatureNameException, IOException, ComposerException {
         Preprocessor preprocessor = new Preprocessor(null, null);
         try {
@@ -64,6 +64,6 @@ public class AntennaComposer implements Composer {
                 }
             }
         }
-        return destination;
+        return new CompositionInformation(destination);
     }
 }

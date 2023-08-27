@@ -1,8 +1,9 @@
 package edu.kit.varijoern.analyzers;
 
+import edu.kit.varijoern.composers.CompositionInformation;
+
 import java.io.IOException;
-import java.nio.file.Path;
 
 public interface Analyzer {
-    AnalysisResult analyze(Path sourceLocation) throws IOException, AnalyzerFailureException;
+    AnalysisResult analyze(CompositionInformation compositionInformation) throws IOException, AnalyzerFailureException;
 }
