@@ -67,7 +67,7 @@ public class Main {
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
         Composer composer = config.getComposerConfig().newComposer();
-        Analyzer analyzer = null;
+        Analyzer analyzer;
         try {
             analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
         } catch (IOException e) {
@@ -89,8 +89,9 @@ public class Main {
                 }
                 List<String> features = sample.get(j);
 
+                Path composedSourceLocation;
                 try {
-                    composer.compose(features, composerDestination);
+                    composedSourceLocation = composer.compose(features, composerDestination);
                 } catch (IllegalFeatureNameException e) {
                     System.err.println("Invalid feature name has been found");
                     return STATUS_INVALID_CONFIG;
@@ -105,7 +106,7 @@ public class Main {
                 }
 
                 try {
-                    analyzer.analyze(composerDestination);
+                    analyzer.analyze(composedSourceLocation);
                 } catch (IOException e) {
                     System.err.println("An I/O error occurred while running the analyzer");
                     e.printStackTrace();
