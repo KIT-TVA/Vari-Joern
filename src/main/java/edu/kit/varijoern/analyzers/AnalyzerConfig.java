@@ -7,7 +7,15 @@ import org.tomlj.TomlTable;
 import java.io.IOException;
 import java.nio.file.Path;
 
+/**
+ * The base class for all analyzer configurations.
+ */
 public abstract class AnalyzerConfig extends NamedComponentConfig<Analyzer> {
+    /**
+     * Creates a new {@link AnalyzerConfig} by extracting data from the specified TOML section.
+     * @param toml the TOML section
+     * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
+     */
     protected AnalyzerConfig(TomlTable toml) throws InvalidConfigException {
         super(toml);
     }

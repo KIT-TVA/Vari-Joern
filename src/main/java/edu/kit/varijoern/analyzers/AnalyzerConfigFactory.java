@@ -8,12 +8,21 @@ import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
 
+/**
+ * This class is used for parsing the analyzer section of a configuration file. It uses its {@code name} field to
+ * determine which {@link AnalyzerConfig} subclass to use.
+ */
 public class AnalyzerConfigFactory extends NamedComponentConfigFactory<AnalyzerConfig, Analyzer> {
     private static final AnalyzerConfigFactory instance = new AnalyzerConfigFactory();
 
     private AnalyzerConfigFactory() {
     }
 
+    /**
+     * Returns an {@link AnalyzerConfigFactory} instance.
+     *
+     * @return the instance
+     */
     public static NamedComponentConfigFactory<AnalyzerConfig, Analyzer> getInstance() {
         return instance;
     }

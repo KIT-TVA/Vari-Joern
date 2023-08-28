@@ -11,6 +11,13 @@ public class JoernEvidence {
     private final int lineNumber;
     private final int columnNumber;
 
+    /**
+     * Creates a new {@link JoernEvidence} containing the specified information.
+     *
+     * @param code         the source code that caused the finding
+     * @param lineNumber   the line number of the location of the evidence
+     * @param columnNumber the column number of the location of the evidence
+     */
     @JsonCreator
     public JoernEvidence(
         @JsonProperty("code") String code,
@@ -21,14 +28,29 @@ public class JoernEvidence {
         this.columnNumber = columnNumber;
     }
 
+    /**
+     * Returns the source code that caused the finding.
+     *
+     * @return the source code
+     */
     public String getCode() {
         return code;
     }
 
+    /**
+     * Returns the line number of the location of this evidence.
+     *
+     * @return the line number
+     */
     public int getLineNumber() {
         return lineNumber;
     }
 
+    /**
+     * Returns the column number of the location of this evidence.
+     *
+     * @return the column number
+     */
     public int getColumnNumber() {
         return columnNumber;
     }

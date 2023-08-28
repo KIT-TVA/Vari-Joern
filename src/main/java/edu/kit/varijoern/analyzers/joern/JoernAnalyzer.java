@@ -17,6 +17,9 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * An analyzer that uses Joern.
+ */
 public class JoernAnalyzer implements Analyzer {
     public static final String NAME = "joern";
     private final String command;

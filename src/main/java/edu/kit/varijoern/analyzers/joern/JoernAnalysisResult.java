@@ -10,6 +10,11 @@ import java.util.List;
 public class JoernAnalysisResult extends AnalysisResult {
     private final List<JoernFinding> findings;
 
+    /**
+     * Creates a new {@link JoernAnalysisResult} from a list of findings.
+     *
+     * @param findings the list of findings
+     */
     public JoernAnalysisResult(List<JoernFinding> findings) {
         super(findings.size());
         this.findings = List.copyOf(findings);
