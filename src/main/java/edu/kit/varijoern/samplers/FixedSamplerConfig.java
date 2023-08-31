@@ -10,10 +10,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Contains the configuration of the fixed sampler.
+ */
 public class FixedSamplerConfig extends SamplerConfig {
     private static final String FEATURES_FIELD_NAME = "features";
     private final List<String> features;
 
+    /**
+     * Creates a new {@link FixedSamplerConfig} by extracting data from the specified TOML section.
+     *
+     * @param toml the TOML section
+     * @throws InvalidConfigException if the TOML section does not represent a valid configuration
+     */
     public FixedSamplerConfig(TomlTable toml) throws InvalidConfigException {
         super(toml);
         if (!toml.isArray(FEATURES_FIELD_NAME))
@@ -35,6 +44,11 @@ public class FixedSamplerConfig extends SamplerConfig {
         return new FixedSampler(this.features);
     }
 
+    /**
+     * Returns the feature combination to be returned by the sampler as specified by the configuration file.
+     *
+     * @return the feature combination
+     */
     public List<String> getFeatures() {
         return features;
     }

@@ -17,7 +17,7 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
     }
 
     /**
-     * Returns an {@link ComposerConfigFactory} instance.
+     * Returns a {@link ComposerConfigFactory} instance.
      *
      * @return the instance
      */

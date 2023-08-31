@@ -6,12 +6,21 @@ import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
 
+/**
+ * This class is used for parsing the sampler section of a configuration file. It uses its {@code name} field to
+ * determine which {@link SamplerConfig} subclass to use.
+ */
 public class SamplerConfigFactory extends NamedComponentConfigFactory<SamplerConfig> {
     private static final SamplerConfigFactory instance = new SamplerConfigFactory();
 
     private SamplerConfigFactory() {
     }
 
+    /**
+     * Returns a {@link SamplerConfigFactory} instance.
+     *
+     * @return the instance
+     */
     public static SamplerConfigFactory getInstance() {
         return instance;
     }
