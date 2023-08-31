@@ -6,7 +6,7 @@ import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
 
-public class SamplerConfigFactory extends NamedComponentConfigFactory<SamplerConfig, Sampler> {
+public class SamplerConfigFactory extends NamedComponentConfigFactory<SamplerConfig> {
     private static final SamplerConfigFactory instance = new SamplerConfigFactory();
 
     private SamplerConfigFactory() {

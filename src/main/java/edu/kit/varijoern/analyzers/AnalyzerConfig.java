@@ -10,7 +10,7 @@ import java.nio.file.Path;
 /**
  * The base class for all analyzer configurations.
  */
-public abstract class AnalyzerConfig extends NamedComponentConfig<Analyzer> {
+public abstract class AnalyzerConfig extends NamedComponentConfig {
     /**
      * Creates a new {@link AnalyzerConfig} by extracting data from the specified TOML section.
      * @param toml the TOML section

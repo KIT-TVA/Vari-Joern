@@ -5,7 +5,7 @@ import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfig;
 import org.tomlj.TomlTable;
 
-public abstract class SamplerConfig extends NamedComponentConfig<Sampler> {
+public abstract class SamplerConfig extends NamedComponentConfig {
     protected SamplerConfig(TomlTable toml) throws InvalidConfigException {
         super(toml);
     }

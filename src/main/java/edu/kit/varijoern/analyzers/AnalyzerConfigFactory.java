@@ -12,7 +12,7 @@ import java.nio.file.Path;
  * This class is used for parsing the analyzer section of a configuration file. It uses its {@code name} field to
  * determine which {@link AnalyzerConfig} subclass to use.
  */
-public class AnalyzerConfigFactory extends NamedComponentConfigFactory<AnalyzerConfig, Analyzer> {
+public class AnalyzerConfigFactory extends NamedComponentConfigFactory<AnalyzerConfig> {
     private static final AnalyzerConfigFactory instance = new AnalyzerConfigFactory();
 
     private AnalyzerConfigFactory() {
@@ -23,7 +23,7 @@ public class AnalyzerConfigFactory extends NamedComponentConfigFactory<AnalyzerC
      *
      * @return the instance
      */
-    public static NamedComponentConfigFactory<AnalyzerConfig, Analyzer> getInstance() {
+    public static NamedComponentConfigFactory<AnalyzerConfig> getInstance() {
         return instance;
     }
 

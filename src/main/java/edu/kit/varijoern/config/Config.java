@@ -16,6 +16,9 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 
+/**
+ * This class contains the complete configuration of Vari-Joern. This includes the subsections for components.
+ */
 public class Config {
     private static final String ITERATIONS_FIELD_NAME = "iterations";
     private static final String SAMPLER_FIELD_NAME = "sampler";
@@ -91,18 +94,39 @@ public class Config {
         return iterations;
     }
 
+    /**
+     * Returns the configuration of the sampler component.
+     *
+     * @return the sampler configuration
+     */
     public SamplerConfig getSamplerConfig() {
         return samplerConfig;
     }
 
+    /**
+     * Returns the configuration of the composer component.
+     *
+     * @return the composer configuration
+     */
     public ComposerConfig getComposerConfig() {
         return composerConfig;
     }
 
+    /**
+     * Returns the path to the feature model file. This path has already been resolved against the path to the
+     * configuration file.
+     *
+     * @return the path to the feature model file
+     */
     public Path getFeatureModelPath() {
         return featureModelPath;
     }
 
+    /**
+     * Returns the configuration of the analyzer component.
+     *
+     * @return the analyzer configuration
+     */
     public AnalyzerConfig getAnalyzerConfig() {
         return analyzerConfig;
     }

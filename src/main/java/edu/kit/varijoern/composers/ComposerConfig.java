@@ -7,7 +7,7 @@ import org.tomlj.TomlTable;
 /**
  * The base class for all composer configurations.
  */
-public abstract class ComposerConfig extends NamedComponentConfig<Composer> {
+public abstract class ComposerConfig extends NamedComponentConfig {
     protected ComposerConfig(TomlTable toml) throws InvalidConfigException {
         super(toml);
     }
