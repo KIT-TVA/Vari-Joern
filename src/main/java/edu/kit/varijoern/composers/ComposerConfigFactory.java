@@ -1,17 +1,28 @@
 package edu.kit.varijoern.composers;
 
+import edu.kit.varijoern.analyzers.AnalyzerConfig;
+import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
 import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
 
+/**
+ * This class is used for parsing the composer section of a configuration file. It uses its {@code name} field to
+ * determine which {@link ComposerConfig} subclass to use.
+ */
 public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerConfig, Composer> {
     private static final ComposerConfigFactory instance = new ComposerConfigFactory();
 
     private ComposerConfigFactory() {
     }
 
+    /**
+     * Returns an {@link ComposerConfigFactory} instance.
+     *
+     * @return the instance
+     */
     public static ComposerConfigFactory getInstance() {
         return instance;
     }
