@@ -29,7 +29,7 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
     protected ComposerConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
         throws InvalidConfigException {
         return switch (componentName) {
-            case "antenna" -> new AntennaComposerConfig(toml, configPath);
+            case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath);
             default -> throw new InvalidConfigException(String.format("Unknown composer \"%s\"", componentName));
         };
     }
