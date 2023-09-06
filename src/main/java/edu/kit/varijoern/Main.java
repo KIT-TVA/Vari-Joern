@@ -16,6 +16,7 @@ import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.samplers.Sampler;
+import edu.kit.varijoern.samplers.SamplerException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -81,9 +82,18 @@ public class Main {
 
         List<AnalysisResult> analysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
-            List<List<String>> sample = sampler.sample(analysisResults);
+            List<List<String>> sample;
+            try {
+                sample = sampler.sample(analysisResults);
+            } catch (SamplerException e) {
+                System.err.println("A sampler error occurred");
+                e.printStackTrace();
+                return STATUS_INTERNAL_ERROR;
+            }
             analysisResults = new ArrayList<>();
             for (int j = 0; j < sample.size(); j++) {
+                List<String> features = sample.get(j);
+                System.out.println("Analyzing variant with features " + features);
                 String destinationDirectoryName = String.format("%d-%d", i, j);
                 Path composerDestination = tmpDir.resolve(destinationDirectoryName);
                 try {
@@ -92,7 +102,6 @@ public class Main {
                     System.err.printf("Failed to create composer destination directory: %s%n", e.getMessage());
                     return STATUS_IO_ERROR;
                 }
-                List<String> features = sample.get(j);
 
                 CompositionInformation composedSourceLocation;
                 try {

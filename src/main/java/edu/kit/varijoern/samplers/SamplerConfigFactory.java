@@ -30,6 +30,7 @@ public class SamplerConfigFactory extends NamedComponentConfigFactory<SamplerCon
         throws InvalidConfigException {
         return switch (componentName) {
             case FixedSampler.NAME -> new FixedSamplerConfig(toml);
+            case TWiseSampler.NAME -> new TWiseSamplerConfig(toml);
             default -> throw new InvalidConfigException(String.format("Unknown sampler \"%s\"", componentName));
         };
     }
