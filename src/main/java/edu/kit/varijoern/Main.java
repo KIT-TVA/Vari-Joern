@@ -80,17 +80,18 @@ public class Main {
             return STATUS_IO_ERROR;
         }
 
-        List<AnalysisResult> analysisResults = List.of();
+        List<AnalysisResult> allAnalysisResults = new ArrayList<>();
+        List<AnalysisResult> iterationAnalysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
             List<List<String>> sample;
             try {
-                sample = sampler.sample(analysisResults);
+                sample = sampler.sample(iterationAnalysisResults);
             } catch (SamplerException e) {
                 System.err.println("A sampler error occurred");
                 e.printStackTrace();
                 return STATUS_INTERNAL_ERROR;
             }
-            analysisResults = new ArrayList<>();
+            iterationAnalysisResults = new ArrayList<>();
             for (int j = 0; j < sample.size(); j++) {
                 List<String> features = sample.get(j);
                 System.out.println("Analyzing variant with features " + features);
@@ -120,7 +121,7 @@ public class Main {
                 }
 
                 try {
-                    analysisResults.add(analyzer.analyze(composedSourceLocation));
+                    iterationAnalysisResults.add(analyzer.analyze(composedSourceLocation));
                 } catch (IOException e) {
                     System.err.println("An I/O error occurred while running the analyzer");
                     e.printStackTrace();
@@ -131,8 +132,17 @@ public class Main {
                     return STATUS_INTERNAL_ERROR;
                 }
             }
+            allAnalysisResults.addAll(iterationAnalysisResults);
         }
 
+        printSummary(allAnalysisResults);
         return 0;
+    }
+
+    private static void printSummary(List<AnalysisResult> analysisResults) {
+        System.out.println("Summary:");
+        for (AnalysisResult analysisResult : analysisResults) {
+            System.out.println(analysisResult);
+        }
     }
 }
