@@ -11,8 +11,10 @@ import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * This sampler chooses a set of features that achieves t-wise coverage.
+ */
 public class TWiseSampler implements Sampler {
     public static final String NAME = "t-wise";
     private final IFeatureModel featureModel;
