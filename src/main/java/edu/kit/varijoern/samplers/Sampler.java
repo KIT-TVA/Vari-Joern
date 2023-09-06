@@ -16,5 +16,5 @@ public interface Sampler {
      * @param analysisResults the analysis results of the feature combinations of the previous iteration
      * @return a list of feature combinations
      */
-    @NotNull List<List<String>> sample(List<AnalysisResult> analysisResults);
+    @NotNull List<List<String>> sample(List<AnalysisResult> analysisResults) throws SamplerException;
 }

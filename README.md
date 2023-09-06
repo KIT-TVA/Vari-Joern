@@ -29,7 +29,7 @@ Samplers return a set of feature combinations which are then used by a composer 
 The resulting code is analyzed by Joern.
 Samplers may use the results of the analysis to optimize the set of feature combinations returned in the next iteration.
 
-Currently, only one sampler is available:
+The following samplers are available:
 
 #### The `fixed` sampler
 This sampler always returns the specified set of features. It ignores the results of previous iterations.
@@ -37,6 +37,14 @@ This sampler always returns the specified set of features. It ignores the result
 Currently, one option is available:
 - `features`
   - Specifies the set of features the sampler returns.
+  - Optional: no
+
+#### The `t-wise` sampler
+This sampler returns a sample that achieves t-wise feature coverage.
+It takes one option:
+- `t`
+  - The parameter `t`. The sampler will try to cover all possible combinations of `t` features.
+    Should be less than or equal to the number of total features.
   - Optional: no
 
 ### Composers
