@@ -64,6 +64,6 @@ public class AntennaComposer implements Composer {
                 }
             }
         }
-        return new CompositionInformation(destination);
+        return new CompositionInformation(destination, features);
     }
 }
