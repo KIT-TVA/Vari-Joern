@@ -53,7 +53,9 @@ public class JoernAnalyzer implements Analyzer {
         );
         runJoern(sourceLocation, outFile);
         List<JoernFinding> findings = this.parseFindings(outFile);
-        return new JoernAnalysisResult(findings, compositionInformation.getEnabledFeatures());
+        return new JoernAnalysisResult(findings,
+            compositionInformation.getEnabledFeatures(),
+            compositionInformation.getFeatureMapper());
     }
 
     /**

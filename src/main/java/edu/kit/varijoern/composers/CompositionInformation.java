@@ -9,16 +9,19 @@ import java.util.List;
 public class CompositionInformation {
     private final Path location;
     private final List<String> enabledFeatures;
+    private final FeatureMapper featureMapper;
 
     /**
      * Creates a new {@link CompositionInformation} instance.
      *
      * @param location        the location of the composed code. See {@link CompositionInformation#getLocation()}.
      * @param enabledFeatures the names of the features the code was composed with
+     * @param featureMapper   a {@link FeatureMapper} for this composition result
      */
-    public CompositionInformation(Path location, List<String> enabledFeatures) {
+    public CompositionInformation(Path location, List<String> enabledFeatures, FeatureMapper featureMapper) {
         this.location = location;
         this.enabledFeatures = enabledFeatures;
+        this.featureMapper = featureMapper;
     }
 
     /**
@@ -38,5 +41,14 @@ public class CompositionInformation {
      */
     public List<String> getEnabledFeatures() {
         return this.enabledFeatures;
+    }
+
+    /**
+     * Returns the feature mapper for the composition result.
+     *
+     * @return a feature mapper
+     */
+    public FeatureMapper getFeatureMapper() {
+        return featureMapper;
     }
 }

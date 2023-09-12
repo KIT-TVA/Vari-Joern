@@ -2,6 +2,7 @@ package edu.kit.varijoern.analyzers.joern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.kit.varijoern.composers.FeatureMapper;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -89,6 +90,22 @@ public class JoernFinding {
         return "%s: %s at %s".formatted(this.title,
             this.score,
             this.evidence.stream().map(JoernEvidence::toString).collect(Collectors.joining(", "))
+        );
+    }
+
+    /**
+     * Converts this finding to a string containing information about conditions under which evidence lines are included
+     * in the composed code.
+     *
+     * @param featureMapper the feature mapper to be used
+     * @return a string representing this finding
+     */
+    public String toString(FeatureMapper featureMapper) {
+        return "%s: %s at %s".formatted(this.title,
+            this.score,
+            this.evidence.stream()
+                .map(joernEvidence -> joernEvidence.toString(featureMapper))
+                .collect(Collectors.joining(", "))
         );
     }
 }

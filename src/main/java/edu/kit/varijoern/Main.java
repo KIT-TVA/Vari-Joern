@@ -141,8 +141,12 @@ public class Main {
 
     private static void printSummary(List<AnalysisResult> analysisResults) {
         System.out.println("Summary:");
-        for (AnalysisResult analysisResult : analysisResults) {
+        for (int i = 0; i < analysisResults.size(); i++) {
+            AnalysisResult analysisResult = analysisResults.get(i);
             System.out.println(analysisResult);
+            if (i != analysisResults.size() - 1) {
+                System.out.println();
+            }
         }
     }
 }
