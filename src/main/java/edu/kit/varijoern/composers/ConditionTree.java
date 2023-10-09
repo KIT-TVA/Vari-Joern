@@ -29,6 +29,12 @@ public class ConditionTree {
     private final Node condition;
     private final List<ConditionTree> children;
 
+    /**
+     * Creates a new {@link ConditionTree} for the specified file content.
+     *
+     * @param lines the lines of the file
+     * @throws ConditionTreeException if the tree could not be generated
+     */
     public ConditionTree(List<String> lines) throws ConditionTreeException {
         this.firstLine = 1;
         this.length = lines.size();
@@ -37,6 +43,18 @@ public class ConditionTree {
         this.condition = Objects.requireNonNullElseGet(parsingResult.condition, True::new);
     }
 
+    /**
+     * Creates a subtree of the condition tree of the file starting from the specified line. Stores the specified
+     * condition for this subtree.
+     *
+     * @param lines           a list containing all lines of the file
+     * @param offset          the offset the subtree should start from
+     * @param condition       the condition for all lines of the subtree
+     * @param waitingForEndif {@code true} if this subtree is enclosed by an {@code //#if} construct. Parsing will stop
+     *                        when a line ending an if block is reached, e.g. {@code //#endif}, {@code //#else},
+     *                        {@code //#endifdef}
+     * @throws ConditionTreeException if the subtree could not be created
+     */
     private ConditionTree(List<String> lines,
                           int offset,
                           Node condition,
@@ -52,6 +70,17 @@ public class ConditionTree {
         this.children = parsingResult.children;
     }
 
+    /**
+     * Parses the specified file starting from the specified offset and returns the subtrees and a condition for this
+     * tree if one was specified using the {@code //#condition} directive.
+     *
+     * @param lines           all lines of the file
+     * @param offset          the offset at which to start parsing
+     * @param waitingForEndif {@code true} if this tree represents an if block. Parsing will stop once the end of the
+     *                        block is reached.
+     * @return the subtrees of this tree and its specified condition
+     * @throws ConditionTreeException if the tree could not be created
+     */
     private static ParsingResult parse(
         List<String> lines,
         int offset,
@@ -84,6 +113,18 @@ public class ConditionTree {
         return new ParsingResult(lineIndex - offset, children, ownCondition);
     }
 
+    /**
+     * Parses an if-elif-else construct and adds the resulting subtrees to the specified list of children. This method
+     * also supports {@code ifdef} and {@code ifndef} blocks.
+     *
+     * @param ifLine       the line containing the initial if condition
+     * @param lines        all lines of the file
+     * @param ifLineOffset the offset of the line containing the if condition
+     * @param children     the list of children to add the new subtrees to
+     * @return the offset of the line containing the {@code //#endif} directive
+     * @throws ConditionTreeException if the if-elif-else construct could not be parsed or a subtree could not be
+     *                                created
+     */
     private static int handleIf(PPLineAST ifLine, List<String> lines, int ifLineOffset, List<ConditionTree> children)
         throws ConditionTreeException {
         List<Node> previousConditions = new ArrayList<>();
@@ -111,6 +152,18 @@ public class ConditionTree {
         }
     }
 
+    /**
+     * Creates a new subtree for a code block of an if, elif or else directive.
+     *
+     * @param ifLine             the line containing the directive starting the code block
+     * @param lines              all lines of the file
+     * @param ifLineOffset       the offset of the line containing the directive
+     * @param previousConditions the conditions of the preceding {@code if}, {@code elif}, {@code elifdef} and
+     *                           {@code elifndef} lines if {@code ifLine} contains an else / elif / elifdef / elifndef
+     *                           directive
+     * @return the subtree representing the code block
+     * @throws ConditionTreeException if the subtree could not be created
+     */
     @NotNull
     private static ConditionTree createNewIfChild(PPLineAST ifLine, List<String> lines, int ifLineOffset,
                                                   @NotNull List<Node> previousConditions)
@@ -149,6 +202,12 @@ public class ConditionTree {
         return tokenTree.getCharPositionInLine();
     }
 
+    /**
+     * Parses an if condition inside an {@code //#if} or {@code //#elif} directive.
+     *
+     * @param condition the condition excluding the initial {@code //#if} and {@code //#elif} part
+     * @return the parsed condition
+     */
     private static Node createIfCondition(String condition) {
         NodeReader nodeReader = new NodeReader();
         String preparedCondition = condition.trim()
@@ -170,6 +229,14 @@ public class ConditionTree {
         return (PPLineAST) ast.getParent().getChild(ast.getIndex() + 1);
     }
 
+    /**
+     * Returns the condition for {@code //#ifdef}-like directives.
+     *
+     * @param symbol the symbol specified by the directive
+     * @param negate {@code true} if the symbol should be negated, for example when an {@code //#ifndef} directive is
+     *               used
+     * @return the condition
+     */
     private static Node definedCondition(String symbol, boolean negate) {
         return new Literal(symbol, !negate);
     }
@@ -205,22 +272,49 @@ public class ConditionTree {
         return parser;
     }
 
+    /**
+     * Returns the line number of the first line of the code block represented by this tree.
+     *
+     * @return the line number of the first line of the code block, 1-based
+     */
     public int getFirstLine() {
         return firstLine;
     }
 
+    /**
+     * Returns the number of lines the code block spans
+     *
+     * @return the number of lines of the code block
+     */
     public int getLength() {
         return length;
     }
 
+    /**
+     * Returns a list of all subtrees of this tree.
+     *
+     * @return all subtrees
+     */
     public List<ConditionTree> getChildren() {
         return children;
     }
 
+    /**
+     * Returns the condition of this tree. This condition does not include the conditions of the trees this tree is a
+     * subtree of.
+     *
+     * @return the condition of this tree
+     */
     public Node getCondition() {
         return condition;
     }
 
+    /**
+     * Returns the condition of the specified line by combining the conditions of all subtrees containing this line.
+     *
+     * @param lineNumber the line number. Line 1 is the first line.
+     * @return the condition of the line
+     */
     public Node getConditionOfLine(int lineNumber) {
         Optional<ConditionTree> candidate = this.children.stream()
             .filter(child -> child.firstLine <= lineNumber && lineNumber < child.firstLine + child.length)
@@ -243,6 +337,13 @@ public class ConditionTree {
         return sb.toString();
     }
 
+    /**
+     * Contains the result of parsing a tree.
+     *
+     * @param length    the number of lines of the code block the tree represents
+     * @param children  the children of the tree
+     * @param condition the condition of the tree as specified by the {@code //#condition} directive
+     */
     private record ParsingResult(int length, List<ConditionTree> children, Node condition) {
     }
 }

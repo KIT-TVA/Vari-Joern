@@ -1,5 +1,8 @@
 package edu.kit.varijoern.composers;
 
+/**
+ * Indicates that an error occurred while generating a {@link ConditionTree}.
+ */
 public class ConditionTreeException extends Exception {
     public ConditionTreeException() {
     }

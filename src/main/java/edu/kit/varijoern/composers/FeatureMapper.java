@@ -5,6 +5,9 @@ import org.prop4j.Node;
 import java.nio.file.Path;
 import java.util.Optional;
 
+/**
+ * An interface for determining which features need to be enabled or disabled for a line to be included by a composer.
+ */
 public interface FeatureMapper {
     /**
      * Tries to determine the condition under which the specified line is included in the composed result. The condition
