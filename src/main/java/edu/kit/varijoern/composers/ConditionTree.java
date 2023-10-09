@@ -8,6 +8,7 @@ import antenna.preprocessor.v3.parser.PPLineAST;
 import org.antlr.runtime.ANTLRReaderStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.TokenRewriteStream;
+import org.antlr.runtime.tree.Tree;
 import org.jetbrains.annotations.NotNull;
 import org.prop4j.*;
 
@@ -119,10 +120,12 @@ public class ConditionTree {
         if (ifLine.getType() == APPLexer.ELSE) {
             fullCondition = new And(negatedPreviousConditions.toArray());
         } else {
+            PPLineAST conditionAST = getNextSibling(ifLine);
+            final String conditionText = lines.get(ifLineOffset).substring(getFirstCharPositionInLine(conditionAST));
             Node ifCondition = switch (ifLine.getType()) {
-                case APPLexer.IF, APPLexer.ELIF -> createIfCondition(getNextSibling(ifLine).getText());
-                case APPLexer.IFDEF, APPLexer.ELIFDEF -> definedCondition(getNextSibling(ifLine).getText(), false);
-                case APPLexer.IFNDEF, APPLexer.ELIFNDEF -> definedCondition(getNextSibling(ifLine).getText(), true);
+                case APPLexer.IF, APPLexer.ELIF -> createIfCondition(conditionText);
+                case APPLexer.IFDEF, APPLexer.ELIFDEF -> definedCondition(conditionText, false);
+                case APPLexer.IFNDEF, APPLexer.ELIFNDEF -> definedCondition(conditionText, true);
                 default -> throw new RuntimeException();
             };
             fullCondition = new And(
@@ -132,18 +135,33 @@ public class ConditionTree {
         return new ConditionTree(lines, ifLineOffset + 1, fullCondition, true);
     }
 
+    /**
+     * Iteratively selects the first child of the current tree until a leaf is found and returns the leaf's character
+     * position in its line.
+     *
+     * @param tokenTree the root to start iterating from
+     * @return the leaf's character position in its line
+     */
+    private static int getFirstCharPositionInLine(Tree tokenTree) {
+        while (tokenTree.getChildCount() > 0) {
+            tokenTree = tokenTree.getChild(0);
+        }
+        return tokenTree.getCharPositionInLine();
+    }
+
     private static Node createIfCondition(String condition) {
         NodeReader nodeReader = new NodeReader();
+        String preparedCondition = condition.trim()
+            .replace("&&", "&")
+            .replace("||", "|")
+            .replace("!", "-")
+            .replace("==", "=")
+            .replace("&", " and ")
+            .replace("|", " or ")
+            .replace("-", " not ")
+            .replace("=", " iff ");
         return nodeReader.stringToNode(
-            condition.trim()
-                .replace("&&", "&")
-                .replace("||", "|")
-                .replace("!", "-")
-                .replace("==", "=")
-                .replace("&", " and ")
-                .replace("|", " or ")
-                .replace("-", " not ")
-                .replace("=", " iff ")
+            preparedCondition
         );
     }
 
