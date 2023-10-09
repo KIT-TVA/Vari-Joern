@@ -1,5 +1,6 @@
-package edu.kit.varijoern.composers;
+package edu.kit.varijoern.composers.antenna;
 
+import edu.kit.varijoern.composers.FeatureMapper;
 import org.prop4j.Node;
 
 import java.nio.file.Path;

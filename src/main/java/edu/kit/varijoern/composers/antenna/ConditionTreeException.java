@@ -1,4 +1,4 @@
-package edu.kit.varijoern.composers;
+package edu.kit.varijoern.composers.antenna;
 
 /**
  * Indicates that an error occurred while generating a {@link ConditionTree}.

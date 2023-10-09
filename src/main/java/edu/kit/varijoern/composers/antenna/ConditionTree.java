@@ -1,4 +1,4 @@
-package edu.kit.varijoern.composers;
+package edu.kit.varijoern.composers.antenna;
 
 import antenna.preprocessor.v3.PPLine;
 import antenna.preprocessor.v3.parser.APPLexer;
