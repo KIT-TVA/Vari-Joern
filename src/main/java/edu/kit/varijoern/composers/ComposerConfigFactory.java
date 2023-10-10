@@ -1,5 +1,7 @@
 package edu.kit.varijoern.composers;
 
+import edu.kit.varijoern.composers.antenna.AntennaComposer;
+import edu.kit.varijoern.composers.antenna.AntennaComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
 import org.tomlj.TomlTable;

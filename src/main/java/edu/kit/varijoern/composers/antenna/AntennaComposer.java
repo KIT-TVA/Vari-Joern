@@ -1,17 +1,20 @@
-package edu.kit.varijoern.composers;
+package edu.kit.varijoern.composers.antenna;
 
 import antenna.preprocessor.v3.PPException;
 import antenna.preprocessor.v3.Preprocessor;
 import edu.kit.varijoern.IllegalFeatureNameException;
+import edu.kit.varijoern.composers.Composer;
+import edu.kit.varijoern.composers.ComposerException;
+import edu.kit.varijoern.composers.CompositionInformation;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Vector;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -32,7 +35,7 @@ public class AntennaComposer implements Composer {
     }
 
     @Override
-    public CompositionInformation compose(@NotNull List<String> features, @NotNull Path destination)
+    public @NotNull CompositionInformation compose(@NotNull List<String> features, @NotNull Path destination)
         throws IllegalFeatureNameException, IOException, ComposerException {
         Preprocessor preprocessor = new Preprocessor(null, null);
         try {
@@ -40,6 +43,7 @@ public class AntennaComposer implements Composer {
         } catch (PPException e) {
             throw new IllegalFeatureNameException(e);
         }
+        ConditionTreeFeatureMapper featureMapper = new ConditionTreeFeatureMapper();
 
         try (Stream<Path> sourceFiles = Files.walk(this.sourceLocation)) {
             for (Path sourcePath : (Iterable<Path>) sourceFiles::iterator) {
@@ -48,22 +52,26 @@ public class AntennaComposer implements Composer {
 
                 Path relativePath = this.sourceLocation.relativize(sourcePath);
                 Path destinationPath = destination.resolve(relativePath);
-                File sourceFile = new File(sourcePath.toString());
-                File destinationFile = new File(destinationPath.toString());
-                Files.createDirectories(destinationPath.getParent());
-                //noinspection ResultOfMethodCallIgnored
-                destinationFile.createNewFile();
+
+                Vector<String> lineVector = new Vector<>(Files.readAllLines(sourcePath, StandardCharsets.UTF_8));
 
                 try {
                     preprocessor.preprocess(
-                        new FileInputStream(sourceFile),
-                        new FileOutputStream(destinationFile), "UTF8"
+                        lineVector,
+                        StandardCharsets.UTF_8.name()
                     );
                 } catch (PPException e) {
                     throw new ComposerException(String.format("Could not preprocess %s", relativePath), e);
                 }
+
+                Files.createDirectories(destinationPath.getParent());
+                Files.writeString(destinationPath,
+                    lineVector.stream().collect(Collectors.joining(System.lineSeparator()))
+                );
+
+                featureMapper.tryAddFile(relativePath, lineVector.stream().toList());
             }
         }
-        return new CompositionInformation(destination, features);
+        return new CompositionInformation(destination, features, featureMapper);
     }
 }
