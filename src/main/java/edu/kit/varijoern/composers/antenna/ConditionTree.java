@@ -104,7 +104,11 @@ public class ConditionTree {
                 case APPLexer.CONDITION -> {
                     if (lineIndex != 0)
                         throw new ConditionTreeException("//#condition is only allowed in line 1");
-                    ownCondition = createIfCondition(getNextSibling(ast).getText());
+                    ownCondition = createIfCondition(
+                        lines
+                            .get(lineIndex)
+                            .substring(getFirstCharPositionInLine(getNextSibling(ast)))
+                    );
                 }
             }
         }
@@ -130,7 +134,6 @@ public class ConditionTree {
         List<Node> previousConditions = new ArrayList<>();
         ConditionTree lastChild = createNewIfChild(ifLine, lines, ifLineOffset, previousConditions);
         children.add(lastChild);
-        previousConditions.add(lastChild.condition);
 
         int currentOffset = ifLineOffset + lastChild.length + 1;
 
@@ -160,7 +163,7 @@ public class ConditionTree {
      * @param ifLineOffset       the offset of the line containing the directive
      * @param previousConditions the conditions of the preceding {@code if}, {@code elif}, {@code elifdef} and
      *                           {@code elifndef} lines if {@code ifLine} contains an else / elif / elifdef / elifndef
-     *                           directive
+     *                           directive. If this block specifies a new condition, it is added to this list.
      * @return the subtree representing the code block
      * @throws ConditionTreeException if the subtree could not be created
      */
@@ -184,6 +187,7 @@ public class ConditionTree {
             fullCondition = new And(
                 Stream.concat(negatedPreviousConditions, Stream.of(ifCondition)).toArray()
             );
+            previousConditions.add(ifCondition);
         }
         return new ConditionTree(lines, ifLineOffset + 1, fullCondition, true);
     }
@@ -316,6 +320,10 @@ public class ConditionTree {
      * @return the condition of the line
      */
     public Node getConditionOfLine(int lineNumber) {
+        if (lineNumber < 1 || lineNumber >= this.firstLine + this.length)
+            throw new IndexOutOfBoundsException(
+                "Cannot get condition for line %d because it is out of range.".formatted(lineNumber)
+            );
         Optional<ConditionTree> candidate = this.children.stream()
             .filter(child -> child.firstLine <= lineNumber && lineNumber < child.firstLine + child.length)
             .findAny();
