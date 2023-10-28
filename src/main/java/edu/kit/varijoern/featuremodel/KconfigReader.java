@@ -1,0 +1,174 @@
+package edu.kit.varijoern.featuremodel;
+
+import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import de.ovgu.featureide.fm.core.base.impl.Feature;
+import de.ovgu.featureide.fm.core.base.impl.FeatureModel;
+import de.ovgu.featureide.fm.core.base.impl.MultiConstraint;
+import de.ovgu.featureide.fm.core.io.dimacs.DimacsReader;
+import net.ssehub.kernel_haven.SetUpException;
+import net.ssehub.kernel_haven.config.Configuration;
+import net.ssehub.kernel_haven.config.DefaultSettings;
+import net.ssehub.kernel_haven.kconfigreader.KconfigReaderExtractor;
+import net.ssehub.kernel_haven.provider.AbstractCache;
+import net.ssehub.kernel_haven.provider.AbstractProvider;
+import net.ssehub.kernel_haven.util.FormatException;
+import net.ssehub.kernel_haven.util.null_checks.NonNull;
+import net.ssehub.kernel_haven.util.null_checks.Nullable;
+import net.ssehub.kernel_haven.variability_model.VariabilityModel;
+import net.ssehub.kernel_haven.variability_model.VariabilityVariable;
+import org.prop4j.Node;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.text.ParseException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * Uses KconfigReader to extract a feature model from a Kconfig file.
+ * This reader should not be used because the resulting constraints are not equivalent, but only equisatisfiable to the
+ * constraints of the original feature model.
+ */
+public class KconfigReader implements FeatureModelReader {
+    public static final String NAME = "kconfig-reader";
+
+    private final Path path;
+
+    /**
+     * Creates a new {@link KconfigReader} that extracts a feature model from the Kconfig file located in the specified
+     * directory. So far only the Linux kernel is supported.
+     *
+     * @param path the path to the directory containing the Kconfig file
+     */
+    public KconfigReader(Path path) {
+        this.path = path;
+    }
+
+    @Override
+    public IFeatureModel read(Path tmpPath) throws IOException {
+        KconfigReaderExtractor extractor = new KconfigReaderExtractor();
+        KconfigReaderProvider provider = new KconfigReaderProvider();
+        extractor.setProvider(provider);
+        provider.setExtractor(extractor);
+
+        configureExtractor(tmpPath, provider);
+
+        extractor.run(List.of(new File("/dev/null"))); // The files are ignored anyway
+        VariabilityModel variabilityModel = provider.getResult();
+        DimacsReader dimacsReader = new DimacsReader();
+        Node constraints;
+        try {
+            constraints = dimacsReader.read(new FileReader(variabilityModel.getConstraintModel()));
+        } catch (ParseException e) {
+            throw new RuntimeException("The constraint model could not be parsed.", e);
+        }
+        List<String> freshVariables = addOptionNamesToConstraints(constraints, variabilityModel.getVariables());
+        IFeatureModel featureModel = new FeatureModel("kconfig-reader");
+        for (VariabilityVariable variable : variabilityModel.getVariables()) {
+            if (!variable.getType().equals("bool") && !variable.getType().equals("tristate"))
+                // Ignore non-tristate variables, they should be set to their default values by the composer.
+                continue;
+            featureModel.addFeature(new Feature(featureModel, variable.getName()));
+        }
+        for (String freshVariable : freshVariables) {
+            featureModel.addFeature(new Feature(featureModel, freshVariable));
+        }
+        featureModel.addConstraint(new MultiConstraint(featureModel, constraints));
+
+        return featureModel;
+    }
+
+    private void configureExtractor(Path tmpPath, KconfigReaderProvider provider) throws IOException {
+        Path resourceDirectory = tmpPath.resolve("res");
+        if (!resourceDirectory.toFile().mkdirs())
+            throw new IOException("Could not create resource directory for KconfigReader.");
+
+        Properties extractorProperties = new Properties();
+        extractorProperties.setProperty(DefaultSettings.SOURCE_TREE.getKey(), this.path.toString());
+        extractorProperties.setProperty(DefaultSettings.ARCH.getKey(), "x86");
+        extractorProperties.setProperty(DefaultSettings.RESOURCE_DIR.getKey(), resourceDirectory.toString());
+        Configuration extractorConfiguration = new Configuration(extractorProperties);
+        try {
+            extractorConfiguration.registerSetting(DefaultSettings.SOURCE_TREE);
+            extractorConfiguration.registerSetting(DefaultSettings.ARCH);
+            extractorConfiguration.registerSetting(DefaultSettings.RESOURCE_DIR);
+            provider.setConfig(extractorConfiguration);
+        } catch (SetUpException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Adds the names of the options to the constraints. If a literal is not associated with an option, it is assumed
+     * to be a fresh variable generated by KconfigReader. The newly generated names of these variables are returned.
+     *
+     * @param constraints the constraints
+     * @param variables   the variables
+     * @return the names of the fresh variables
+     */
+    private List<String> addOptionNamesToConstraints(Node constraints, Set<VariabilityVariable> variables) {
+        Map<String, String> dimacsNumberToOptionNameMap = variables.stream()
+            .filter(variable -> variable.getDimacsNumber() != 0)
+            .map(variable -> Map.entry(String.valueOf(variable.getDimacsNumber()), variable.getName()))
+            .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
+        List<String> freshVariables = new ArrayList<>();
+        constraints.modifyFeatureNames(o -> {
+            if (dimacsNumberToOptionNameMap.containsKey(o)) {
+                return dimacsNumberToOptionNameMap.get(o);
+            } else {
+                String freshVariable = "__fresh" + freshVariables.size();
+                freshVariables.add(freshVariable);
+                return freshVariable;
+            }
+        });
+        return freshVariables;
+    }
+
+    private static class KconfigReaderProvider extends AbstractProvider<VariabilityModel> {
+        @Override
+        protected @NonNull List<@NonNull File> getTargets() throws SetUpException {
+            throw new RuntimeException("Looks like the getTargets() method is actually used. Oops.");
+        }
+
+        @Override
+        protected long getTimeout() {
+            return 0;
+        }
+
+        @Override
+        protected @NonNull AbstractCache<VariabilityModel> createCache() {
+            return new DummyCache();
+        }
+
+        @Override
+        public boolean readCache() {
+            return false;
+        }
+
+        @Override
+        public boolean writeCache() {
+            return false;
+        }
+
+        @Override
+        public int getNumberOfThreads() {
+            return 1;
+        }
+    }
+
+    /**
+     * A dummy cache that does nothing.
+     */
+    private static class DummyCache extends AbstractCache<VariabilityModel> {
+        @Override
+        public @Nullable VariabilityModel read(@NonNull File file) throws FormatException, IOException {
+            return null;
+        }
+
+        @Override
+        public void write(@NonNull VariabilityModel variabilityModel) throws IOException {
+        }
+    }
+}

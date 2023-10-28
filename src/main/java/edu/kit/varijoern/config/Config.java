@@ -4,6 +4,8 @@ import edu.kit.varijoern.analyzers.AnalyzerConfig;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderConfig;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderConfigFactory;
 import edu.kit.varijoern.samplers.SamplerConfig;
 import edu.kit.varijoern.samplers.SamplerConfigFactory;
 import org.tomlj.Toml;
@@ -20,15 +22,15 @@ import java.util.stream.Collectors;
  * This class contains the complete configuration of Vari-Joern. This includes the subsections for components.
  */
 public class Config {
+    private static final String FEATURE_MODEL_READER_FIELD_NAME = "feature-model-reader";
     private static final String ITERATIONS_FIELD_NAME = "iterations";
     private static final String SAMPLER_FIELD_NAME = "sampler";
     private static final String COMPOSER_FIELD_NAME = "composer";
-    private static final String FEATURE_MODEL_FIELD_NAME = "feature-model";
     private static final String ERR_SECTION_MISSING_FMT = "`%s` section is missing";
     private static final String ANALYZER_FIELD_NAME = "analyzer";
 
     private final long iterations;
-    private final Path featureModelPath;
+    private final FeatureModelReaderConfig featureModelReaderConfig;
     private final SamplerConfig samplerConfig;
     private final ComposerConfig composerConfig;
     private final AnalyzerConfig analyzerConfig;
@@ -56,19 +58,6 @@ public class Config {
             throw new InvalidConfigException("Invalid type of option `iterations`", e);
         }
 
-        if (!parsedConfig.isString(FEATURE_MODEL_FIELD_NAME))
-            throw new InvalidConfigException("Feature model path is missing or not a string");
-        Path featureModelPath;
-        try {
-            featureModelPath = Path.of(parsedConfig.getString(FEATURE_MODEL_FIELD_NAME));
-        } catch (InvalidPathException e) {
-            throw new InvalidConfigException("Feature model path is invalid", e);
-        }
-        if (!featureModelPath.isAbsolute()) {
-            featureModelPath = configLocation.getParent().resolve(featureModelPath);
-        }
-        this.featureModelPath = featureModelPath;
-
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
         this.samplerConfig = SamplerConfigFactory.getInstance()
@@ -83,6 +72,11 @@ public class Config {
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
         this.analyzerConfig = AnalyzerConfigFactory.getInstance()
             .readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME), configLocation);
+
+        if (!parsedConfig.isTable(FEATURE_MODEL_READER_FIELD_NAME))
+            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FEATURE_MODEL_READER_FIELD_NAME));
+        this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
+            .readConfig(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME), configLocation);
     }
 
     /**
@@ -92,6 +86,15 @@ public class Config {
      */
     public long getIterations() {
         return iterations;
+    }
+
+    /**
+     * Returns the configuration of the feature model reader component.
+     *
+     * @return the feature model reader configuration
+     */
+    public FeatureModelReaderConfig getFeatureModelReaderConfig() {
+        return featureModelReaderConfig;
     }
 
     /**
@@ -110,16 +113,6 @@ public class Config {
      */
     public ComposerConfig getComposerConfig() {
         return composerConfig;
-    }
-
-    /**
-     * Returns the path to the feature model file. This path has already been resolved against the path to the
-     * configuration file.
-     *
-     * @return the path to the feature model file
-     */
-    public Path getFeatureModelPath() {
-        return featureModelPath;
     }
 
     /**

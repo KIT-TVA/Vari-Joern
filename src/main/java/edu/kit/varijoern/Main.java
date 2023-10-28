@@ -15,9 +15,17 @@ import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
+import net.ssehub.kernel_haven.SetUpException;
+import net.ssehub.kernel_haven.kconfigreader.KconfigReaderExtractor;
+import net.ssehub.kernel_haven.provider.AbstractCache;
+import net.ssehub.kernel_haven.provider.AbstractProvider;
+import net.ssehub.kernel_haven.util.null_checks.NonNull;
+import net.ssehub.kernel_haven.variability_model.VariabilityModel;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,19 +61,27 @@ public class Main {
     }
 
     private static int runUsingConfig(Config config) {
-        FMFormatManager.getInstance().addExtension(new XmlFeatureModelFormat());
-        FMFactoryManager.getInstance().addExtension(new DefaultFeatureModelFactory());
-        FMFactoryManager.getInstance().setWorkspaceLoader(new CoreFactoryWorkspaceLoader());
-        IFeatureModel featureModel = FeatureModelManager.load(config.getFeatureModelPath());
-
         Path tmpDir;
         Path analyzerTmpDirectory;
+        Path featureModelReaderTmpDirectory;
         try {
             tmpDir = Files.createTempDirectory("vari-joern");
             analyzerTmpDirectory = tmpDir.resolve("analyzer");
             Files.createDirectories(analyzerTmpDirectory);
+            featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
+            Files.createDirectories(featureModelReaderTmpDirectory);
         } catch (IOException e) {
             System.err.printf("Failed to create temporary directory: %s%n", e.getMessage());
+            return STATUS_IO_ERROR;
+        }
+
+        FeatureModelReader featureModelReader = config.getFeatureModelReaderConfig().newFeatureModelReader();
+        IFeatureModel featureModel;
+        try {
+            featureModel = featureModelReader.read(featureModelReaderTmpDirectory);
+        } catch (IOException e) {
+            System.err.println("An I/O error occurred while reading the feature model");
+            e.printStackTrace();
             return STATUS_IO_ERROR;
         }
 
