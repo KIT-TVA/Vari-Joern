@@ -5,12 +5,15 @@ import de.ovgu.featureide.fm.core.analysis.cnf.FeatureModelCNF;
 import de.ovgu.featureide.fm.core.analysis.cnf.LiteralSet;
 import de.ovgu.featureide.fm.core.analysis.cnf.Variables;
 import de.ovgu.featureide.fm.core.analysis.cnf.generator.configuration.twise.TWiseConfigurationGenerator;
+import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.job.monitor.ConsoleMonitor;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * This sampler chooses a set of features that achieves t-wise coverage.
@@ -35,7 +38,7 @@ public class TWiseSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<List<String>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
+    public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
         TWiseConfigurationGenerator generator = new TWiseConfigurationGenerator(cnf, this.t, this.maxSampleSize);
         List<LiteralSet> rawSample;
@@ -46,7 +49,20 @@ public class TWiseSampler implements Sampler {
         } catch (Exception e) {
             throw new SamplerException("TWiseConfigurationGenerator threw an exception", e);
         }
+
         Variables variables = cnf.getVariables();
-        return rawSample.stream().map(variables::convertToString).toList();
+        List<List<String>> enabledFeatures = rawSample.stream().map(variables::convertToString).toList();
+        List<Map<String, Boolean>> result = List.of(
+            this.featureModel.getFeatures().stream()
+                .collect(Collectors.toMap(IFeature::getName, feature -> false))
+        );
+        for (List<String> featureCombination : enabledFeatures) {
+            for (String feature : featureCombination) {
+                if (result.get(0).put(feature, true) == null) {
+                    throw new SamplerException("Feature %s does not exist in the feature model".formatted(feature));
+                }
+            }
+        }
+        return result;
     }
 }

@@ -4,6 +4,7 @@ import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Samplers return a list of feature combinations to be scanned in each iteration. Each iteration may use the analysis
@@ -16,5 +17,5 @@ public interface Sampler {
      * @param analysisResults the analysis results of the feature combinations of the previous iteration
      * @return a list of feature combinations
      */
-    @NotNull List<List<String>> sample(List<AnalysisResult> analysisResults) throws SamplerException;
+    @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException;
 }

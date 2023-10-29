@@ -1,24 +1,24 @@
 package edu.kit.varijoern.composers;
 
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Map;
 
 /**
  * Contains information about a composer pass, such as the location of the resulting code.
  */
 public class CompositionInformation {
     private final Path location;
-    private final List<String> enabledFeatures;
+    private final Map<String, Boolean> enabledFeatures;
     private final FeatureMapper featureMapper;
 
     /**
      * Creates a new {@link CompositionInformation} instance.
      *
      * @param location        the location of the composed code. See {@link CompositionInformation#getLocation()}.
-     * @param enabledFeatures the names of the features the code was composed with
+     * @param enabledFeatures a map of feature names to their enabled status at the time of composition
      * @param featureMapper   a {@link FeatureMapper} for this composition result
      */
-    public CompositionInformation(Path location, List<String> enabledFeatures, FeatureMapper featureMapper) {
+    public CompositionInformation(Path location, Map<String, Boolean> enabledFeatures, FeatureMapper featureMapper) {
         this.location = location;
         this.enabledFeatures = enabledFeatures;
         this.featureMapper = featureMapper;
@@ -35,11 +35,11 @@ public class CompositionInformation {
     }
 
     /**
-     * Returns the names of the features the code was composed with.
+     * Returns a map of feature names to their enabled status at the time of composition.
      *
-     * @return the names of the enabled features
+     * @return a map of feature names to their enabled status at the time of composition
      */
-    public List<String> getEnabledFeatures() {
+    public Map<String, Boolean> getEnabledFeatures() {
         return this.enabledFeatures;
     }
 

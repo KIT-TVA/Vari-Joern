@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
     private static final String USAGE = "Usage: vari-joern [config]";
@@ -64,11 +65,14 @@ public class Main {
     private static int runUsingConfig(Config config) {
         Path tmpDir;
         Path analyzerTmpDirectory;
+        Path composerTmpDirectory;
         Path featureModelReaderTmpDirectory;
         try {
             tmpDir = Files.createTempDirectory("vari-joern");
             analyzerTmpDirectory = tmpDir.resolve("analyzer");
             Files.createDirectories(analyzerTmpDirectory);
+            composerTmpDirectory = tmpDir.resolve("composer");
+            Files.createDirectories(composerTmpDirectory);
             featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
             Files.createDirectories(featureModelReaderTmpDirectory);
         } catch (IOException e) {
@@ -104,7 +108,7 @@ public class Main {
         List<AnalysisResult> allAnalysisResults = new ArrayList<>();
         List<AnalysisResult> iterationAnalysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
-            List<List<String>> sample;
+            List<Map<String, Boolean>> sample;
             try {
                 sample = sampler.sample(iterationAnalysisResults);
             } catch (SamplerException e) {
@@ -114,7 +118,7 @@ public class Main {
             }
             iterationAnalysisResults = new ArrayList<>();
             for (int j = 0; j < sample.size(); j++) {
-                List<String> features = sample.get(j);
+                Map<String, Boolean> features = sample.get(j);
                 System.out.println("Analyzing variant with features " + features);
                 String destinationDirectoryName = String.format("%d-%d", i, j);
                 Path composerDestination = tmpDir.resolve(destinationDirectoryName);
@@ -127,7 +131,7 @@ public class Main {
 
                 CompositionInformation composedSourceLocation;
                 try {
-                    composedSourceLocation = composer.compose(features, composerDestination);
+                    composedSourceLocation = composer.compose(features, composerDestination, composerTmpDirectory);
                 } catch (IllegalFeatureNameException e) {
                     System.err.println("Invalid feature name has been found");
                     return STATUS_INVALID_CONFIG;
