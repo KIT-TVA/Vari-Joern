@@ -16,5 +16,5 @@ public interface FeatureModelReader {
      * @return the feature model
      * @throws IOException if an I/O error occurs
      */
-    IFeatureModel read(Path tmpPath) throws IOException;
+    IFeatureModel read(Path tmpPath) throws IOException, FeatureModelReaderException;
 }

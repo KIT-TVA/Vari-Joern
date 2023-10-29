@@ -44,6 +44,10 @@ public class Config {
      *                                or does not match the expected configuration format
      */
     public Config(Path configLocation) throws IOException, InvalidConfigException {
+        if (!configLocation.isAbsolute()) {
+            configLocation = Path.of(System.getProperty("user.dir")).resolve(configLocation);
+        }
+
         TomlParseResult parsedConfig = Toml.parse(configLocation);
         if (parsedConfig.hasErrors()) {
             String message = parsedConfig.errors().stream()

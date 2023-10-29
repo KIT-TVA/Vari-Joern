@@ -16,6 +16,7 @@ import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import net.ssehub.kernel_haven.SetUpException;
@@ -83,6 +84,10 @@ public class Main {
             System.err.println("An I/O error occurred while reading the feature model");
             e.printStackTrace();
             return STATUS_IO_ERROR;
+        } catch (FeatureModelReaderException e) {
+            System.err.println("The feature model could not be read");
+            e.printStackTrace();
+            return STATUS_INTERNAL_ERROR;
         }
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);

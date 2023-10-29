@@ -31,6 +31,7 @@ public class FeatureModelReaderConfigFactory extends NamedComponentConfigFactory
         return switch (componentName) {
             case FeatureIDEFMReader.NAME -> new FeatureIDEFMReaderConfig(toml, configPath);
             case KconfigReader.NAME -> new KconfigReaderConfig(toml, configPath);
+            case TorteKmaxFMReader.NAME -> new TorteKmaxFMReaderConfig(toml, configPath);
             default ->
                 throw new InvalidConfigException(String.format("Unknown feature model reader \"%s\"", componentName));
         };

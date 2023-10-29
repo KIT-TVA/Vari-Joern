@@ -4,6 +4,7 @@ import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
 import org.tomlj.TomlTable;
 
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -32,7 +33,7 @@ public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
         Path featureModelPath;
         try {
             featureModelPath = Path.of(path);
-        } catch (Exception e) {
+        } catch (InvalidPathException e) {
             throw new InvalidConfigException("Path to FeatureIDE feature model is not a valid path", e);
         }
         if (!featureModelPath.isAbsolute()) {
