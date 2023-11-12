@@ -21,7 +21,7 @@ dependencies {
     implementation 'org.jodd:jodd-util:6.2.1'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'commons-io:commons-io:2.14.0'
-    implementation 'commons-cli:commons-cli:1.6.0'
+    implementation 'com.beust:jcommander:1.82'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 }

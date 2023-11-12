@@ -1,30 +1,36 @@
 package edu.kit.varijoern.composers.kbuild;
 
-import org.apache.commons.cli.*;
+import com.beust.jcommander.DynamicParameter;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.internal.DefaultConsole;
 
 import java.text.ParseException;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+/**
+ * Extracts GCC calls from a command string.
+ */
 public class GCCCallExtractor {
     private final CommandParser parser;
-    private final Options options;
-    private final CommandLineParser commandLineParser = new RelaxedParser();
 
+    /**
+     * Creates a new GCCCallExtractor which will parse the given command string.
+     *
+     * @param commandString the command string to parse. The command string is expected to be a list of commands
+     *                      separated by newlines, semicolons or pipes.
+     */
     public GCCCallExtractor(String commandString) {
         this.parser = new CommandParser(commandString);
-        this.options = new Options();
-        this.options.addOption(
-            Option.builder("D").hasArgs().valueSeparator().build()
-        );
-        this.options.addOption(
-            Option.builder("I").hasArgs().build()
-        );
-        this.options.addOption(
-            Option.builder("include").hasArg().build()
-        );
     }
 
+    /**
+     * Extracts all GCC calls from the command string. Calls of other commands are ignored.
+     *
+     * @return a list of GCC calls.
+     * @throws ParseException if the command string could not be parsed.
+     */
     public List<GCCCall> getCalls() throws ParseException {
         List<GCCCall> calls = new ArrayList<>();
         for (List<String> command : this.parser.parse()) {
@@ -34,83 +40,46 @@ public class GCCCallExtractor {
         return calls;
     }
 
-    private GCCCall parseCall(List<String> command) throws ParseException {
-        CommandLine commandLine;
-        try {
-            commandLine = this.commandLineParser.parse(this.options,
-                command.subList(1, command.size()).toArray(String[]::new)
-            );
-        } catch (org.apache.commons.cli.ParseException e) {
-            throw new ParseException("gcc call could not be parsed: %s".formatted(e.getMessage()), -1);
-        }
-        List<String> compiledFiles = Arrays.stream(Objects.requireNonNullElseGet(
-                commandLine.getArgs(),
-                () -> new String[0])
-            )
-            .filter(file -> file.endsWith(".c"))
-            .toList();
-        List<String> includedPaths = Arrays.stream(Objects.requireNonNullElseGet(
-                commandLine.getOptionValues("I"),
-                () -> new String[0])
-            )
-            .toList();
-        List<String> includes = Arrays.stream(Objects.requireNonNullElseGet(
-                commandLine.getOptionValues("include"),
-                () -> new String[0])
-            )
-            .toList();
-        Map<String, String> defines = Arrays.stream(commandLine.getOptions())
-            .filter(option -> option.getOpt().equals("D"))
-            .collect(Collectors.toMap(
-                Option::getValue,
-                option -> {
-                    List<String> values = option.getValuesList();
-                    if (values.size() < 2) return "";
-                    return values.get(1);
+    private GCCCall parseCall(List<String> command) {
+        RawGCCCall rawCall = new RawGCCCall();
+        List<String> preprocessedArguments = command.stream()
+            .flatMap(arg -> {
+                if (arg.startsWith("-D") && arg.length() > 2 && arg.indexOf('=') == -1) {
+                    return Stream.of(arg + "=");
+                } else if (arg.startsWith("-I") && arg.length() > 2) {
+                    return Stream.of(arg.substring(0, 2), arg.substring(2));
+                } else {
+                    return Stream.of(arg);
                 }
-            ));
-        return new GCCCall(compiledFiles, includedPaths, includes, defines);
+            })
+            .toList();
+        JCommander.newBuilder()
+            .addObject(rawCall)
+            .verbose(1)
+            .console(new DefaultConsole(System.out))
+            .build()
+            .parse(preprocessedArguments.subList(1, preprocessedArguments.size()).toArray(String[]::new));
+        return new GCCCall(
+            Optional.ofNullable(rawCall.compiledFiles)
+                .map(files -> files.stream()
+                    .filter(file -> !file.startsWith("-") && file.endsWith(".c"))
+                    .toList()
+                )
+                .orElseGet(List::of),
+            Objects.requireNonNullElseGet(rawCall.includePaths, List::of),
+            Objects.requireNonNullElseGet(rawCall.includes, List::of),
+            Objects.requireNonNullElseGet(rawCall.defines, Map::of)
+        );
     }
 
-    // Source: https://stackoverflow.com/a/61332096,
-    // License: https://creativecommons.org/licenses/by-sa/4.0/legalcode.en
-    private static class RelaxedParser extends DefaultParser {
-        @Override
-        public CommandLine parse(final Options options, final String[] arguments)
-            throws org.apache.commons.cli.ParseException {
-            final List<String> knownArgs = new ArrayList<>();
-            for (int i = 0; i < arguments.length; i++) {
-                boolean argumentIsKnown;
-                boolean nextArgumentIsKnown;
-                if (!arguments[i].startsWith("-")) {
-                    argumentIsKnown = true;
-                    nextArgumentIsKnown = false;
-                } else {
-                    String argumentWithoutHyphens = arguments[i].startsWith("--")
-                        ? arguments[i].substring(2)
-                        : arguments[i].substring(1);
-                    // Test if this is a Java option
-                    Option potentialJavaOption = options.getOption(argumentWithoutHyphens.substring(0, 1));
-                    if (potentialJavaOption != null && (potentialJavaOption.getArgs() >= 2
-                        || potentialJavaOption.getArgs() == Option.UNLIMITED_VALUES)) {
-                        // It is a Java option
-                        nextArgumentIsKnown = argumentWithoutHyphens.length() == 1;
-                        argumentIsKnown = true;
-                    } else {
-                        // It is not a Java option
-                        argumentIsKnown = options.hasOption(argumentWithoutHyphens);
-                        nextArgumentIsKnown = argumentIsKnown && i + 1 < arguments.length
-                            && options.getOption(argumentWithoutHyphens).hasArg();
-                    }
-                }
-                if (argumentIsKnown) {
-                    knownArgs.add(arguments[i]);
-                    if (nextArgumentIsKnown) {
-                        knownArgs.add(arguments[++i]);
-                    }
-                }
-            }
-            return super.parse(options, knownArgs.toArray(new String[0]));
-        }
+    private static class RawGCCCall {
+        @Parameter
+        List<String> compiledFiles = new ArrayList<>();
+        @Parameter(names = "-I")
+        List<String> includePaths = new ArrayList<>();
+        @Parameter(names = "-include")
+        List<String> includes = new ArrayList<>();
+        @DynamicParameter(names = "-D")
+        Map<String, String> defines = new HashMap<>();
     }
 }

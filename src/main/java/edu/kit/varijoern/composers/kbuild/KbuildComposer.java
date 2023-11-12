@@ -11,7 +11,9 @@ import org.jetbrains.annotations.NotNull;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.text.ParseException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -55,7 +57,7 @@ public class KbuildComposer implements Composer {
         this.runMake(tmpSourcePath, "olddefconfig");
     }
 
-    private Map<Path, IncludedFile> getIncludedFiles(Path tmpSourcePath) throws IOException {
+    private Map<Path, IncludedFile> getIncludedFiles(Path tmpSourcePath) throws IOException, ComposerException {
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
             .directory(tmpSourcePath.toFile());
         int makeExitCode;
@@ -67,6 +69,15 @@ public class KbuildComposer implements Composer {
         } catch (InterruptedException e) {
             throw new RuntimeException("make -in was interrupted", e);
         }
+        if (makeExitCode != 0)
+            throw new ComposerException("make -in failed with exit code %d".formatted(makeExitCode));
+        List<GCCCall> gccCalls;
+        try {
+            gccCalls = new GCCCallExtractor(output).getCalls();
+        } catch (ParseException e) {
+            throw new ComposerException("gcc calls could not be parsed", e);
+        }
+        System.err.println(gccCalls);
 
         return null;
     }

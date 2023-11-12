@@ -5,15 +5,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Parses a command string into a list of commands.
+ */
 public class CommandParser {
     private final String commandString;
     private int cursor = 0;
     private List<List<String>> result;
 
+    /**
+     * Creates a new CommandParser which will parse the given command string.
+     *
+     * @param commandString the command string to parse. The command string is expected to be a list of commands
+     *                      separated by newlines, semicolons or pipes.
+     */
     public CommandParser(String commandString) {
         this.commandString = commandString;
     }
 
+    /**
+     * Parses the command string into a list of commands.
+     *
+     * @return a list of commands. Each command is a list of arguments including the name of the command as the first
+     * entry.
+     * @throws ParseException if the command string could not be parsed.
+     */
     public List<List<String>> parse() throws ParseException {
         if (this.result == null) {
             List<List<String>> commands = new ArrayList<>();

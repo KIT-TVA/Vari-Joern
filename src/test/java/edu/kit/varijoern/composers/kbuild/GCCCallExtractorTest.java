@@ -142,7 +142,7 @@ class GCCCallExtractorTest {
                 )
             ),
             new GCCCallExtractor(
-                "gcc -I/path/to/unimportant/files; gcc\n gcc -DANSWER=42"
+                "gcc -I/path/to/unimportant/files; gcc\n gcc -DANSWER=42 | tee stdout.txt"
             ).getCalls()
         );
     }
