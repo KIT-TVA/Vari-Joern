@@ -1,6 +1,5 @@
 package edu.kit.varijoern.composers.kbuild;
 
-import edu.kit.varijoern.composers.CommandParser;
 import org.junit.jupiter.api.Test;
 
 import java.text.ParseException;

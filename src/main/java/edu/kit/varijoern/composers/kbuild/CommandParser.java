@@ -1,4 +1,4 @@
-package edu.kit.varijoern.composers;
+package edu.kit.varijoern.composers.kbuild;
 
 import java.text.ParseException;
 import java.util.ArrayList;

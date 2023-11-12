@@ -1,6 +1,9 @@
-package edu.kit.varijoern.composers;
+package edu.kit.varijoern.composers.kbuild;
 
 import edu.kit.varijoern.IllegalFeatureNameException;
+import edu.kit.varijoern.composers.Composer;
+import edu.kit.varijoern.composers.ComposerException;
+import edu.kit.varijoern.composers.CompositionInformation;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;

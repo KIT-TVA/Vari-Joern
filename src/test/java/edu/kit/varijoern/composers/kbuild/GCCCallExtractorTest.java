@@ -1,7 +1,5 @@
 package edu.kit.varijoern.composers.kbuild;
 
-import edu.kit.varijoern.composers.GCCCall;
-import edu.kit.varijoern.composers.GCCCallExtractor;
 import org.junit.jupiter.api.Test;
 
 import java.text.ParseException;
