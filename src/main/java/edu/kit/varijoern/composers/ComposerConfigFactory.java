@@ -2,6 +2,8 @@ package edu.kit.varijoern.composers;
 
 import edu.kit.varijoern.composers.antenna.AntennaComposer;
 import edu.kit.varijoern.composers.antenna.AntennaComposerConfig;
+import edu.kit.varijoern.composers.kbuild.KbuildComposer;
+import edu.kit.varijoern.composers.kbuild.KbuildComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
 import org.tomlj.TomlTable;
@@ -32,6 +34,7 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
         throws InvalidConfigException {
         return switch (componentName) {
             case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath);
+            case KbuildComposer.NAME -> new KbuildComposerConfig(toml, configPath);
             default -> throw new InvalidConfigException(String.format("Unknown composer \"%s\"", componentName));
         };
     }

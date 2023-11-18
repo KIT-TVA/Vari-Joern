@@ -55,8 +55,6 @@ public class GCCCallExtractor {
             .toList();
         JCommander.newBuilder()
             .addObject(rawCall)
-            .verbose(1)
-            .console(new DefaultConsole(System.out))
             .build()
             .parse(preprocessedArguments.subList(1, preprocessedArguments.size()).toArray(String[]::new));
         return new GCCCall(
