@@ -32,13 +32,9 @@ public class KbuildComposer implements Composer {
         throws IllegalFeatureNameException, IOException, ComposerException {
         Path tmpSourcePath = tmpPath.resolve("source");
         try {
-            System.out.println("Copying source");
             this.copySourceTo(tmpSourcePath);
-            System.out.println("Generating .config");
             this.generateConfig(features, tmpSourcePath);
-            System.out.println("Running make prepare");
-            this.runMake(tmpSourcePath, "prepare");
-            System.out.println("Determining files to be included");
+            this.makePrepare(tmpSourcePath);
             Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
             return null;
         } finally {
@@ -48,6 +44,7 @@ public class KbuildComposer implements Composer {
 
     private void generateConfig(Map<String, Boolean> features, Path tmpSourcePath)
         throws IOException, ComposerException {
+        System.out.println("Generating .config");
         Path configPath = tmpSourcePath.resolve(".config");
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(configPath.toFile(), false))) {
             for (Map.Entry<String, Boolean> feature : features.entrySet()) {
@@ -58,7 +55,13 @@ public class KbuildComposer implements Composer {
         this.runMake(tmpSourcePath, "olddefconfig");
     }
 
+    private void makePrepare(Path tmpSourcePath) throws ComposerException, IOException {
+        System.out.println("Running make prepare");
+        this.runMake(tmpSourcePath, "prepare");
+    }
+
     private Set<Dependency> getIncludedFiles(Path tmpSourcePath) throws IOException, ComposerException {
+        System.out.println("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
             .directory(tmpSourcePath.toFile());
         int makeExitCode;
@@ -204,6 +207,7 @@ public class KbuildComposer implements Composer {
 
 
     private void copySourceTo(Path tmpSourcePath) throws IOException {
+        System.out.println("Copying source");
         FileUtils.copyDirectory(this.sourcePath.toFile(), tmpSourcePath.toFile());
     }
 
