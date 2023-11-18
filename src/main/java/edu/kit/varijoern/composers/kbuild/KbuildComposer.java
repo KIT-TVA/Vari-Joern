@@ -122,6 +122,8 @@ public class KbuildComposer implements Composer {
         // This is only an approximation. The files included earlier don't see the files included later. This should be
         // reflected in this list, but since we don't know the order of the includes, we can't do that.
         List<Dependency> dependencyInformation = dependencies
+            // Dependencies with absolute path likely don't belong to the project.
+            .filter(dep -> !Path.of(dep).isAbsolute())
             .map(dep -> {
                 if (dep.endsWith(".h")) {
                     return new HeaderDependency(dep);
