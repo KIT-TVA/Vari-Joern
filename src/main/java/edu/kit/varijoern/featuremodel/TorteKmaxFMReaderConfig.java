@@ -12,7 +12,10 @@ import java.nio.file.Path;
  */
 public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
     private static final String PATH_FIELD_NAME = "path";
+    private static final String SYSTEM_FIELD_NAME = "system";
+
     private final Path sourcePath;
+    private final String system;
 
     /**
      * Creates a new {@link TorteKmaxFMReaderConfig} by extracting data from the specified TOML section.
@@ -40,10 +43,20 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
             System.err.println("Using " + sourcePath + " instead");
         }
         this.sourcePath = sourcePath;
+
+        String system = TomlUtils.getMandatoryString(
+            SYSTEM_FIELD_NAME,
+            toml,
+            "System is missing or not a string"
+        );
+        if (!TorteKmaxFMReader.supportsSystem(system)) {
+            throw new InvalidConfigException("Unknown system: " + system);
+        }
+        this.system = system;
     }
 
     @Override
     public FeatureModelReader newFeatureModelReader() {
-        return new TorteKmaxFMReader(this.sourcePath);
+        return new TorteKmaxFMReader(this.sourcePath, this.system);
     }
 }

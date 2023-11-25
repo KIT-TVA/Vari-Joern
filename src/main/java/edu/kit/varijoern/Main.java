@@ -108,6 +108,7 @@ public class Main {
         List<AnalysisResult> allAnalysisResults = new ArrayList<>();
         List<AnalysisResult> iterationAnalysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
+            System.out.printf("Iteration %d%n", i + 1);
             List<Map<String, Boolean>> sample;
             try {
                 sample = sampler.sample(iterationAnalysisResults);
@@ -116,6 +117,7 @@ public class Main {
                 e.printStackTrace();
                 return STATUS_INTERNAL_ERROR;
             }
+            System.out.printf("Analyzing %d variants%n", sample.size());
             iterationAnalysisResults = new ArrayList<>();
             for (int j = 0; j < sample.size(); j++) {
                 Map<String, Boolean> features = sample.get(j);

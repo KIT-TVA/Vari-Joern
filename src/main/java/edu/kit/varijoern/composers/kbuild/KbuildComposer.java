@@ -15,11 +15,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class KbuildComposer implements Composer {
     public static final String NAME = "kbuild";
+    private static final Pattern OPTION_NAME_PATTERN = Pattern.compile("CONFIG_(\\w+)=.*");
 
     private final Path sourcePath;
 
@@ -47,14 +50,21 @@ public class KbuildComposer implements Composer {
     private void generateConfig(Map<String, Boolean> features, Path tmpSourcePath)
         throws IOException, ComposerException {
         System.out.println("Generating .config");
-        Path configPath = tmpSourcePath.resolve(".config");
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(configPath.toFile(), false))) {
-            for (Map.Entry<String, Boolean> feature : features.entrySet()) {
-                writer.write("CONFIG_%s=%s\n".formatted(feature.getKey(), feature.getValue() ? "y" : "n"));
-            }
-        }
+        this.runMake(tmpSourcePath, "defconfig");
 
-        this.runMake(tmpSourcePath, "olddefconfig");
+        Path configPath = tmpSourcePath.resolve(".config");
+        List<String> defaultConfigLines = Files.readAllLines(configPath);
+        defaultConfigLines.replaceAll(line -> {
+            Matcher matcher = OPTION_NAME_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                String optionName = matcher.group(1);
+                if (features.containsKey(optionName)) {
+                    return "CONFIG_%s=%s".formatted(optionName, features.get(optionName) ? "y" : "n");
+                }
+            }
+            return line;
+        });
+        Files.write(configPath, defaultConfigLines);
     }
 
     private void makePrepare(Path tmpSourcePath) throws ComposerException, IOException {
