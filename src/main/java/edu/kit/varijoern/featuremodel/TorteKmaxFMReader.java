@@ -3,6 +3,9 @@ package edu.kit.varijoern.featuremodel;
 import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
+import de.ovgu.featureide.fm.core.base.impl.Feature;
+import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
+import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
@@ -29,7 +32,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         "linux", "linux-working-tree-kmax.sh",
         "busybox", "busybox-working-tree-kmax.sh"
     );
-    private static Pattern nonTristateFeaturePattern = Pattern.compile("CONFIG_(\\w+)=[^ymn].*");
+    private static final Pattern nonTristateFeaturePattern = Pattern.compile("CONFIG_(\\w+)=[^ymn].*");
 
     private final Path sourcePath;
     private final String system;
@@ -66,7 +69,13 @@ public class TorteKmaxFMReader implements FeatureModelReader {
 
             Path fmPath = findGeneratedFeatureModel(tmpPath);
             IFeatureModel featureModel = new FeatureIDEFMReader(fmPath).read(tmpPath);
+            this.addUnconstrainedFeatures(featureModel, tmpPath);
             this.removeNonTristateFeatures(featureModel, sourcePath);
+            if (!FeatureModelManager.save(featureModel,
+                tmpPath.resolve("filtered-model.xml"),
+                new XmlFeatureModelFormat())) {
+                System.err.println("Could not save feature model");
+            }
             return featureModel;
         } finally {
             // The source code probably takes a large amount of disk space.
@@ -102,6 +111,34 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             if (featureModelPaths.size() > 1)
                 throw new FeatureModelReaderException("Multiple candidates for feature model found");
             return featureModelPaths.get(0);
+        }
+    }
+
+    // This is a workaround: Torte should do this for us, but it does not.
+    private void addUnconstrainedFeatures(IFeatureModel featureModel, Path tmpPath) throws FeatureModelReaderException {
+        try (Stream<Path> files = Files.walk(tmpPath.resolve("output/kconfig/" + this.system))) {
+            List<Path> featureListPaths = files.filter(Files::isRegularFile)
+                .filter(path -> path.getFileName().toString().endsWith(".features"))
+                .toList();
+            if (featureListPaths.isEmpty())
+                throw new FeatureModelReaderException("No feature list found");
+            if (featureListPaths.size() > 1)
+                throw new FeatureModelReaderException("Multiple candidates for feature list found");
+            Path featureListPath = featureListPaths.get(0);
+            List<String> featureList = Files.readAllLines(featureListPath);
+            for (String feature : featureList) {
+                if (feature.chars().anyMatch(codePoint ->
+                    (!Character.isAlphabetic(codePoint) || !Character.isUpperCase(codePoint))
+                        && codePoint != '_'))
+                    continue;
+                if (featureModel.getFeature(feature) == null) {
+                    System.out.printf("Feature %s is probably unconstrained and was added to the feature model.%n",
+                        feature);
+                    featureModel.addFeature(new Feature(featureModel, feature));
+                }
+            }
+        } catch (IOException e) {
+            throw new FeatureModelReaderException("Could not add unconstrained features due to an I/O error", e);
         }
     }
 

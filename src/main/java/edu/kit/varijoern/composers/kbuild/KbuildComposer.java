@@ -4,7 +4,6 @@ import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
-import edu.kit.varijoern.composers.FeatureMapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
@@ -23,11 +22,14 @@ import java.util.stream.Stream;
 public class KbuildComposer implements Composer {
     public static final String NAME = "kbuild";
     private static final Pattern OPTION_NAME_PATTERN = Pattern.compile("CONFIG_(\\w+)=.*");
+    private static final Set<String> supportedSystems = Set.of("linux", "busybox");
 
     private final Path sourcePath;
+    private final String system;
 
-    public KbuildComposer(Path sourcePath) {
+    public KbuildComposer(Path sourcePath, String system) {
         this.sourcePath = sourcePath;
+        this.system = system;
     }
 
     @Override
@@ -38,7 +40,9 @@ public class KbuildComposer implements Composer {
         try {
             this.copySourceTo(tmpSourcePath);
             this.generateConfig(features, tmpSourcePath);
-            this.makePrepare(tmpSourcePath);
+            if (this.system.equals("linux")) {
+                this.makePrepare(tmpSourcePath);
+            }
             Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
             this.generateFiles(includedFiles, destination, tmpSourcePath);
             return new CompositionInformation(destination, features, (file, lineNumber) -> Optional.empty());
@@ -52,6 +56,7 @@ public class KbuildComposer implements Composer {
         System.out.println("Generating .config");
         this.runMake(tmpSourcePath, "defconfig");
 
+        Set<String> remainingFeatures = new HashSet<>(features.keySet());
         Path configPath = tmpSourcePath.resolve(".config");
         List<String> defaultConfigLines = Files.readAllLines(configPath);
         defaultConfigLines.replaceAll(line -> {
@@ -59,11 +64,15 @@ public class KbuildComposer implements Composer {
             if (matcher.matches()) {
                 String optionName = matcher.group(1);
                 if (features.containsKey(optionName)) {
+                    remainingFeatures.remove(optionName);
                     return "CONFIG_%s=%s".formatted(optionName, features.get(optionName) ? "y" : "n");
                 }
             }
             return line;
         });
+        for (String remainingFeature : remainingFeatures) {
+            defaultConfigLines.add("CONFIG_%s=%s".formatted(remainingFeature, features.get(remainingFeature) ? "y" : "n"));
+        }
         Files.write(configPath, defaultConfigLines);
     }
 
@@ -275,6 +284,10 @@ public class KbuildComposer implements Composer {
     private void copySourceTo(Path tmpSourcePath) throws IOException {
         System.out.println("Copying source");
         FileUtils.copyDirectory(this.sourcePath.toFile(), tmpSourcePath.toFile());
+    }
+
+    public static boolean isSupportedSystem(String system) {
+        return supportedSystems.contains(system);
     }
 
     private record InclusionInformation(Path filePath, Set<String> includedFiles, Map<String, String> defines,

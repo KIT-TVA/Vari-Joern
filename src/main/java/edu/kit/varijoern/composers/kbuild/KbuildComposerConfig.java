@@ -14,8 +14,10 @@ import java.nio.file.Path;
  */
 public class KbuildComposerConfig extends ComposerConfig {
     private static final String SOURCE_FIELD_NAME = "source";
+    private static final String SYSTEM_FIELD_NAME = "system";
 
     private final Path sourceLocation;
+    private final String system;
 
     /**
      * Creates a new {@link KbuildComposerConfig} by extracting data from the specified TOML section.
@@ -42,10 +44,19 @@ public class KbuildComposerConfig extends ComposerConfig {
             sourcePath = configPath.getParent().resolve(sourcePath);
         }
         this.sourceLocation = sourcePath;
+
+        this.system = TomlUtils.getMandatoryString(
+            SYSTEM_FIELD_NAME,
+            toml,
+            "System for Kbuild composer is missing or not a string"
+        );
+        if (!KbuildComposer.isSupportedSystem(this.system)) {
+            throw new InvalidConfigException("System for Kbuild composer is not supported");
+        }
     }
 
     @Override
     public Composer newComposer() {
-        return new KbuildComposer(this.sourceLocation);
+        return new KbuildComposer(this.sourceLocation, this.system);
     }
 }
