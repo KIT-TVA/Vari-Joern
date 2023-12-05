@@ -239,14 +239,15 @@ public class KbuildComposer implements Composer {
 
     private void generateFile(Path filePath, List<Dependency> configurations, Path destination, Path tmpSourcePath)
         throws IOException {
-        System.out.printf("Copying %s%n", filePath);
-        if (!Files.exists(tmpSourcePath.resolve(filePath))) {
+        Path sourcePath = tmpSourcePath.resolve(filePath);
+        if (!Files.exists(sourcePath)) {
             System.err.printf("File %s does not exist, skipping%n", filePath);
             return;
         }
         Path destinationPath = destination.resolve(filePath);
         Files.createDirectories(destinationPath.getParent());
-        Files.copy(tmpSourcePath.resolve(filePath), destinationPath);
+        boolean copied = false;
+        boolean generated = false;
         for (Dependency configuration : configurations) {
             if (configuration instanceof CompiledDependency) {
                 this.generateFileWithPreprocessorDirectives(
@@ -254,7 +255,17 @@ public class KbuildComposer implements Composer {
                     destination,
                     tmpSourcePath
                 );
+                generated = true;
+            } else if (configuration instanceof HeaderDependency) {
+                if (!copied) {
+                    System.out.printf("Copying %s%n", filePath);
+                    Files.copy(sourcePath, destinationPath);
+                    copied = true;
+                }
             }
+        }
+        if (!generated && !copied) {
+            throw new RuntimeException("File %s was neither copied nor generated".formatted(filePath));
         }
     }
 
