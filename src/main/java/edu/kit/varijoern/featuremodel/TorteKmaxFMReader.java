@@ -14,12 +14,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -32,7 +29,6 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         "linux", "linux-working-tree-kmax.sh",
         "busybox", "busybox-working-tree-kmax.sh"
     );
-    private static final Pattern nonTristateFeaturePattern = Pattern.compile("CONFIG_(\\w+)=[^ymn].*");
 
     private final Path sourcePath;
     private final String system;
@@ -69,8 +65,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
 
             Path fmPath = findGeneratedFeatureModel(tmpPath);
             IFeatureModel featureModel = new FeatureIDEFMReader(fmPath).read(tmpPath);
-            this.addUnconstrainedFeatures(featureModel, tmpPath);
-            this.removeNonTristateFeatures(featureModel, sourcePath);
+            this.postprocessFeatureModel(featureModel, tmpPath);
             if (!FeatureModelManager.save(featureModel,
                 tmpPath.resolve("filtered-model.xml"),
                 new XmlFeatureModelFormat())) {
@@ -114,59 +109,53 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         }
     }
 
-    // This is a workaround: Torte should do this for us, but it does not.
-    private void addUnconstrainedFeatures(IFeatureModel featureModel, Path tmpPath) throws FeatureModelReaderException {
+    /**
+     * Performs a few steps to make the feature model more accurate:
+     * 1. Adds features that are probably unconstrained
+     * 2. Removes features that are not tristate or boolean
+     *
+     * @param featureModel the feature model to postprocess
+     * @param tmpPath      the temporary path of the feature model reader
+     * @throws FeatureModelReaderException if the feature model could not be postprocessed
+     */
+    private void postprocessFeatureModel(IFeatureModel featureModel, Path tmpPath) throws FeatureModelReaderException {
         try (Stream<Path> files = Files.walk(tmpPath.resolve("output/kconfig/" + this.system))) {
-            List<Path> featureListPaths = files.filter(Files::isRegularFile)
-                .filter(path -> path.getFileName().toString().endsWith(".features"))
+            List<Path> kextractorFiles = files.filter(Files::isRegularFile)
+                .filter(path -> path.getFileName().toString().endsWith(".kextractor"))
                 .toList();
-            if (featureListPaths.isEmpty())
-                throw new FeatureModelReaderException("No feature list found");
-            if (featureListPaths.size() > 1)
-                throw new FeatureModelReaderException("Multiple candidates for feature list found");
-            Path featureListPath = featureListPaths.get(0);
-            List<String> featureList = Files.readAllLines(featureListPath);
-            for (String feature : featureList) {
-                if (feature.chars().anyMatch(codePoint ->
-                    (!Character.isAlphabetic(codePoint) || !Character.isUpperCase(codePoint))
-                        && codePoint != '_'))
-                    continue;
-                if (featureModel.getFeature(feature) == null) {
-                    System.out.printf("Feature %s is probably unconstrained and was added to the feature model.%n",
-                        feature);
-                    featureModel.addFeature(new Feature(featureModel, feature));
+            if (kextractorFiles.isEmpty())
+                throw new FeatureModelReaderException("No kextractor file found");
+            if (kextractorFiles.size() > 1)
+                throw new FeatureModelReaderException("Multiple possible kextractor files found");
+            Path kextractorFile = kextractorFiles.get(0);
+            List<String> kextractorLines = Files.readAllLines(kextractorFile);
+            List<String> nonTristateFeatures = new ArrayList<>();
+            for (String line : kextractorLines) {
+                String[] parts = line.split(" ");
+                if (parts.length == 0 || !parts[0].equals("config")) continue;
+                if (parts.length != 3)
+                    throw new FeatureModelReaderException("Unexpected number of parts in kextractor line: " + line);
+                String featureName = parts[1].substring("CONFIG_".length());
+                if (featureModel.getFeature(featureName) != null) {
+                    if (!parts[2].equals("tristate") && !parts[2].equals("bool")) {
+                        nonTristateFeatures.add(featureName);
+                    }
+                } else {
+                    if (!parts[2].equals("tristate") && !parts[2].equals("bool")) continue;
+                    if (!parts[1].startsWith("CONFIG_"))
+                        throw new FeatureModelReaderException("Unexpected feature name in kextractor line: " + line);
+                    System.out.println("Adding probably unconstrained feature " + featureName);
+                    Feature feature = new Feature(featureModel, featureName);
+                    featureModel.addFeature(feature);
                 }
             }
+            deleteFeatures(featureModel, nonTristateFeatures);
         } catch (IOException e) {
             throw new FeatureModelReaderException("Could not add unconstrained features due to an I/O error", e);
         }
     }
 
-    private void removeNonTristateFeatures(IFeatureModel featureModel, Path tmpSourcePath)
-        throws IOException, FeatureModelReaderException {
-        // Run make defconfig
-        ProcessBuilder makeDefconfigProcessBuilder = new ProcessBuilder("make", "defconfig")
-            .inheritIO()
-            .directory(tmpSourcePath.toFile());
-        Process makeDefconfigProcess = makeDefconfigProcessBuilder.start();
-        int makeDefconfigExitCode;
-        try {
-            makeDefconfigExitCode = makeDefconfigProcess.waitFor();
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Unexpected interruption of make process", e);
-        }
-        if (makeDefconfigExitCode != 0) {
-            throw new FeatureModelReaderException("make defconfig exited with non-zero exit code: " + makeDefconfigExitCode);
-        }
-
-        // Read .config file
-        Path configPath = tmpSourcePath.resolve(".config");
-        List<String> configLines = Files.readAllLines(configPath);
-        Set<String> nonTristateFeatures = configLines.stream()
-            .map(nonTristateFeaturePattern::matcher)
-            .filter(Matcher::matches)
-            .map(matcher -> matcher.group(1))
-            .collect(Collectors.toSet());
+    private static void deleteFeatures(IFeatureModel featureModel, List<String> nonTristateFeatures) {
         for (String feature : nonTristateFeatures) {
             System.err.printf("Feature %s does not appear to be tristate.%n", feature);
             featureModel.deleteFeature(featureModel.getFeature(feature));

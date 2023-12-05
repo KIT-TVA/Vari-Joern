@@ -21,7 +21,8 @@ import java.util.stream.Stream;
 
 public class KbuildComposer implements Composer {
     public static final String NAME = "kbuild";
-    private static final Pattern OPTION_NAME_PATTERN = Pattern.compile("CONFIG_(\\w+)=.*");
+    private static final Pattern OPTION_NAME_VALUE_PATTERN = Pattern.compile("CONFIG_(\\w+)=.*");
+    private static final Pattern OPTION_NOT_SET_PATTERN = Pattern.compile("# CONFIG_(\\w+) is not set");
     private static final Set<String> supportedSystems = Set.of("linux", "busybox");
 
     private final Path sourcePath;
@@ -35,14 +36,11 @@ public class KbuildComposer implements Composer {
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull Path tmpPath)
-        throws IllegalFeatureNameException, IOException, ComposerException {
+        throws IOException, ComposerException {
         Path tmpSourcePath = tmpPath.resolve("source");
         try {
             this.copySourceTo(tmpSourcePath);
             this.generateConfig(features, tmpSourcePath);
-            if (this.system.equals("linux")) {
-                this.makePrepare(tmpSourcePath);
-            }
             Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
             this.generateFiles(includedFiles, destination, tmpSourcePath);
             return new CompositionInformation(destination, features, (file, lineNumber) -> Optional.empty());
@@ -60,20 +58,36 @@ public class KbuildComposer implements Composer {
         Path configPath = tmpSourcePath.resolve(".config");
         List<String> defaultConfigLines = Files.readAllLines(configPath);
         defaultConfigLines.replaceAll(line -> {
-            Matcher matcher = OPTION_NAME_PATTERN.matcher(line);
-            if (matcher.matches()) {
-                String optionName = matcher.group(1);
-                if (features.containsKey(optionName)) {
-                    remainingFeatures.remove(optionName);
-                    return "CONFIG_%s=%s".formatted(optionName, features.get(optionName) ? "y" : "n");
+            String optionName;
+            Matcher nameValueMatcher = OPTION_NAME_VALUE_PATTERN.matcher(line);
+            if (nameValueMatcher.matches()) {
+                optionName = nameValueMatcher.group(1);
+            } else {
+                Matcher notSetMatcher = OPTION_NOT_SET_PATTERN.matcher(line);
+                if (notSetMatcher.matches()) {
+                    optionName = notSetMatcher.group(1);
+                } else {
+                    return line;
                 }
             }
+            if (features.containsKey(optionName)) {
+                remainingFeatures.remove(optionName);
+                return formatOption(optionName, features.get(optionName));
+            }
+
             return line;
         });
         for (String remainingFeature : remainingFeatures) {
-            defaultConfigLines.add("CONFIG_%s=%s".formatted(remainingFeature, features.get(remainingFeature) ? "y" : "n"));
+            defaultConfigLines.add(formatOption(remainingFeature, features.get(remainingFeature)));
         }
         Files.write(configPath, defaultConfigLines);
+    }
+
+    private String formatOption(String optionName, boolean activated) {
+        if (activated)
+            return "CONFIG_%s=y".formatted(optionName);
+        else
+            return "# CONFIG_%s is not set".formatted(optionName);
     }
 
     private void makePrepare(Path tmpSourcePath) throws ComposerException, IOException {
