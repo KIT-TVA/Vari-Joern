@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
@@ -266,15 +267,15 @@ public class KbuildComposer implements Composer {
         String extension = dotIndex == -1 ? "" : fileName.substring(dotIndex);
         Path destinationPath = destination.resolve(inclusionInformation.filePath.getParent()).resolve(baseName + "-" + inclusionInformation.hashCode() + extension);
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(destinationPath.toFile(), false))) {
+        try (FileOutputStream stream = new FileOutputStream(destinationPath.toFile())) {
             for (Map.Entry<String, String> define : inclusionInformation.defines.entrySet()) {
-                writer.write("#define %s %s%n".formatted(define.getKey(), define.getValue()));
+                stream.write(("#define %s %s%n".formatted(define.getKey(), define.getValue())).getBytes(StandardCharsets.US_ASCII));
             }
             for (String include : inclusionInformation.includedFiles) {
                 Path includePath = inclusionInformation.filePath.getParent().relativize(Path.of(include));
-                writer.write("#include \"%s\"%n".formatted(includePath));
+                stream.write(("#include \"%s\"%n".formatted(includePath)).getBytes(StandardCharsets.US_ASCII));
             }
-            writer.write(Files.readString(tmpSourcePath.resolve(inclusionInformation.filePath)));
+            stream.write(Files.readAllBytes(tmpSourcePath.resolve(inclusionInformation.filePath)));
         }
     }
 
