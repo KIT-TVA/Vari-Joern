@@ -1,9 +1,6 @@
 package edu.kit.varijoern.composers.kbuild;
 
-import org.prop4j.And;
-import org.prop4j.Literal;
-import org.prop4j.Node;
-import org.prop4j.Or;
+import org.prop4j.*;
 import org.smtlib.*;
 import org.smtlib.command.C_assert;
 
@@ -17,7 +14,7 @@ import java.util.Map;
 
 /**
  * Converts SMT-LIB strings to {@link Node}s by reading all `assert` commands and chaining the specified conditions.
- * Only or and let statements are supported.
+ * Only or, not and let statements are supported.
  */
 public class SMTLibConverter {
     /**
@@ -51,8 +48,9 @@ public class SMTLibConverter {
             }
 
             if (command == null)
-                throw new ParseException("Could not parse SMT-LIB command. Error: %s".formatted(parser.lastError()),
-                    parser.lastError().pos().charStart());
+                throw new ParseException("Could not parse SMT-LIB command. Error: %s"
+                    .formatted(parser.lastError() == null ? "(unknown)" : parser.lastError().toString()),
+                    parser.lastError() == null ? 0 : parser.lastError().pos().charStart());
 
             if (command instanceof C_assert) {
                 Node assertion;
@@ -82,12 +80,17 @@ public class SMTLibConverter {
                     arguments.add(convertedArgument);
                 }
                 return new Or(arguments.toArray(new Node[0]));
+            } else if (e.head().toString().equals("not")) {
+                if (e.args().size() != 1) return null;
+                Node convertedArgument = e.args().get(0).accept(this);
+                if (convertedArgument == null) return null;
+                return new Not(convertedArgument);
             }
             return null;
         }
 
         @Override
-        public Node visit(IExpr.ISymbol e) throws VisitorException {
+        public Node visit(IExpr.ISymbol e) {
             if (this.letBindings.containsKey(e.toString())) {
                 return this.letBindings.get(e.toString()).clone();
             }

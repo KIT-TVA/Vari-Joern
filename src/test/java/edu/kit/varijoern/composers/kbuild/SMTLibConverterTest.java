@@ -77,6 +77,43 @@ class SMTLibConverterTest {
     }
 
     @Test
+    void assertionWithNot() throws ParseException {
+        String smtLib = """
+            (set-info :status unknown)
+            (declare-fun CONFIG_UBIUPDATEVOL () Bool)
+            (assert
+             (not CONFIG_UBIUPDATEVOL))
+            (check-sat)""";
+        SMTLibConverter converter = new SMTLibConverter();
+        Node result = converter.convert(smtLib);
+        assertEquals(new And(new Not(new Literal("CONFIG_UBIUPDATEVOL"))), result);
+    }
+
+    @Test
+    void assertionWithNotWithoutArgs() {
+        String smtLib = """
+            (set-info :status unknown)
+            (assert
+             (not))
+            (check-sat)""";
+        SMTLibConverter converter = new SMTLibConverter();
+        assertThrows(ParseException.class, () -> converter.convert(smtLib));
+    }
+
+    @Test
+    void assertionWithNotWithMultipleArgs() {
+        String smtLib = """
+            (set-info :status unknown)
+            (declare-fun CONFIG_UBIUPDATEVOL () Bool)
+            (declare-fun CONFIG_UBIATTACH () Bool)
+            (assert
+             (not CONFIG_UBIUPDATEVOL CONFIG_UBIATTACH))
+            (check-sat)""";
+        SMTLibConverter converter = new SMTLibConverter();
+        assertThrows(ParseException.class, () -> converter.convert(smtLib));
+    }
+
+    @Test
     void simpleLet() throws ParseException {
         String smtLib = """
             (set-info :status unknown)
