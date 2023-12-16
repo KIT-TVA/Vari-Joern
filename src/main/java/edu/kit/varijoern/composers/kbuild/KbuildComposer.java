@@ -1,6 +1,5 @@
 package edu.kit.varijoern.composers.kbuild;
 
-import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
@@ -28,6 +27,7 @@ public class KbuildComposer implements Composer {
 
     private final Path sourcePath;
     private final String system;
+    private KbuildFeatureMapperCreator featureMapperCreator = null;
 
     public KbuildComposer(Path sourcePath, String system) {
         this.sourcePath = sourcePath;
@@ -38,13 +38,23 @@ public class KbuildComposer implements Composer {
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull Path tmpPath)
         throws IOException, ComposerException {
+        if (this.featureMapperCreator == null) {
+            this.featureMapperCreator = new KbuildFeatureMapperCreator(this.sourcePath, this.system, tmpPath);
+        }
+
         Path tmpSourcePath = tmpPath.resolve("source");
         try {
             this.copySourceTo(tmpSourcePath);
             this.generateConfig(features, tmpSourcePath);
             Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
-            this.generateFiles(includedFiles, destination, tmpSourcePath);
-            return new CompositionInformation(destination, features, (file, lineNumber) -> Optional.empty());
+            Map<Path, GenerationInformation> generationInformation = this.generateFiles(
+                includedFiles, destination, tmpSourcePath
+            );
+            return new CompositionInformation(
+                destination,
+                features,
+                this.featureMapperCreator.createFeatureMapper(generationInformation)
+            );
         } finally {
             FileUtils.deleteDirectory(tmpSourcePath.toFile());
         }
@@ -225,58 +235,72 @@ public class KbuildComposer implements Composer {
         return output;
     }
 
-    private void generateFiles(Set<Dependency> dependencies, Path destination, Path tmpSourcePath)
+    private Map<Path, GenerationInformation> generateFiles(Set<Dependency> dependencies, Path destination,
+                                                           Path tmpSourcePath)
         throws IOException, ComposerException {
         System.out.println("Generating files");
         Map<Path, List<Dependency>> targets = new HashMap<>();
         for (Dependency dependency : dependencies) {
             targets.computeIfAbsent(dependency.getFilePath(), k -> new ArrayList<>()).add(dependency);
         }
+        Map<Path, GenerationInformation> generationInformation = new HashMap<>();
         for (Map.Entry<Path, List<Dependency>> target : targets.entrySet()) {
-            this.generateFile(target.getKey(), target.getValue(), destination, tmpSourcePath);
+            generationInformation.putAll(
+                this.generateFile(target.getKey(), target.getValue(), destination, tmpSourcePath)
+            );
         }
+        return generationInformation;
     }
 
-    private void generateFile(Path filePath, List<Dependency> configurations, Path destination, Path tmpSourcePath)
+    private Map<Path, GenerationInformation> generateFile(Path filePath, List<Dependency> configurations,
+                                                          Path destination, Path tmpSourcePath)
         throws IOException {
         Path sourcePath = tmpSourcePath.resolve(filePath);
         if (!Files.exists(sourcePath)) {
             System.err.printf("File %s does not exist, skipping%n", filePath);
-            return;
+            return Map.of();
         }
         Path destinationPath = destination.resolve(filePath);
         Files.createDirectories(destinationPath.getParent());
+        Map<Path, GenerationInformation> generationInformation = new HashMap<>();
         boolean copied = false;
         boolean generated = false;
         for (Dependency configuration : configurations) {
             if (configuration instanceof CompiledDependency) {
-                this.generateFileWithPreprocessorDirectives(
-                    ((CompiledDependency) configuration).getInclusionInformation(),
-                    destination,
-                    tmpSourcePath
-                );
+                Map.Entry<Path, GenerationInformation> fileGenerationInformation =
+                    this.generateFileWithPreprocessorDirectives(
+                        ((CompiledDependency) configuration).getInclusionInformation(),
+                        destination,
+                        tmpSourcePath
+                    );
+                generationInformation.put(fileGenerationInformation.getKey(), fileGenerationInformation.getValue());
                 generated = true;
             } else if (configuration instanceof HeaderDependency) {
                 if (!copied) {
                     System.out.printf("Copying %s%n", filePath);
                     Files.copy(sourcePath, destinationPath);
                     copied = true;
+                    generationInformation.put(filePath, new GenerationInformation(filePath, 0));
                 }
             }
         }
         if (!generated && !copied) {
             throw new RuntimeException("File %s was neither copied nor generated".formatted(filePath));
         }
+        return generationInformation;
     }
 
-    private void generateFileWithPreprocessorDirectives(InclusionInformation inclusionInformation, Path destination,
-                                                        Path tmpSourcePath) throws IOException {
+    private Map.Entry<Path, GenerationInformation> generateFileWithPreprocessorDirectives(
+        InclusionInformation inclusionInformation, Path destination, Path tmpSourcePath) throws IOException {
         System.out.printf("Generating %s with preprocessor directives%n", inclusionInformation.filePath);
         String fileName = inclusionInformation.filePath.getFileName().toString();
         int dotIndex = fileName.lastIndexOf('.');
         String baseName = dotIndex == -1 ? fileName : fileName.substring(0, dotIndex);
         String extension = dotIndex == -1 ? "" : fileName.substring(dotIndex);
-        Path destinationPath = destination.resolve(inclusionInformation.filePath.getParent()).resolve(baseName + "-" + inclusionInformation.hashCode() + extension);
+        Path relativeDestinationPath = inclusionInformation.filePath.getParent()
+            .resolve(baseName + "-" + inclusionInformation.hashCode() + extension);
+        Path destinationPath = destination
+            .resolve(relativeDestinationPath);
 
         try (FileOutputStream stream = new FileOutputStream(destinationPath.toFile())) {
             for (Map.Entry<String, String> define : inclusionInformation.defines.entrySet()) {
@@ -288,6 +312,10 @@ public class KbuildComposer implements Composer {
             }
             stream.write(Files.readAllBytes(tmpSourcePath.resolve(inclusionInformation.filePath)));
         }
+        return Map.entry(relativeDestinationPath, new GenerationInformation(
+            inclusionInformation.filePath.normalize(),
+            inclusionInformation.defines.size() + inclusionInformation.includedFiles.size()
+        ));
     }
 
     private void runMake(Path tmpSourcePath, String... args) throws ComposerException, IOException {

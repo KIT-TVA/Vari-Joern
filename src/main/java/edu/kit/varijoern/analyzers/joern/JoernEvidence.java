@@ -54,7 +54,7 @@ public class JoernEvidence {
      * @return the condition if it could be determined, an empty {@link Optional} otherwise
      */
     public Optional<Node> getCondition(FeatureMapper featureMapper) {
-        return featureMapper.getCondition(Path.of(this.filename), this.lineNumber);
+        return featureMapper.getPresenceCondition(Path.of(this.filename), this.lineNumber);
     }
 
     @Override
