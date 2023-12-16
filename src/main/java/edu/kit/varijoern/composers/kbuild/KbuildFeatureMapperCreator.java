@@ -3,6 +3,7 @@ package edu.kit.varijoern.composers.kbuild;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.composers.ComposerException;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.IOUtils;
@@ -42,10 +43,11 @@ public class KbuildFeatureMapperCreator {
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if kmax fails or the presence conditions cannot be parsed
      */
-    public KbuildFeatureMapperCreator(Path sourcePath, String system, Path composerTmpDir) throws IOException, ComposerException {
+    public KbuildFeatureMapperCreator(Path sourcePath, String system, Path composerTmpDir, IFeatureModel featureModel)
+        throws IOException, ComposerException {
         this.createKmaxallScript(composerTmpDir);
         if (system.equals("busybox")) {
-            processKmaxOutput(runKmax(sourcePath, composerTmpDir), sourcePath);
+            processKmaxOutput(runKmax(sourcePath, composerTmpDir), sourcePath, featureModel);
         }
     }
 
@@ -84,7 +86,8 @@ public class KbuildFeatureMapperCreator {
         return output;
     }
 
-    private void processKmaxOutput(String output, Path sourcePath) throws JsonProcessingException, ComposerException {
+    private void processKmaxOutput(String output, Path sourcePath, IFeatureModel featureModel)
+        throws JsonProcessingException, ComposerException {
         TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {
         };
         Map<String, String> rawPresenceConditions = new ObjectMapper().readValue(output, typeRef);
@@ -95,7 +98,22 @@ public class KbuildFeatureMapperCreator {
                 path = sourcePath.relativize(path);
             }
             try {
-                filePresenceConditions.put(path, smtLibConverter.convert(entry.getValue()));
+                Node presenceCondition = smtLibConverter.convert(entry.getValue());
+                presenceCondition.modifyFeatureNames(name -> {
+                    if (!name.startsWith("CONFIG_")) {
+                        System.err.printf("Option in presence condition does not start with CONFIG_: %s; file: %s%n",
+                            name, entry.getKey());
+                        return name;
+                    }
+                    return name.substring("CONFIG_".length());
+                });
+                if (!presenceCondition.getContainedFeatures().stream()
+                    .allMatch(feature -> featureModel.getFeature(feature) != null)) {
+                    System.err.printf("Presence condition contains unknown features: %s; file: %s%n",
+                        presenceCondition, entry.getKey());
+                    continue;
+                }
+                filePresenceConditions.put(path, presenceCondition);
             } catch (ParseException e) {
                 throw new ComposerException(
                     "Could not parse presence condition (%s at %d). Text was:%n%s"

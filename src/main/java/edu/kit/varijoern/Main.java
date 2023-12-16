@@ -133,7 +133,8 @@ public class Main {
 
                 CompositionInformation composedSourceLocation;
                 try {
-                    composedSourceLocation = composer.compose(features, composerDestination, composerTmpDirectory);
+                    composedSourceLocation = composer.compose(features, composerDestination, composerTmpDirectory,
+                        featureModel);
                 } catch (IllegalFeatureNameException e) {
                     System.err.println("Invalid feature name has been found");
                     return STATUS_INVALID_CONFIG;

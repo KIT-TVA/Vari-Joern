@@ -2,6 +2,7 @@ package edu.kit.varijoern.composers.antenna;
 
 import antenna.preprocessor.v3.PPException;
 import antenna.preprocessor.v3.Preprocessor;
+import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
@@ -37,7 +38,7 @@ public class AntennaComposer implements Composer {
 
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
-                                                   @NotNull Path tmpPath)
+                                                   @NotNull Path tmpPath, @NotNull IFeatureModel featureModel)
         throws IllegalFeatureNameException, IOException, ComposerException {
         List<String> enabledFeatures = features.entrySet().stream()
             .filter(Map.Entry::getValue)

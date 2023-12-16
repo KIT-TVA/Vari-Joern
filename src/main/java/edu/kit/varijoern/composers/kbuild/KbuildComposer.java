@@ -1,5 +1,6 @@
 package edu.kit.varijoern.composers.kbuild;
 
+import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
@@ -36,10 +37,11 @@ public class KbuildComposer implements Composer {
 
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
-                                                   @NotNull Path tmpPath)
+                                                   @NotNull Path tmpPath, @NotNull IFeatureModel featureModel)
         throws IOException, ComposerException {
         if (this.featureMapperCreator == null) {
-            this.featureMapperCreator = new KbuildFeatureMapperCreator(this.sourcePath, this.system, tmpPath);
+            this.featureMapperCreator = new KbuildFeatureMapperCreator(this.sourcePath, this.system,
+                tmpPath, featureModel);
         }
 
         Path tmpSourcePath = tmpPath.resolve("source");
