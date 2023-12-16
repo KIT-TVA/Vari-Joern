@@ -147,6 +147,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                     System.out.println("Adding probably unconstrained feature " + featureName);
                     Feature feature = new Feature(featureModel, featureName);
                     featureModel.addFeature(feature);
+                    featureModel.getStructure().getRoot().addChild(feature.getStructure());
                 }
             }
             deleteFeatures(featureModel, nonTristateFeatures);
