@@ -1,5 +1,6 @@
 package edu.kit.varijoern.composers.kbuild;
 
+import org.jetbrains.annotations.Nullable;
 import org.prop4j.*;
 import org.smtlib.*;
 import org.smtlib.command.C_assert;
@@ -14,7 +15,7 @@ import java.util.Map;
 
 /**
  * Converts SMT-LIB strings to {@link Node}s by reading all `assert` commands and chaining the specified conditions.
- * Only or, not and let statements are supported.
+ * Only the `or`, `and`, `not` and `let` functions are supported in expressions.
  */
 public class SMTLibConverter {
     /**
@@ -72,21 +73,36 @@ public class SMTLibConverter {
 
         @Override
         public Node visit(IExpr.IFcnExpr e) throws VisitorException {
-            if (e.head().toString().equals("or")) {
-                List<Node> arguments = new ArrayList<>();
-                for (IExpr argument : e.args()) {
-                    Node convertedArgument = argument.accept(this);
-                    if (convertedArgument == null) return null;
-                    arguments.add(convertedArgument);
+            return switch (e.head().toString()) {
+                case "or" -> {
+                    List<Node> arguments = getArgumentNodes(e);
+                    if (arguments == null) yield null;
+                    yield new Or(arguments.toArray(new Node[0]));
                 }
-                return new Or(arguments.toArray(new Node[0]));
-            } else if (e.head().toString().equals("not")) {
-                if (e.args().size() != 1) return null;
-                Node convertedArgument = e.args().get(0).accept(this);
+                case "and" -> {
+                    List<Node> arguments = getArgumentNodes(e);
+                    if (arguments == null) yield null;
+                    yield new And(arguments.toArray(new Node[0]));
+                }
+                case "not" -> {
+                    if (e.args().size() != 1) yield null;
+                    Node convertedArgument = e.args().get(0).accept(this);
+                    if (convertedArgument == null) yield null;
+                    yield new Not(convertedArgument);
+                }
+                default -> null;
+            };
+        }
+
+        @Nullable
+        private List<Node> getArgumentNodes(IExpr.IFcnExpr e) throws VisitorException {
+            List<Node> arguments = new ArrayList<>();
+            for (IExpr argument : e.args()) {
+                Node convertedArgument = argument.accept(this);
                 if (convertedArgument == null) return null;
-                return new Not(convertedArgument);
+                arguments.add(convertedArgument);
             }
-            return null;
+            return arguments;
         }
 
         @Override

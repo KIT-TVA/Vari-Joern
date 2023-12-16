@@ -77,6 +77,34 @@ class SMTLibConverterTest {
     }
 
     @Test
+    void assertionWithAnd() throws ParseException {
+        String smtLib = """
+            (set-info :status unknown)
+            (declare-fun CONFIG_UBIUPDATEVOL () Bool)
+            (declare-fun CONFIG_UBIRSVOL () Bool)
+            (declare-fun CONFIG_UBIRMVOL () Bool)
+            (declare-fun CONFIG_UBIMKVOL () Bool)
+            (declare-fun CONFIG_UBIDETACH () Bool)
+            (declare-fun CONFIG_UBIATTACH () Bool)
+            (assert
+             (and CONFIG_UBIATTACH CONFIG_UBIDETACH CONFIG_UBIMKVOL CONFIG_UBIRMVOL CONFIG_UBIRSVOL CONFIG_UBIUPDATEVOL))
+            (check-sat)""";
+        SMTLibConverter converter = new SMTLibConverter();
+        Node result = converter.convert(smtLib);
+        assertEquals(
+            new And(new And(
+                new Literal("CONFIG_UBIATTACH"),
+                new Literal("CONFIG_UBIDETACH"),
+                new Literal("CONFIG_UBIMKVOL"),
+                new Literal("CONFIG_UBIRMVOL"),
+                new Literal("CONFIG_UBIRSVOL"),
+                new Literal("CONFIG_UBIUPDATEVOL")
+            )),
+            result
+        );
+    }
+
+    @Test
     void assertionWithNot() throws ParseException {
         String smtLib = """
             (set-info :status unknown)
