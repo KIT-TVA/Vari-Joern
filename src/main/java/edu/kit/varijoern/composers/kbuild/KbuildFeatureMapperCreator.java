@@ -15,10 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -107,11 +105,20 @@ public class KbuildFeatureMapperCreator {
                     }
                     return name.substring("CONFIG_".length());
                 });
-                if (!presenceCondition.getContainedFeatures().stream()
-                    .allMatch(feature -> featureModel.getFeature(feature) != null)) {
-                    System.err.printf("Presence condition contains unknown features: %s; file: %s%n",
-                        presenceCondition, entry.getKey());
-                    continue;
+                List<String> unknownFeatures = presenceCondition.getContainedFeatures().stream()
+                    .filter(feature -> featureModel.getFeature(feature) == null)
+                    .toList();
+                if (!unknownFeatures.isEmpty()) {
+                    StringBuilder warning = new StringBuilder();
+                    warning.append("Presence condition contains unknown features: ")
+                        .append(String.join(", ", unknownFeatures))
+                        .append("; file: ")
+                        .append(entry.getKey())
+                        .append(System.lineSeparator())
+                        .append("Changed from %s".formatted(presenceCondition));
+                    presenceCondition = Node.replaceLiterals(presenceCondition, unknownFeatures, true);
+                    warning.append(" to %s".formatted(presenceCondition));
+                    System.err.println(warning);
                 }
                 filePresenceConditions.put(path, presenceCondition);
             } catch (ParseException e) {
