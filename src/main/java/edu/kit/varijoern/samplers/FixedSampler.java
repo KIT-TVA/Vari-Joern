@@ -1,10 +1,12 @@
 package edu.kit.varijoern.samplers;
 
+import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,15 +36,18 @@ public class FixedSampler implements Sampler {
 
     @Override
     public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
-        List<Map<String, Boolean>> result = List.of(
-            this.featureModel.getFeatures().stream()
-                .collect(Collectors.toMap(IFeature::getName, feature -> false))
-        );
+        Map<String, Boolean> result = this.featureModel.getFeatures().stream()
+            .collect(Collectors.toMap(IFeature::getName, feature -> false));
         for (String feature : this.features) {
-            if (result.get(0).put(feature, true) == null) {
+            if (result.put(feature, true) == null) {
                 throw new SamplerException("Feature %s does not exist in the feature model".formatted(feature));
             }
         }
-        return result;
+        for (IConstraint constraint : this.featureModel.getConstraints()) {
+            if (!constraint.getNode().getValue(Collections.unmodifiableMap(result))) {
+                throw new SamplerException("Feature combination does not satisfy constraint %s".formatted(constraint));
+            }
+        }
+        return List.of(result);
     }
 }
