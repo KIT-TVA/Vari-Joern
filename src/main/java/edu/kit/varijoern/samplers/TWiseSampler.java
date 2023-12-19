@@ -11,6 +11,7 @@ import de.ovgu.featureide.fm.core.job.monitor.ConsoleMonitor;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,16 +53,16 @@ public class TWiseSampler implements Sampler {
 
         Variables variables = cnf.getVariables();
         List<List<String>> enabledFeatures = rawSample.stream().map(variables::convertToString).toList();
-        List<Map<String, Boolean>> result = List.of(
-            this.featureModel.getFeatures().stream()
-                .collect(Collectors.toMap(IFeature::getName, feature -> false))
-        );
+        List<Map<String, Boolean>> result = new ArrayList<>();
         for (List<String> featureCombination : enabledFeatures) {
+            Map<String, Boolean> assignment = this.featureModel.getFeatures().stream()
+                .collect(Collectors.toMap(IFeature::getName, feature -> false));
             for (String feature : featureCombination) {
-                if (result.get(0).put(feature, true) == null) {
+                if (assignment.put(feature, true) == null) {
                     throw new SamplerException("Feature %s does not exist in the feature model".formatted(feature));
                 }
             }
+            result.add(assignment);
         }
         return result;
     }
