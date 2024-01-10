@@ -72,7 +72,13 @@ public class LineFeatureMapper {
         Map<Integer, Integer> numSeenPresenceConditions = new HashMap<>();
         Syntax next;
         do {
-            next = preprocessor.next();
+            try {
+                next = preprocessor.next();
+            }
+            catch (RuntimeException e) {
+                System.err.printf("Oh, shit. (At %s):%n%s%n", headerFileManager.include.getLocation(), e);
+                break;
+            }
             if (preprocessor.isExpanding()) continue;
             Location location = headerFileManager.include.getLocation();
             if (location == null || !Path.of(location.file).equals(filePath)) {
