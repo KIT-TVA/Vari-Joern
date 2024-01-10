@@ -8,7 +8,10 @@ import edu.kit.varijoern.composers.ComposerException;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.IOUtils;
 import org.prop4j.Node;
+import xtc.lang.cpp.*;
+import xtc.tree.Location;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -42,11 +45,56 @@ public class KbuildFeatureMapperCreator {
      * @throws ComposerException if kmax fails or the presence conditions cannot be parsed
      */
     public KbuildFeatureMapperCreator(Path sourcePath, String system, Path composerTmpDir, IFeatureModel featureModel)
-        throws IOException, ComposerException {
+            throws IOException, ComposerException {
         this.createKmaxallScript(composerTmpDir);
         if (system.equals("busybox")) {
             processKmaxOutput(runKmax(sourcePath, composerTmpDir), sourcePath, featureModel);
         }
+        //preprocessorExperiment(sourcePath);
+    }
+
+    private static void preprocessorExperiment(Path sourcePath) throws IOException {
+        Path filePath = Path.of("/home/erik/variability/JoernExternalDefines/echo.c");
+        TokenCreator tokenCreator = new CTokenCreator();
+        HeaderFileManager headerFileManager = new HeaderFileManager(
+                new FileReader(filePath.toFile()),
+                filePath.toFile(),
+                List.of(), List.of(), List.of(),
+                tokenCreator,
+                new StopWatch()
+        );
+        MacroTable macroTable = new MacroTable(tokenCreator);
+        PresenceConditionManager presenceConditionManager = new PresenceConditionManager();
+        ConditionEvaluator conditionEvaluator = new ConditionEvaluator(ExpressionParser.fromRats(),
+                presenceConditionManager, macroTable);
+        Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
+                conditionEvaluator, tokenCreator);
+        preprocessor.showPresenceConditions(true);
+        preprocessor.showErrors(true);
+        Syntax next;
+        Map<Integer, PresenceConditionManager.PresenceCondition> presenceConditions = new HashMap<>();
+        do {
+            next = preprocessor.next();
+            Location location = headerFileManager.include.getLocation();
+            if (location != null && location.file.endsWith("echo.c")) {
+                PresenceConditionManager.PresenceCondition presenceCondition = presenceConditionManager.reference();
+                PresenceConditionManager.PresenceCondition previousCondition = presenceConditions.get(location.line);
+                if (previousCondition == null) {
+                    presenceConditions.put(location.line, presenceCondition);
+                } else if (!presenceCondition.is(previousCondition)) {
+                    System.err.printf("Conflict in line %d between %s and %s%n", location.line, previousCondition,
+                            presenceCondition);
+                }
+            }
+        } while (next.kind() != Syntax.Kind.EOF);
+        System.err.printf("Presence conditions:%n%s",
+                presenceConditions.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .map(e -> "%d: %s".formatted(e.getKey(), e.getValue()))
+                        .collect(Collectors.joining("\n"))
+        );
+
+        System.exit(0);
     }
 
     private void createKmaxallScript(Path tmpDir) throws IOException {
@@ -58,17 +106,17 @@ public class KbuildFeatureMapperCreator {
 
     private static String runKmax(Path sourcePath, Path composerTmpDir) throws IOException, ComposerException {
         List<String> kmaxallArgs = new ArrayList<>(List.of(
-            "python3",
-            composerTmpDir.resolve("run-kmaxall.py").toString()
+                "python3",
+                composerTmpDir.resolve("run-kmaxall.py").toString()
         ));
         try (Stream<Path> files = Files.walk(sourcePath)) {
             kmaxallArgs.addAll(files
-                .filter(path -> path.getFileName().toString().endsWith("Kbuild"))
-                .map(Path::toString)
-                .toList());
+                    .filter(path -> path.getFileName().toString().endsWith("Kbuild"))
+                    .map(Path::toString)
+                    .toList());
         }
         ProcessBuilder processBuilder = new ProcessBuilder(kmaxallArgs)
-            .directory(sourcePath.toFile());
+                .directory(sourcePath.toFile());
         String output;
         int exitCode;
         try {
@@ -85,7 +133,7 @@ public class KbuildFeatureMapperCreator {
     }
 
     private void processKmaxOutput(String output, Path sourcePath, IFeatureModel featureModel)
-        throws JsonProcessingException, ComposerException {
+            throws JsonProcessingException, ComposerException {
         TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {
         };
         Map<String, String> rawPresenceConditions = new ObjectMapper().readValue(output, typeRef);
@@ -100,22 +148,22 @@ public class KbuildFeatureMapperCreator {
                 presenceCondition.modifyFeatureNames(name -> {
                     if (!name.startsWith("CONFIG_")) {
                         System.err.printf("Option in presence condition does not start with CONFIG_: %s; file: %s%n",
-                            name, entry.getKey());
+                                name, entry.getKey());
                         return name;
                     }
                     return name.substring("CONFIG_".length());
                 });
                 List<String> unknownFeatures = presenceCondition.getContainedFeatures().stream()
-                    .filter(feature -> featureModel.getFeature(feature) == null)
-                    .toList();
+                        .filter(feature -> featureModel.getFeature(feature) == null)
+                        .toList();
                 if (!unknownFeatures.isEmpty()) {
                     StringBuilder warning = new StringBuilder();
                     warning.append("Presence condition contains unknown features: ")
-                        .append(String.join(", ", unknownFeatures))
-                        .append("; file: ")
-                        .append(entry.getKey())
-                        .append(System.lineSeparator())
-                        .append("Changed from %s".formatted(presenceCondition));
+                            .append(String.join(", ", unknownFeatures))
+                            .append("; file: ")
+                            .append(entry.getKey())
+                            .append(System.lineSeparator())
+                            .append("Changed from %s".formatted(presenceCondition));
                     presenceCondition = Node.replaceLiterals(presenceCondition, unknownFeatures, true);
                     warning.append(" to %s".formatted(presenceCondition));
                     System.err.println(warning);
@@ -123,15 +171,16 @@ public class KbuildFeatureMapperCreator {
                 filePresenceConditions.put(path, presenceCondition);
             } catch (ParseException e) {
                 throw new ComposerException(
-                    "Could not parse presence condition (%s at %d). Text was:%n%s"
-                        .formatted(entry.getKey(), e.getErrorOffset(), entry.getValue()),
-                    e
+                        "Could not parse presence condition (%s at %d). Text was:%n%s"
+                                .formatted(entry.getKey(), e.getErrorOffset(), entry.getValue()),
+                        e
                 );
             }
         }
     }
 
-    public KbuildFeatureMapper createFeatureMapper(Map<Path, GenerationInformation> generationInformationMap) {
-        return new KbuildFeatureMapper(this.filePresenceConditions, generationInformationMap);
+    public KbuildFeatureMapper createFeatureMapper(Map<Path, GenerationInformation> generationInformationMap,
+                                                   Map<Path, LineFeatureMapper> lineFeatureMappers) {
+        return new KbuildFeatureMapper(this.filePresenceConditions, lineFeatureMappers, generationInformationMap);
     }
 }

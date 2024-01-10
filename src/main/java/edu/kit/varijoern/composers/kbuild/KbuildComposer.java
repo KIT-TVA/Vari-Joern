@@ -1,6 +1,7 @@
 package edu.kit.varijoern.composers.kbuild;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
@@ -38,10 +39,10 @@ public class KbuildComposer implements Composer {
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull Path tmpPath, @NotNull IFeatureModel featureModel)
-        throws IOException, ComposerException {
+            throws IOException, ComposerException {
         if (this.featureMapperCreator == null) {
             this.featureMapperCreator = new KbuildFeatureMapperCreator(this.sourcePath, this.system,
-                tmpPath, featureModel);
+                    tmpPath, featureModel);
         }
 
         Path tmpSourcePath = tmpPath.resolve("source");
@@ -50,12 +51,20 @@ public class KbuildComposer implements Composer {
             this.generateConfig(features, tmpSourcePath);
             Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
             Map<Path, GenerationInformation> generationInformation = this.generateFiles(
-                includedFiles, destination, tmpSourcePath
+                    includedFiles, destination, tmpSourcePath
+            );
+            Map<Path, LineFeatureMapper> lineFeatureMappers = this.createLineFeatureMappers(
+                    generationInformation,
+                    includedFiles,
+                    featureModel.getFeatures().stream()
+                            .map(IFeatureModelElement::getName)
+                            .collect(Collectors.toSet()),
+                    tmpSourcePath
             );
             return new CompositionInformation(
-                destination,
-                features,
-                this.featureMapperCreator.createFeatureMapper(generationInformation)
+                    destination,
+                    features,
+                    this.featureMapperCreator.createFeatureMapper(generationInformation, lineFeatureMappers)
             );
         } finally {
             FileUtils.deleteDirectory(tmpSourcePath.toFile());
@@ -63,7 +72,7 @@ public class KbuildComposer implements Composer {
     }
 
     private void generateConfig(Map<String, Boolean> features, Path tmpSourcePath)
-        throws IOException, ComposerException {
+            throws IOException, ComposerException {
         System.out.println("Generating .config");
         this.runMake(tmpSourcePath, "defconfig");
 
@@ -111,7 +120,7 @@ public class KbuildComposer implements Composer {
     private Set<Dependency> getIncludedFiles(Path tmpSourcePath) throws IOException, ComposerException {
         System.out.println("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
-            .directory(tmpSourcePath.toFile());
+                .directory(tmpSourcePath.toFile());
         int makeExitCode;
         String output;
         try {
@@ -136,10 +145,10 @@ public class KbuildComposer implements Composer {
         for (GCCCall gccCall : gccCalls) {
             for (String file : gccCall.compiledFiles()) {
                 compiledFiles.add(new InclusionInformation(
-                    Path.of(file),
-                    new HashSet<>(gccCall.includes()),
-                    gccCall.defines(),
-                    gccCall.includePaths()
+                        Path.of(file),
+                        new HashSet<>(gccCall.includes()),
+                        gccCall.defines(),
+                        gccCall.includePaths()
                 ));
             }
         }
@@ -148,7 +157,7 @@ public class KbuildComposer implements Composer {
     }
 
     private Set<Dependency> getDependencies(List<InclusionInformation> compiledFiles, Path tmpSourcePath)
-        throws ComposerException, IOException {
+            throws ComposerException, IOException {
         System.out.println("Getting dependencies");
         Set<Dependency> dependencies = new HashSet<>();
         for (InclusionInformation compiledFile : compiledFiles) {
@@ -160,60 +169,60 @@ public class KbuildComposer implements Composer {
     }
 
     private List<Dependency> getDependenciesOfFile(InclusionInformation inclusionInformation, Path tmpSourcePath)
-        throws IOException, ComposerException {
-        if (!Files.exists(tmpSourcePath.resolve(inclusionInformation.filePath))) {
-            System.err.printf("File %s does not exist, skipping%n", inclusionInformation.filePath);
+            throws IOException, ComposerException {
+        if (!Files.exists(tmpSourcePath.resolve(inclusionInformation.filePath()))) {
+            System.err.printf("File %s does not exist, skipping%n", inclusionInformation.filePath());
             return List.of();
         }
-        System.out.printf("Getting dependencies of %s%n", inclusionInformation.filePath);
+        System.out.printf("Getting dependencies of %s%n", inclusionInformation.filePath());
         String makeRule = this.getFileMakeRule(inclusionInformation, tmpSourcePath);
         String dependencyList = makeRule.substring(makeRule.indexOf(':') + 1);
         Stream<String> dependencies = Arrays.stream(dependencyList.replace("\\", "").split("\\s+"))
-            .filter(dependency -> !dependency.isBlank());
+                .filter(dependency -> !dependency.isBlank());
         // This is only an approximation. The files included earlier don't see the files included later. This should be
         // reflected in this list, but since we don't know the order of the includes, we can't do that.
         List<Dependency> dependencyInformation = dependencies
-            // Dependencies with absolute path likely don't belong to the project.
-            .filter(dep -> !Path.of(dep).isAbsolute())
-            .map(dep -> {
-                if (dep.endsWith(".h")) {
-                    return new HeaderDependency(dep);
-                } else {
-                    return new CompiledDependency(new InclusionInformation(
-                        Path.of(dep),
-                        inclusionInformation.includedFiles.stream()
-                            .filter(includedFile -> !includedFile.equals(dep))
-                            .collect(Collectors.toSet()),
-                        inclusionInformation.defines,
-                        inclusionInformation.includePaths
-                    ));
-                }
-            })
-            .toList();
+                // Dependencies with absolute paths likely don't belong to the project.
+                .filter(dep -> !Path.of(dep).isAbsolute())
+                .map(dep -> {
+                    if (dep.endsWith(".h")) {
+                        return new HeaderDependency(dep);
+                    } else {
+                        return new CompiledDependency(new InclusionInformation(
+                                Path.of(dep),
+                                inclusionInformation.includedFiles().stream()
+                                        .filter(includedFile -> !includedFile.equals(dep))
+                                        .collect(Collectors.toSet()),
+                                inclusionInformation.defines(),
+                                inclusionInformation.includePaths()
+                        ));
+                    }
+                })
+                .toList();
         System.out.printf("Found %d dependencies%n", dependencyInformation.size());
         return dependencyInformation;
     }
 
     // This method may miss dependencies of generated files.
     private String getFileMakeRule(InclusionInformation inclusionInformation, Path tmpSourcePath)
-        throws IOException, ComposerException {
+            throws IOException, ComposerException {
         List<String> gccCall = new ArrayList<>();
         gccCall.add("gcc");
-        gccCall.addAll(inclusionInformation.includePaths.stream()
-            .map(includePath -> "-I" + includePath)
-            .toList());
-        gccCall.addAll(inclusionInformation.defines.entrySet().stream()
-            .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue())
-            .toList());
-        gccCall.addAll(inclusionInformation.includedFiles.stream()
-            .flatMap(includedFile -> Stream.of("-include", includedFile))
-            .toList());
+        gccCall.addAll(inclusionInformation.includePaths().stream()
+                .map(includePath -> "-I" + includePath)
+                .toList());
+        gccCall.addAll(inclusionInformation.defines().entrySet().stream()
+                .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue())
+                .toList());
+        gccCall.addAll(inclusionInformation.includedFiles().stream()
+                .flatMap(includedFile -> Stream.of("-include", includedFile))
+                .toList());
         gccCall.add("-M");
         gccCall.add("-MG");
-        gccCall.add(inclusionInformation.filePath.toString());
+        gccCall.add(inclusionInformation.filePath().toString());
 
         ProcessBuilder gccProcessBuilder = new ProcessBuilder(gccCall)
-            .directory(tmpSourcePath.toFile());
+                .directory(tmpSourcePath.toFile());
         int gccExitCode;
         String output;
         String error;
@@ -239,7 +248,7 @@ public class KbuildComposer implements Composer {
 
     private Map<Path, GenerationInformation> generateFiles(Set<Dependency> dependencies, Path destination,
                                                            Path tmpSourcePath)
-        throws IOException, ComposerException {
+            throws IOException, ComposerException {
         System.out.println("Generating files");
         Map<Path, List<Dependency>> targets = new HashMap<>();
         for (Dependency dependency : dependencies) {
@@ -248,7 +257,7 @@ public class KbuildComposer implements Composer {
         Map<Path, GenerationInformation> generationInformation = new HashMap<>();
         for (Map.Entry<Path, List<Dependency>> target : targets.entrySet()) {
             generationInformation.putAll(
-                this.generateFile(target.getKey(), target.getValue(), destination, tmpSourcePath)
+                    this.generateFile(target.getKey(), target.getValue(), destination, tmpSourcePath)
             );
         }
         return generationInformation;
@@ -256,7 +265,7 @@ public class KbuildComposer implements Composer {
 
     private Map<Path, GenerationInformation> generateFile(Path filePath, List<Dependency> configurations,
                                                           Path destination, Path tmpSourcePath)
-        throws IOException {
+            throws IOException {
         Path sourcePath = tmpSourcePath.resolve(filePath);
         if (!Files.exists(sourcePath)) {
             System.err.printf("File %s does not exist, skipping%n", filePath);
@@ -270,11 +279,11 @@ public class KbuildComposer implements Composer {
         for (Dependency configuration : configurations) {
             if (configuration instanceof CompiledDependency) {
                 Map.Entry<Path, GenerationInformation> fileGenerationInformation =
-                    this.generateFileWithPreprocessorDirectives(
-                        ((CompiledDependency) configuration).getInclusionInformation(),
-                        destination,
-                        tmpSourcePath
-                    );
+                        this.generateFileWithPreprocessorDirectives(
+                                ((CompiledDependency) configuration).getInclusionInformation(),
+                                destination,
+                                tmpSourcePath
+                        );
                 generationInformation.put(fileGenerationInformation.getKey(), fileGenerationInformation.getValue());
                 generated = true;
             } else if (configuration instanceof HeaderDependency) {
@@ -293,39 +302,71 @@ public class KbuildComposer implements Composer {
     }
 
     private Map.Entry<Path, GenerationInformation> generateFileWithPreprocessorDirectives(
-        InclusionInformation inclusionInformation, Path destination, Path tmpSourcePath) throws IOException {
-        System.out.printf("Generating %s with preprocessor directives%n", inclusionInformation.filePath);
-        String fileName = inclusionInformation.filePath.getFileName().toString();
+            InclusionInformation inclusionInformation, Path destination, Path tmpSourcePath) throws IOException {
+        System.out.printf("Generating %s with preprocessor directives%n", inclusionInformation.filePath());
+        String fileName = inclusionInformation.filePath().getFileName().toString();
         int dotIndex = fileName.lastIndexOf('.');
         String baseName = dotIndex == -1 ? fileName : fileName.substring(0, dotIndex);
         String extension = dotIndex == -1 ? "" : fileName.substring(dotIndex);
-        Path relativeDestinationPath = inclusionInformation.filePath.getParent()
-            .resolve(baseName + "-" + inclusionInformation.hashCode() + extension);
+        Path relativeDestinationPath = inclusionInformation.filePath().getParent()
+                .resolve(baseName + "-" + inclusionInformation.hashCode() + extension);
         Path destinationPath = destination
-            .resolve(relativeDestinationPath);
+                .resolve(relativeDestinationPath);
 
         try (FileOutputStream stream = new FileOutputStream(destinationPath.toFile())) {
-            for (Map.Entry<String, String> define : inclusionInformation.defines.entrySet()) {
+            for (Map.Entry<String, String> define : inclusionInformation.defines().entrySet()) {
                 stream.write(("#define %s %s%n".formatted(define.getKey(), define.getValue())).getBytes(StandardCharsets.US_ASCII));
             }
-            for (String include : inclusionInformation.includedFiles) {
-                Path includePath = inclusionInformation.filePath.getParent().relativize(Path.of(include));
+            for (String include : inclusionInformation.includedFiles()) {
+                Path includePath = inclusionInformation.filePath().getParent().relativize(Path.of(include));
                 stream.write(("#include \"%s\"%n".formatted(includePath)).getBytes(StandardCharsets.US_ASCII));
             }
-            stream.write(Files.readAllBytes(tmpSourcePath.resolve(inclusionInformation.filePath)));
+            stream.write(Files.readAllBytes(tmpSourcePath.resolve(inclusionInformation.filePath())));
         }
         return Map.entry(relativeDestinationPath, new GenerationInformation(
-            inclusionInformation.filePath.normalize(),
-            inclusionInformation.defines.size() + inclusionInformation.includedFiles.size()
+                inclusionInformation.filePath().normalize(),
+                inclusionInformation.defines().size() + inclusionInformation.includedFiles().size()
         ));
+    }
+
+    private Map<Path, LineFeatureMapper> createLineFeatureMappers(Map<Path, GenerationInformation> generationInformation,
+                                                                  Set<Dependency> dependencies,
+                                                                  Set<String> knownFeatures,
+                                                                  Path tmpSourcePath)
+            throws IOException, ComposerException {
+        System.out.println("Creating line feature mappers");
+
+        // Clean up to ensure that the header file containing config definitions doesn't exist
+        this.runMake(tmpSourcePath, "clean");
+
+        Map<Path, LineFeatureMapper> lineFeatureMappers = new HashMap<>();
+        Map<Path, Dependency> dependenciesByPath = dependencies.stream()
+                .collect(Collectors.toMap(Dependency::getFilePath, dependency -> dependency));
+        for (Map.Entry<Path, GenerationInformation> entry : generationInformation.entrySet()) {
+            Path generatedFilePath = entry.getKey();
+            GenerationInformation fileGenerationInformation = entry.getValue();
+            Dependency dependency = dependenciesByPath.get(fileGenerationInformation.originalPath());
+            if (!(dependency instanceof CompiledDependency)) {
+                continue;
+            }
+            System.out.printf("Creating line feature mapper for %s%n", entry.getKey());
+            InclusionInformation inclusionInformation = ((CompiledDependency) dependency).getInclusionInformation();
+            lineFeatureMappers.put(
+                    generatedFilePath,
+                    new LineFeatureMapper(inclusionInformation, tmpSourcePath, fileGenerationInformation.addedLines(),
+                            knownFeatures)
+            );
+        }
+
+        return lineFeatureMappers;
     }
 
     private void runMake(Path tmpSourcePath, String... args) throws ComposerException, IOException {
         ProcessBuilder makeProcessBuilder = new ProcessBuilder(
-            Stream.concat(Stream.of("make"), Arrays.stream(args))
-                .toList())
-            .inheritIO()
-            .directory(tmpSourcePath.toFile());
+                Stream.concat(Stream.of("make"), Arrays.stream(args))
+                        .toList())
+                .inheritIO()
+                .directory(tmpSourcePath.toFile());
         int makeExitCode;
         try {
             makeExitCode = makeProcessBuilder.start().waitFor();
@@ -346,29 +387,6 @@ public class KbuildComposer implements Composer {
         return supportedSystems.contains(system);
     }
 
-    private record InclusionInformation(Path filePath, Set<String> includedFiles, Map<String, String> defines,
-                                        List<String> includePaths) {
-        public InclusionInformation(Path filePath, Set<String> includedFiles, Map<String, String> defines, List<String> includePaths) {
-            this.filePath = filePath.normalize();
-            this.includedFiles = includedFiles;
-            this.defines = defines;
-            this.includePaths = includePaths;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            InclusionInformation that = (InclusionInformation) o;
-            return Objects.equals(filePath, that.filePath) && Objects.equals(includedFiles, that.includedFiles) && Objects.equals(defines, that.defines);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(filePath, includedFiles, defines);
-        }
-    }
-
     private static abstract class Dependency {
         public abstract Path getFilePath();
     }
@@ -382,7 +400,7 @@ public class KbuildComposer implements Composer {
 
         @Override
         public Path getFilePath() {
-            return this.inclusionInformation.filePath;
+            return this.inclusionInformation.filePath();
         }
 
         public InclusionInformation getInclusionInformation() {
