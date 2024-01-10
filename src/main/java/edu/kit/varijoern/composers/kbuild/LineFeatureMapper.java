@@ -68,10 +68,12 @@ public class LineFeatureMapper {
         //preprocessor.showErrors(true);
 
         // Compute presence conditions
+        Map<Integer, PresenceConditionManager.PresenceCondition> rawPresenceConditions = new HashMap<>();
         Map<Integer, Integer> numSeenPresenceConditions = new HashMap<>();
         Syntax next;
         do {
             next = preprocessor.next();
+            if (preprocessor.isExpanding()) continue;
             Location location = headerFileManager.include.getLocation();
             if (location == null || !Path.of(location.file).equals(filePath)) {
                 continue;
@@ -80,47 +82,58 @@ public class LineFeatureMapper {
             int line = location.line;
             numSeenPresenceConditions.putIfAbsent(line, 0);
             PresenceConditionManager.PresenceCondition presenceCondition = presenceConditionManager.reference();
-            Optional<Node> presenceConditionNodeOptional = this.convertBDD(presenceCondition.getBDD(),
-                    presenceConditionManager);
-            presenceCondition.delRef();
 
-            numSeenPresenceConditions.put(line, numSeenPresenceConditions.get(line) + 1);
-
-            if (presenceConditionNodeOptional.isEmpty()) {
-                System.err.printf("Could not parse presence condition at location %s: %s%n", location,
-                        presenceCondition);
-                continue;
+            if (rawPresenceConditions.get(line) == null ||
+                    !presenceCondition.getBDD().equals(rawPresenceConditions.get(line).getBDD())) {
+                numSeenPresenceConditions.put(line, numSeenPresenceConditions.get(line) + 1);
+                if (numSeenPresenceConditions.get(line) > 1) {
+                    System.err.printf("Conflict in line %d on token %s between %s and %s%n", line, next,
+                            Optional.ofNullable(rawPresenceConditions.get(line))
+                                    .map(PresenceConditionManager.PresenceCondition::toString)
+                                    .orElse("<not parsed>"),
+                            presenceCondition
+                    );
+                    continue;
+                }
             }
 
-            Node presenceConditionNode = presenceConditionNodeOptional.get();
-
-            if (numSeenPresenceConditions.get(line) > 1) {
-                System.err.printf("Conflict in line %d between %s and %s%n", line,
-                        Optional.ofNullable(this.linePresenceConditions.get(line))
-                                .map(Node::toString)
-                                .orElse("<not parsed>"),
-                        presenceConditionNode
-                );
-                continue;
+            PresenceConditionManager.PresenceCondition oldCondition = rawPresenceConditions.put(line, presenceCondition);
+            if (oldCondition != null) {
+                oldCondition.delRef();
             }
-
-            // FIXME: This breaks conflict detection.
-            List<String> unknownFeatures = presenceConditionNode.getUniqueLiterals().stream()
-                    // True and False are literals
-                    .filter(literal -> !(literal instanceof True || literal instanceof False))
-                    .map(literal -> String.valueOf(literal.var))
-                    .filter(v -> !knownFeatures.contains(v))
-                    .toList();
-            if (!unknownFeatures.isEmpty()) {
-                System.err.printf("Unknown features %s in line %d. Replacing with `false`%n", unknownFeatures, line);
-                presenceConditionNode = Node.replaceLiterals(presenceConditionNode, unknownFeatures, true);
-            }
-
-            this.linePresenceConditions.put(line, presenceConditionNode);
         } while (next.kind() != Syntax.Kind.EOF);
 
         // Remove conflicted presence conditions
         this.linePresenceConditions.entrySet().removeIf(e -> numSeenPresenceConditions.get(e.getKey()) > 1);
+
+        // Convert presence conditions to nodes
+        for (Map.Entry<Integer, PresenceConditionManager.PresenceCondition> entry : rawPresenceConditions.entrySet()) {
+            Optional<Node> nodeOptional = this.convertBDD(entry.getValue().getBDD(), presenceConditionManager);
+            if (nodeOptional.isEmpty()) {
+                System.err.printf("Could not convert presence condition to node at %s:%s:%n%s%n", filePath,
+                        entry.getKey(), entry.getValue());
+                continue;
+            }
+
+            Node node = nodeOptional.get();
+            List<String> unknownFeatures = node.getUniqueLiterals().stream()
+                    .filter(literal -> !(literal instanceof True || literal instanceof False))
+                    .map(literal -> String.valueOf(literal.var))
+                    .filter(var -> !knownFeatures.contains(var))
+                    .toList();
+
+            if (!unknownFeatures.isEmpty()) {
+                System.err.printf("Unknown features %s in presence condition at %s:%s%n", unknownFeatures, filePath,
+                        entry.getKey());
+                node = Node.replaceLiterals(node, unknownFeatures, true);
+            }
+
+            this.linePresenceConditions.put(entry.getKey(), node);
+        }
+
+        for (PresenceConditionManager.PresenceCondition presenceCondition : rawPresenceConditions.values()) {
+            presenceCondition.delRef();
+        }
 
         if (this.linePresenceConditions.isEmpty()) {
             System.err.printf("No presence conditions found for %s%n", inclusionInformation.filePath());
