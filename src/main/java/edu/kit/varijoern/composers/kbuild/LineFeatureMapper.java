@@ -83,8 +83,9 @@ public class LineFeatureMapper {
         do {
             try {
                 next = preprocessor.next();
-            } catch (RuntimeException e) {
-                System.err.printf("Oh, shit. (At %s):%n%s%n", headerFileManager.include.getLocation(), e);
+            } catch (IllegalStateException e) {
+                System.err.printf("Preprocessor encountered an internal error at %s: %s%n",
+                        headerFileManager.include.getLocation(), e);
                 break;
             }
             if (preprocessor.isExpanding()) continue;
