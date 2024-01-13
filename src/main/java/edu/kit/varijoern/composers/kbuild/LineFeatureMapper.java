@@ -27,6 +27,9 @@ public class LineFeatureMapper {
 
     /**
      * Creates a new {@link LineFeatureMapper} for the specified file.
+     * <p>
+     * The defines declared in `inclusionInformation` are considered to be enabled in every configuration because
+     * there is currently no way to determine their conditions.
      *
      * @param inclusionInformation the information about how the file is compiled
      * @param sourcePath           the path to the root of the source directory
