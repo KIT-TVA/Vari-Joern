@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  * Maps lines of a single file to presence conditions.
  */
 public class LineFeatureMapper {
-    private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)");
+    private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)|([A-Za-z0-9_]+)");
 
     private final Map<Integer, Node> linePresenceConditions = new HashMap<>();
     private final int addedLines;
@@ -110,7 +110,7 @@ public class LineFeatureMapper {
         } while (next.kind() != Syntax.Kind.EOF);
 
         // Remove conflicted presence conditions
-        this.linePresenceConditions.entrySet().removeIf(e -> numSeenPresenceConditions.get(e.getKey()) > 1);
+        rawPresenceConditions.entrySet().removeIf(e -> numSeenPresenceConditions.get(e.getKey()) > 1);
 
         // Convert presence conditions to nodes
         for (Map.Entry<Integer, PresenceConditionManager.PresenceCondition> entry : rawPresenceConditions.entrySet()) {
@@ -225,9 +225,9 @@ public class LineFeatureMapper {
     private Optional<Node> parseCondition(String rawCondition) {
         Matcher definedMatcher = DEFINED_PATTERN.matcher(rawCondition);
         if (definedMatcher.matches()) {
-            return Optional.of(new Literal(definedMatcher.group(1)));
+            String variableName = definedMatcher.group(1) == null ? definedMatcher.group(2) : definedMatcher.group(1);
+            return Optional.of(new Literal(variableName));
         }
-        // FIXME: `#if MY_FEATURE` also means `#if defined(MY_FEATURE)`, but this is not handled here.
         System.err.printf("Could not parse condition: %s%n", rawCondition);
         return Optional.empty();
     }
