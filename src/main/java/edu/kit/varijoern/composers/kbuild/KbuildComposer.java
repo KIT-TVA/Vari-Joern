@@ -334,6 +334,11 @@ public class KbuildComposer implements Composer {
                                                                   Set<String> knownFeatures,
                                                                   Path tmpSourcePath)
             throws IOException, ComposerException {
+        if (!LineFeatureMapper.isSupportedSystem(this.system)) {
+            System.out.printf("System %s is not supported, skipping line feature mapper creation%n", this.system);
+            return Map.of();
+        }
+
         System.out.println("Creating line feature mappers");
 
         // Clean up to ensure that the header file containing config definitions doesn't exist
@@ -354,7 +359,7 @@ public class KbuildComposer implements Composer {
             lineFeatureMappers.put(
                     generatedFilePath,
                     new LineFeatureMapper(inclusionInformation, tmpSourcePath, fileGenerationInformation.addedLines(),
-                            knownFeatures)
+                            knownFeatures, this.system)
             );
         }
 
