@@ -50,51 +50,6 @@ public class KbuildFeatureMapperCreator {
         if (system.equals("busybox")) {
             processKmaxOutput(runKmax(sourcePath, composerTmpDir), sourcePath, featureModel);
         }
-        //preprocessorExperiment(sourcePath);
-    }
-
-    private static void preprocessorExperiment(Path sourcePath) throws IOException {
-        Path filePath = Path.of("/home/erik/variability/JoernExternalDefines/echo.c");
-        TokenCreator tokenCreator = new CTokenCreator();
-        HeaderFileManager headerFileManager = new HeaderFileManager(
-                new FileReader(filePath.toFile()),
-                filePath.toFile(),
-                List.of(), List.of(), List.of(),
-                tokenCreator,
-                new StopWatch()
-        );
-        MacroTable macroTable = new MacroTable(tokenCreator);
-        PresenceConditionManager presenceConditionManager = new PresenceConditionManager();
-        ConditionEvaluator conditionEvaluator = new ConditionEvaluator(ExpressionParser.fromRats(),
-                presenceConditionManager, macroTable);
-        Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
-                conditionEvaluator, tokenCreator);
-        preprocessor.showPresenceConditions(true);
-        preprocessor.showErrors(true);
-        Syntax next;
-        Map<Integer, PresenceConditionManager.PresenceCondition> presenceConditions = new HashMap<>();
-        do {
-            next = preprocessor.next();
-            Location location = headerFileManager.include.getLocation();
-            if (location != null && location.file.endsWith("echo.c")) {
-                PresenceConditionManager.PresenceCondition presenceCondition = presenceConditionManager.reference();
-                PresenceConditionManager.PresenceCondition previousCondition = presenceConditions.get(location.line);
-                if (previousCondition == null) {
-                    presenceConditions.put(location.line, presenceCondition);
-                } else if (!presenceCondition.is(previousCondition)) {
-                    System.err.printf("Conflict in line %d between %s and %s%n", location.line, previousCondition,
-                            presenceCondition);
-                }
-            }
-        } while (next.kind() != Syntax.Kind.EOF);
-        System.err.printf("Presence conditions:%n%s",
-                presenceConditions.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey())
-                        .map(e -> "%d: %s".formatted(e.getKey(), e.getValue()))
-                        .collect(Collectors.joining("\n"))
-        );
-
-        System.exit(0);
     }
 
     private void createKmaxallScript(Path tmpDir) throws IOException {
