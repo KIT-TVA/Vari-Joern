@@ -112,11 +112,6 @@ public class KbuildComposer implements Composer {
             return "# CONFIG_%s is not set".formatted(optionName);
     }
 
-    private void makePrepare(Path tmpSourcePath) throws ComposerException, IOException {
-        System.out.println("Running make prepare");
-        this.runMake(tmpSourcePath, "prepare");
-    }
-
     private Set<Dependency> getIncludedFiles(Path tmpSourcePath) throws IOException, ComposerException {
         System.out.println("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
