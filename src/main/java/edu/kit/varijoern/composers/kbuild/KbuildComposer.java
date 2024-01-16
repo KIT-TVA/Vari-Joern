@@ -103,6 +103,9 @@ public class KbuildComposer implements Composer {
             defaultConfigLines.add(formatOption(remainingFeature, features.get(remainingFeature)));
         }
         Files.write(configPath, defaultConfigLines);
+
+        // Make sure that `include/autoconf.h` is generated
+        this.runMake(tmpSourcePath, "oldconfig");
     }
 
     private String formatOption(String optionName, boolean activated) {
