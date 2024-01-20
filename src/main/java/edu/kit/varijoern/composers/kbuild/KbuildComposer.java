@@ -21,6 +21,62 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * A composer for Kconfig-Kbuild-based systems. It copies the files required by the specified variant to the output directory
+ * and adds {@code #define} and {@code #include} directives to C files because it is not possible to pass command-line includes and
+ * defines to Joern.
+ * <p>
+ * The composer uses kmax to determine the presence conditions of the individual files
+ * (see {@link KbuildFeatureMapperCreator}). The presence conditions of individual lines are determined using
+ * SuperC (see {@link LineFeatureMapper}).
+ * <p>
+ * Currently, only the Kbuild and Kconfig variants of Linux and Busybox are supported. For Linux, no presence
+ * conditions can be determined at the moment.
+ * <h2>How it works</h2>
+ * <ol>
+ *     <li>If not yet done, create a {@link KbuildFeatureMapperCreator} which determines the presence conditions
+ *     of most C files.</li>
+ *     <li>Copy the source directory to a temporary directory.</li>
+ *     <li>Generate a .config file based on the specified features:
+ *     <ol>
+ *         <li>Run {@code make defconfig} to generate a default .config file. This is used to set options not present
+ *         in the feature model (e.g. because they aren't booleans) to their default values.</li>
+ *         <li>Read the .config file and replace the values of the known options with the specified values.</li>
+ *     </ol>
+ *     </li>
+ *     <li>Generate required header files (specifically {@code autoconf.h}) by invoking {@code make oldconfig}.</li>
+ *     <li>Determine the set of files relevant to the variant:
+ *     <ol>
+ *         <li>Run {@code make -in} to determine the files explicitly compiled by {@code make} and the GCC flags they're compiled
+ *         with.</li>
+ *         <li>Run {@code gcc -M -MG} on each of the files determined in the previous step to determine the files they depend
+ *         on. Files that are compiled with different include or define flags are treated as different dependencies.
+ *         </li>
+ *     </ol>
+ *     </li>
+ *     </li>
+ *     <li>Copy the files determined in the previous step to the output directory and add {@code #define} and {@code #include}
+ *     directives to non-header files.</li>
+ *     <li>Determine the presence conditions of the individual lines of the files in the output directory. See
+ *     {@link LineFeatureMapper} for details.</li>
+ * </ol>
+ *
+ * <h2>Issues</h2>
+ * <ul>
+ *     <li>The extracted presence conditions need not be accurate:
+ *     <ul>
+ *         <li>The presence conditions of lines are determined using the include and define arguments to their
+ *         respective GCC calls. These can vary depending on the variant analyzed and since the conditions of the
+ *         compiler flags can't be determined, the extracted presence conditions can vary as well.</li>
+ *         <li>See {@link KbuildFeatureMapperCreator} and {@link LineFeatureMapper} for more information.</li>
+ *     </ul>
+ *     </li>
+ *     <li>Header files are copied to the output directory without adding define and include directives. This is
+ *     necessary because otherwise the number of files would be too large.</li>
+ *     <li>Include paths specified as compiler arguments can't be passed to the analyzer.</li>
+ *     <li>Files that are generated during the make build and their dependencies may be missing in the result.</li>
+ * </ul>
+ */
 public class KbuildComposer implements Composer {
     public static final String NAME = "kbuild";
     private static final Pattern OPTION_NAME_VALUE_PATTERN = Pattern.compile("CONFIG_(\\w+)=.*");
@@ -31,6 +87,13 @@ public class KbuildComposer implements Composer {
     private final String system;
     private KbuildFeatureMapperCreator featureMapperCreator = null;
 
+    /**
+     * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
+     *
+     * @param sourcePath the path to the source directory
+     * @param system     the variant of the Kbuild/Kconfig system. Use {@link KbuildComposer#isSupportedSystem(String)} to
+     *                   determine if a given system is supported.
+     */
     public KbuildComposer(Path sourcePath, String system) {
         this.sourcePath = sourcePath;
         this.system = system;
@@ -71,6 +134,15 @@ public class KbuildComposer implements Composer {
         }
     }
 
+    /**
+     * Generates a .config file based on the specified features and ensures that the {@code include/autoconf.h} file exists
+     * and is up-to-date.
+     *
+     * @param features      the enabled and disabled features
+     * @param tmpSourcePath the path to the temporary source directory
+     * @throws IOException       if an I/O error occurs
+     * @throws ComposerException if the .config file could not be generated
+     */
     private void generateConfig(Map<String, Boolean> features, Path tmpSourcePath)
             throws IOException, ComposerException {
         System.out.println("Generating .config");
@@ -108,6 +180,13 @@ public class KbuildComposer implements Composer {
         this.runMake(tmpSourcePath, "oldconfig");
     }
 
+    /**
+     * Creates a line for a .config file containing the specified option.
+     *
+     * @param optionName the name of the option
+     * @param activated  whether the option is activated
+     * @return the line that can be used in a .config file
+     */
     private String formatOption(String optionName, boolean activated) {
         if (activated)
             return "CONFIG_%s=y".formatted(optionName);
@@ -115,6 +194,14 @@ public class KbuildComposer implements Composer {
             return "# CONFIG_%s is not set".formatted(optionName);
     }
 
+    /**
+     * Determines the files that are included in the variant and the compiler flags they are compiled with.
+     *
+     * @param tmpSourcePath the path to the temporary source directory
+     * @return the files that are included in the variant
+     * @throws IOException       if an I/O error occurs
+     * @throws ComposerException if the files could not be determined
+     */
     private Set<Dependency> getIncludedFiles(Path tmpSourcePath) throws IOException, ComposerException {
         System.out.println("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
@@ -154,6 +241,15 @@ public class KbuildComposer implements Composer {
         return this.getDependencies(compiledFiles, tmpSourcePath);
     }
 
+    /**
+     * Determines the dependencies of the specified files.
+     *
+     * @param compiledFiles the files to determine the dependencies of
+     * @param tmpSourcePath the path to the temporary source directory
+     * @return the dependencies of the specified files
+     * @throws ComposerException if the dependencies could not be determined
+     * @throws IOException       if an I/O error occurs
+     */
     private Set<Dependency> getDependencies(List<InclusionInformation> compiledFiles, Path tmpSourcePath)
             throws ComposerException, IOException {
         System.out.println("Getting dependencies");
@@ -166,6 +262,16 @@ public class KbuildComposer implements Composer {
         return dependencies;
     }
 
+    /**
+     * Determines the dependencies of the specified file. For non-header files, the compiler flags used for compiling
+     * the specified file are included.
+     *
+     * @param inclusionInformation the file to determine the dependencies of
+     * @param tmpSourcePath        the path to the temporary source directory
+     * @return the dependencies of the specified file
+     * @throws IOException       if an I/O error occurs
+     * @throws ComposerException if the dependencies could not be determined
+     */
     private List<Dependency> getDependenciesOfFile(InclusionInformation inclusionInformation, Path tmpSourcePath)
             throws IOException, ComposerException {
         if (!Files.exists(tmpSourcePath.resolve(inclusionInformation.filePath()))) {
@@ -201,7 +307,16 @@ public class KbuildComposer implements Composer {
         return dependencyInformation;
     }
 
-    // This method may miss dependencies of generated files.
+    /**
+     * Calls GCC with the specified compiler flags to determine the dependencies of the specified file. The dependencies
+     * using the syntax of a make rule. Dependencies of files generated during a full build may be missed.
+     *
+     * @param inclusionInformation the file to determine the dependencies of
+     * @param tmpSourcePath        the path to the temporary source directory
+     * @return the make rule describing the dependencies of the specified file
+     * @throws IOException       if an I/O error occurs
+     * @throws ComposerException if GCC fails
+     */
     private String getFileMakeRule(InclusionInformation inclusionInformation, Path tmpSourcePath)
             throws IOException, ComposerException {
         List<String> gccCall = new ArrayList<>();
@@ -244,9 +359,18 @@ public class KbuildComposer implements Composer {
         return output;
     }
 
+    /**
+     * Generates the files required by the specified variant using {@code generateFile}.
+     *
+     * @param dependencies  the files required by the variant
+     * @param destination   the path to the output directory
+     * @param tmpSourcePath the path to the temporary source directory
+     * @return a map from the paths of the generated files to information about the generation process
+     * @throws IOException if an I/O error occurs
+     */
     private Map<Path, GenerationInformation> generateFiles(Set<Dependency> dependencies, Path destination,
                                                            Path tmpSourcePath)
-            throws IOException, ComposerException {
+            throws IOException {
         System.out.println("Generating files");
         Map<Path, List<Dependency>> targets = new HashMap<>();
         for (Dependency dependency : dependencies) {
@@ -261,6 +385,18 @@ public class KbuildComposer implements Composer {
         return generationInformation;
     }
 
+    /**
+     * Generates the specified file. Header files are only copied, whereas other files are generated by adding
+     * {@code #define} and {@code #include} directives to the original files.
+     *
+     * @param filePath       the path to the file to generate, relative to the temporary and output source directories
+     * @param configurations information about which variants of the file to generate (e.g. with which preprocessor
+     *                       directives)
+     * @param destination    the path to the output directory
+     * @param tmpSourcePath  the path to the temporary source directory
+     * @return a map from the paths of the generated files to information about the generation process
+     * @throws IOException if an I/O error occurs
+     */
     private Map<Path, GenerationInformation> generateFile(Path filePath, List<Dependency> configurations,
                                                           Path destination, Path tmpSourcePath)
             throws IOException {
@@ -364,6 +500,15 @@ public class KbuildComposer implements Composer {
         return lineFeatureMappers;
     }
 
+    /**
+     * A helper function to run make with the specified arguments with the temporary source directory as the working
+     * directory.
+     *
+     * @param tmpSourcePath the path to the temporary source directory
+     * @param args          the arguments to pass to make
+     * @throws ComposerException if make returns a non-zero exit code
+     * @throws IOException       if an I/O error occurs
+     */
     private void runMake(Path tmpSourcePath, String... args) throws ComposerException, IOException {
         ProcessBuilder makeProcessBuilder = new ProcessBuilder(
                 Stream.concat(Stream.of("make"), Arrays.stream(args))
@@ -380,20 +525,36 @@ public class KbuildComposer implements Composer {
             throw new ComposerException("Make failed with exit code %d".formatted(makeExitCode));
     }
 
-
     private void copySourceTo(Path tmpSourcePath) throws IOException {
         System.out.println("Copying source");
         FileUtils.copyDirectory(this.sourcePath.toFile(), tmpSourcePath.toFile());
     }
 
+    /**
+     * Determines whether the specified variant of Kbuild/Kconfig is supported.
+     *
+     * @param system the variant to check
+     * @return if the variant is supported
+     */
     public static boolean isSupportedSystem(String system) {
         return supportedSystems.contains(system);
     }
 
+    /**
+     * Contains information about a file included in the variant.
+     */
     private static abstract class Dependency {
+        /**
+         * Returns the path to the file, relative to the source directory.
+         *
+         * @return the path to the file
+         */
         public abstract Path getFilePath();
     }
 
+    /**
+     * Contains information about a non-header file included in the variant, specifically the flags used to compile it.
+     */
     private static class CompiledDependency extends Dependency {
         private final InclusionInformation inclusionInformation;
 
@@ -424,6 +585,9 @@ public class KbuildComposer implements Composer {
         }
     }
 
+    /**
+     * Contains minimal information about a header file included in the variant.
+     */
     private static class HeaderDependency extends Dependency {
         private final Path filePath;
 
