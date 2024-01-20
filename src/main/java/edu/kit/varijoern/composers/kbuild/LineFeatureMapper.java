@@ -14,6 +14,17 @@ import java.util.regex.Pattern;
 
 /**
  * Maps lines of a single file to presence conditions.
+ * <h2>Issues</h2>
+ * <ul>
+ *     <li>Currently, only BusyBox and similar systems are supported.</li>
+ *     <li>Conditions including non-boolean operations (e.g. integer comparisons) are ignored.</li>
+ *     <li>Lines consisting entirely (apart from whitespace characters) of a macro that is expanded by the preprocessor
+ *     are not assigned a presence condition.</li>
+ *     <li>Unknown preprocessor symbols are assumed to be undefined. This may be false.</li>
+ *     <li>Occurrences of variables are always treated as if they were used in a defined() condition. This may result in
+ *     wrong presence conditions if the variable can be defined as 0 and is now {@code ENABLE_<feature>} variable as
+ *     they are used in BusyBox.</li>
+ * </ul>
  */
 public class LineFeatureMapper {
     private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)|([A-Za-z0-9_]+)");
@@ -28,7 +39,7 @@ public class LineFeatureMapper {
     /**
      * Creates a new {@link LineFeatureMapper} for the specified file.
      * <p>
-     * The defines declared in `inclusionInformation` are considered to be enabled in every configuration because
+     * The defines declared in {@code inclusionInformation} are considered to be enabled in every configuration because
      * there is currently no way to determine their conditions.
      *
      * @param inclusionInformation the information about how the file is compiled
@@ -36,7 +47,7 @@ public class LineFeatureMapper {
      * @param addedLines           the number of lines (#include and #define directives) added to the file by the
      *                             composer
      * @param knownFeatures        the features recorded in the feature model
-     * @param system               the system the file belongs to. Currently, only `busybox` is supported.
+     * @param system               the system the file belongs to. Currently, only {@code busybox} is supported.
      */
     public LineFeatureMapper(InclusionInformation inclusionInformation, Path sourcePath, int addedLines,
                              Set<String> knownFeatures, String system)
@@ -203,7 +214,7 @@ public class LineFeatureMapper {
 
     /**
      * Tries to convert the specified BDD to a {@link Node}. This fails if the BDD does not consist entirely of
-     * `(defined <variable>)` conditions.
+     * {@code (defined <variable>)} conditions.
      *
      * @param bdd                      the BDD to convert
      * @param presenceConditionManager the presence condition manager. Used to get the names of the variables.
@@ -266,7 +277,7 @@ public class LineFeatureMapper {
     }
 
     /**
-     * Returns whether the specified system is supported. Currently, only `busybox` is supported.
+     * Returns whether the specified system is supported. Currently, only {@code busybox} is supported.
      *
      * @param system the system
      * @return whether the specified system is supported
