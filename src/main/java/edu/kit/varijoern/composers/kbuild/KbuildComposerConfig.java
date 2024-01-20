@@ -32,7 +32,7 @@ public class KbuildComposerConfig extends ComposerConfig {
         String sourceLocation = TomlUtils.getMandatoryString(
             SOURCE_FIELD_NAME,
             toml,
-            "Source location for Antenna Kbuild is missing or not a string"
+            "Source location for Kbuild composer is missing or not a string"
         );
         Path sourcePath;
         try {
