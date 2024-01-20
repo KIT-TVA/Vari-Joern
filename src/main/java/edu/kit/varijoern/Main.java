@@ -1,12 +1,6 @@
 package edu.kit.varijoern;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import de.ovgu.featureide.fm.core.base.impl.CoreFactoryWorkspaceLoader;
-import de.ovgu.featureide.fm.core.base.impl.DefaultFeatureModelFactory;
-import de.ovgu.featureide.fm.core.base.impl.FMFactoryManager;
-import de.ovgu.featureide.fm.core.base.impl.FMFormatManager;
-import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
-import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.Analyzer;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
@@ -19,14 +13,7 @@ import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
-import net.ssehub.kernel_haven.SetUpException;
-import net.ssehub.kernel_haven.kconfigreader.KconfigReaderExtractor;
-import net.ssehub.kernel_haven.provider.AbstractCache;
-import net.ssehub.kernel_haven.provider.AbstractProvider;
-import net.ssehub.kernel_haven.util.null_checks.NonNull;
-import net.ssehub.kernel_haven.variability_model.VariabilityModel;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

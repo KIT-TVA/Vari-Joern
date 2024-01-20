@@ -128,7 +128,7 @@ public class KconfigReader implements FeatureModelReader {
 
     private static class KconfigReaderProvider extends AbstractProvider<VariabilityModel> {
         @Override
-        protected @NonNull List<@NonNull File> getTargets() throws SetUpException {
+        protected @NonNull List<@NonNull File> getTargets() {
             throw new RuntimeException("Looks like the getTargets() method is actually used. Oops.");
         }
 
@@ -163,12 +163,12 @@ public class KconfigReader implements FeatureModelReader {
      */
     private static class DummyCache extends AbstractCache<VariabilityModel> {
         @Override
-        public @Nullable VariabilityModel read(@NonNull File file) throws FormatException, IOException {
+        public @Nullable VariabilityModel read(@NonNull File file) {
             return null;
         }
 
         @Override
-        public void write(@NonNull VariabilityModel variabilityModel) throws IOException {
+        public void write(@NonNull VariabilityModel variabilityModel) {
         }
     }
 }

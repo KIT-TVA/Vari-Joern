@@ -1,9 +1,7 @@
 package edu.kit.varijoern.featuremodel;
 
-import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfig;
-import edu.kit.varijoern.samplers.Sampler;
 import org.tomlj.TomlTable;
 
 /**

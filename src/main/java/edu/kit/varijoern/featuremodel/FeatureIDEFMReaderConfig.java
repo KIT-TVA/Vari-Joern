@@ -6,7 +6,6 @@ import org.tomlj.TomlTable;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.List;
 
 /**
  * Contains the configuration of the FeatureIDE feature model reader.

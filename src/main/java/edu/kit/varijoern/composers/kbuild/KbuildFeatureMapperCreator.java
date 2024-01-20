@@ -8,10 +8,7 @@ import edu.kit.varijoern.composers.ComposerException;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.IOUtils;
 import org.prop4j.Node;
-import xtc.lang.cpp.*;
-import xtc.tree.Location;
 
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -19,7 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**

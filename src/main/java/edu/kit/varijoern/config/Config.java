@@ -14,7 +14,6 @@ import org.tomlj.TomlParseError;
 import org.tomlj.TomlParseResult;
 
 import java.io.IOException;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 

@@ -3,7 +3,6 @@ package edu.kit.varijoern.composers.kbuild;
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.internal.DefaultConsole;
 
 import java.text.ParseException;
 import java.util.*;
@@ -70,6 +69,7 @@ public class GCCCallExtractor {
         );
     }
 
+    @SuppressWarnings("CanBeFinal") // JCommander requires non-final fields
     private static class RawGCCCall {
         @Parameter
         List<String> compiledFiles = new ArrayList<>();
