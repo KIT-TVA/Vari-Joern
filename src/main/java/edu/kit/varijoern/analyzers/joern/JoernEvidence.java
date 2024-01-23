@@ -3,6 +3,8 @@ package edu.kit.varijoern.analyzers.joern;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.composers.FeatureMapper;
+import edu.kit.varijoern.composers.sourcemap.SourceLocation;
+import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import org.prop4j.Node;
 
 import java.nio.file.Path;
@@ -12,8 +14,7 @@ import java.util.Optional;
  * Contains information about a piece of code that caused a finding.
  */
 public class JoernEvidence {
-    private final String filename;
-    private final int lineNumber;
+    private final Optional<SourceLocation> location;
 
     /**
      * Creates a new {@link JoernEvidence} containing the specified information.
@@ -23,27 +24,17 @@ public class JoernEvidence {
      */
     @JsonCreator
     public JoernEvidence(
-        @JsonProperty("filename") String filename, @JsonProperty("lineNumber") int lineNumber) {
-        this.filename = filename;
-        this.lineNumber = lineNumber;
+            @JsonProperty("filename") String filename, @JsonProperty("lineNumber") int lineNumber) {
+        this.location = Optional.of(new SourceLocation(Path.of(filename), lineNumber));
     }
 
     /**
-     * Returns the line number of the location of this evidence.
+     * Returns the location of the evidence.
      *
-     * @return the line number
+     * @return the location of the evidence
      */
-    public int getLineNumber() {
-        return lineNumber;
-    }
-
-    /**
-     * Returns the name of the file in which this evidence was found.
-     *
-     * @return the filename of this evidence
-     */
-    public String getFilename() {
-        return filename;
+    public Optional<SourceLocation> getLocation() {
+        return location;
     }
 
     /**
@@ -54,12 +45,12 @@ public class JoernEvidence {
      * @return the condition if it could be determined, an empty {@link Optional} otherwise
      */
     public Optional<Node> getCondition(FeatureMapper featureMapper) {
-        return featureMapper.getPresenceCondition(Path.of(this.filename), this.lineNumber);
+        return this.location.flatMap(location -> featureMapper.getPresenceCondition(location.file(), location.line()));
     }
 
     @Override
     public String toString() {
-        return String.format("%s:%d", this.filename, this.lineNumber);
+        return this.location.map(SourceLocation::toString).orElse("unknown");
     }
 
     /**
@@ -67,11 +58,24 @@ public class JoernEvidence {
      * the composed code. To determine the condition, the specified feature mapper is used.
      *
      * @param featureMapper the feature mapper to be used
+     * @param sourceMap     the source map to be used to determine the location of this evidence in the original source
      * @return a string representation of this evidence
      */
-    public String toString(FeatureMapper featureMapper) {
+    public String toString(FeatureMapper featureMapper, SourceMap sourceMap) {
         Optional<Node> condition = getCondition(featureMapper);
         String conditionMessage = condition.map(Node::toString).orElse("unknown");
-        return "%s; condition: %s".formatted(this.toString(), conditionMessage);
+        return "%s; condition: %s".formatted(
+                this.resolveLocation(sourceMap).map(SourceLocation::toString).orElse("unknown"),
+                conditionMessage
+        );
+    }
+
+    /**
+     * Resolves the location of this evidence using the specified source map.
+     *
+     * @param sourceMap the source map to be used
+     */
+    public Optional<SourceLocation> resolveLocation(SourceMap sourceMap) {
+        return this.location.flatMap(sourceMap::getOriginalLocation);
     }
 }

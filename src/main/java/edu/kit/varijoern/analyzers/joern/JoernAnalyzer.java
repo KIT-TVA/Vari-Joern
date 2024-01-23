@@ -43,19 +43,20 @@ public class JoernAnalyzer implements Analyzer {
 
     @Override
     public AnalysisResult analyze(CompositionInformation compositionInformation)
-        throws IOException, AnalyzerFailureException {
+            throws IOException, AnalyzerFailureException {
         Path sourceLocation = compositionInformation.getLocation();
         Path outFile = this.workspacePath.resolve(
-            String.format("%s-%s.json",
-                sourceLocation.subpath(sourceLocation.getNameCount() - 1, sourceLocation.getNameCount()),
-                UUID.randomUUID()
-            )
+                String.format("%s-%s.json",
+                        sourceLocation.subpath(sourceLocation.getNameCount() - 1, sourceLocation.getNameCount()),
+                        UUID.randomUUID()
+                )
         );
         runJoern(sourceLocation, outFile);
         List<JoernFinding> findings = this.parseFindings(outFile);
         return new JoernAnalysisResult(findings,
-            compositionInformation.getEnabledFeatures(),
-            compositionInformation.getFeatureMapper());
+                compositionInformation.getEnabledFeatures(),
+                compositionInformation.getFeatureMapper(),
+                compositionInformation.getSourceMap());
     }
 
     /**
@@ -68,14 +69,14 @@ public class JoernAnalyzer implements Analyzer {
      */
     private void runJoern(Path sourceLocation, Path outFile) throws IOException, AnalyzerFailureException {
         Process joernProcess = Runtime.getRuntime().exec(
-            new String[]{
-                this.command,
-                "--script", this.scanScriptPath.toString(),
-                "--param", String.format("codePath=%s", sourceLocation),
-                "--param", String.format("outFile=%s", outFile)
-            },
-            null,
-            this.workspacePath.toFile()
+                new String[]{
+                        this.command,
+                        "--script", this.scanScriptPath.toString(),
+                        "--param", String.format("codePath=%s", sourceLocation),
+                        "--param", String.format("outFile=%s", outFile)
+                },
+                null,
+                this.workspacePath.toFile()
         );
         StreamGobbler stdoutGobbler = new StreamGobbler(joernProcess.getInputStream(), System.out);
         StreamGobbler stderrGobbler = new StreamGobbler(joernProcess.getErrorStream(), System.err);
@@ -95,7 +96,7 @@ public class JoernAnalyzer implements Analyzer {
 
     private List<JoernFinding> parseFindings(Path findingsFile) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
         });
     }

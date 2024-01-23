@@ -7,6 +7,7 @@ import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import edu.kit.varijoern.composers.sourcemap.IdentitySourceMap;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -79,6 +80,6 @@ public class AntennaComposer implements Composer {
                 featureMapper.tryAddFile(relativePath, lineVector.stream().toList());
             }
         }
-        return new CompositionInformation(destination, features, featureMapper);
+        return new CompositionInformation(destination, features, featureMapper, new IdentitySourceMap());
     }
 }

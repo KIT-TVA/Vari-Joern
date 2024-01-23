@@ -1,5 +1,7 @@
 package edu.kit.varijoern.composers;
 
+import edu.kit.varijoern.composers.sourcemap.SourceMap;
+
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -10,6 +12,7 @@ public class CompositionInformation {
     private final Path location;
     private final Map<String, Boolean> enabledFeatures;
     private final FeatureMapper featureMapper;
+    private final SourceMap sourceMap;
 
     /**
      * Creates a new {@link CompositionInformation} instance.
@@ -17,11 +20,14 @@ public class CompositionInformation {
      * @param location        the location of the composed code. See {@link CompositionInformation#getLocation()}.
      * @param enabledFeatures a map of feature names to their enabled status at the time of composition
      * @param featureMapper   a {@link FeatureMapper} for this composition result
+     * @param sourceMap       a {@link SourceMap} for this composition result
      */
-    public CompositionInformation(Path location, Map<String, Boolean> enabledFeatures, FeatureMapper featureMapper) {
+    public CompositionInformation(Path location, Map<String, Boolean> enabledFeatures, FeatureMapper featureMapper,
+                                  SourceMap sourceMap) {
         this.location = location;
         this.enabledFeatures = enabledFeatures;
         this.featureMapper = featureMapper;
+        this.sourceMap = sourceMap;
     }
 
     /**
@@ -50,5 +56,14 @@ public class CompositionInformation {
      */
     public FeatureMapper getFeatureMapper() {
         return featureMapper;
+    }
+
+    /**
+     * Returns the source map for the composition result.
+     *
+     * @return a source map
+     */
+    public SourceMap getSourceMap() {
+        return sourceMap;
     }
 }
