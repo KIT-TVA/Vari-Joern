@@ -14,7 +14,7 @@ public class ConditionTreeFeatureMapper implements FeatureMapper {
 
     /**
      * Builds a condition tree for the specified file contents and stores them for use by
-     * {@link ConditionTreeFeatureMapper#getCondition(Path, int)}. The specified path is used to identify the tree.
+     * {@link ConditionTreeFeatureMapper#getPresenceCondition(Path, int)}. The specified path is used to identify the tree.
      *
      * @param path  the path to the file whose content is specified
      * @param lines the lines of the file
@@ -35,7 +35,7 @@ public class ConditionTreeFeatureMapper implements FeatureMapper {
     }
 
     @Override
-    public Optional<Node> getCondition(Path file, int lineNumber) {
+    public Optional<Node> getPresenceCondition(Path file, int lineNumber) {
         return Optional.ofNullable(this.trees.get(file)).map(tree -> tree.getConditionOfLine(lineNumber));
     }
 }

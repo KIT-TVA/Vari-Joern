@@ -6,11 +6,11 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 /**
- * An interface for determining which features need to be enabled or disabled for a line to be included by a composer.
+ * An interface for determining the presence conditions of individual code lines.
  */
 public interface FeatureMapper {
     /**
-     * Tries to determine the condition under which the specified line is included in the composed result. The condition
+     * Tries to determine the presence condition of the specified code line. The condition
      * may not be met by the feature combination used by the composer. For example, the Antenna composer only comments
      * lines out. These lines are still present in the composed file and a (unmet) condition can be determined.
      *
@@ -19,5 +19,5 @@ public interface FeatureMapper {
      * @return the condition under which the line is included in the output or an empty optional if the condition could
      * not be determined
      */
-    Optional<Node> getCondition(Path file, int lineNumber);
+    Optional<Node> getPresenceCondition(Path file, int lineNumber);
 }

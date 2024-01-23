@@ -41,7 +41,7 @@ public class FixedSamplerConfig extends SamplerConfig {
 
     @Override
     public Sampler newSampler(IFeatureModel featureModel) {
-        return new FixedSampler(this.features);
+        return new FixedSampler(this.features, featureModel);
     }
 
     /**

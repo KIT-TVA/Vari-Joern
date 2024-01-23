@@ -2,6 +2,7 @@ package edu.kit.varijoern.composers.antenna;
 
 import antenna.preprocessor.v3.PPException;
 import antenna.preprocessor.v3.Preprocessor;
+import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
@@ -13,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,11 +37,16 @@ public class AntennaComposer implements Composer {
     }
 
     @Override
-    public @NotNull CompositionInformation compose(@NotNull List<String> features, @NotNull Path destination)
+    public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
+                                                   @NotNull Path tmpPath, @NotNull IFeatureModel featureModel)
         throws IllegalFeatureNameException, IOException, ComposerException {
+        List<String> enabledFeatures = features.entrySet().stream()
+            .filter(Map.Entry::getValue)
+            .map(Map.Entry::getKey)
+            .toList();
         Preprocessor preprocessor = new Preprocessor(null, null);
         try {
-            preprocessor.addDefines(String.join(",", features));
+            preprocessor.addDefines(String.join(",", enabledFeatures));
         } catch (PPException e) {
             throw new IllegalFeatureNameException(e);
         }

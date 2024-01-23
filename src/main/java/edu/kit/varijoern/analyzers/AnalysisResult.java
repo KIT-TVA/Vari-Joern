@@ -1,17 +1,17 @@
 package edu.kit.varijoern.analyzers;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * Contains information about the weaknesses an analyzer found.
  */
 public abstract class AnalysisResult {
     private final int numFindings;
-    private final List<String> enabledFeatures;
+    private final Map<String, Boolean> enabledFeatures;
 
-    protected AnalysisResult(int numFindings, List<String> enabledFeatures) {
+    protected AnalysisResult(int numFindings, Map<String, Boolean> enabledFeatures) {
         this.numFindings = numFindings;
-        this.enabledFeatures = List.copyOf(enabledFeatures);
+        this.enabledFeatures = Map.copyOf(enabledFeatures);
     }
 
     /**
@@ -24,11 +24,11 @@ public abstract class AnalysisResult {
     }
 
     /**
-     * Returns a list containing the names of the features that were enabled during the analysis.
+     * Returns a map of feature names to their enabled status at the time of analysis.
      *
-     * @return the enabled features
+     * @return a map of feature names to their enabled status at the time of analysis
      */
-    public List<String> getEnabledFeatures() {
+    public Map<String, Boolean> getEnabledFeatures() {
         return enabledFeatures;
     }
 

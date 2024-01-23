@@ -4,6 +4,7 @@ import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.composers.FeatureMapper;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Contains information about the result of running a Joern scan.
@@ -16,10 +17,11 @@ public class JoernAnalysisResult extends AnalysisResult {
      * Creates a new {@link JoernAnalysisResult} from a list of findings.
      *
      * @param findings        the list of findings
-     * @param enabledFeatures the list of features that were enabled during the analysis
+     * @param enabledFeatures a map of feature names to their enabled status at the time of analysis
      * @param featureMapper   a feature mapper for the analyzed code
      */
-    public JoernAnalysisResult(List<JoernFinding> findings, List<String> enabledFeatures, FeatureMapper featureMapper) {
+    public JoernAnalysisResult(List<JoernFinding> findings, Map<String, Boolean> enabledFeatures,
+                               FeatureMapper featureMapper) {
         super(findings.size(), enabledFeatures);
         this.findings = List.copyOf(findings);
         this.featureMapper = featureMapper;

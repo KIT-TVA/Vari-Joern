@@ -1,12 +1,6 @@
 package edu.kit.varijoern;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import de.ovgu.featureide.fm.core.base.impl.CoreFactoryWorkspaceLoader;
-import de.ovgu.featureide.fm.core.base.impl.DefaultFeatureModelFactory;
-import de.ovgu.featureide.fm.core.base.impl.FMFactoryManager;
-import de.ovgu.featureide.fm.core.base.impl.FMFormatManager;
-import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
-import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.Analyzer;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
@@ -15,6 +9,8 @@ import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.featuremodel.FeatureModelReader;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
 
@@ -23,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
     private static final String USAGE = "Usage: vari-joern [config]";
@@ -53,20 +50,35 @@ public class Main {
     }
 
     private static int runUsingConfig(Config config) {
-        FMFormatManager.getInstance().addExtension(new XmlFeatureModelFormat());
-        FMFactoryManager.getInstance().addExtension(new DefaultFeatureModelFactory());
-        FMFactoryManager.getInstance().setWorkspaceLoader(new CoreFactoryWorkspaceLoader());
-        IFeatureModel featureModel = FeatureModelManager.load(config.getFeatureModelPath());
-
         Path tmpDir;
         Path analyzerTmpDirectory;
+        Path composerTmpDirectory;
+        Path featureModelReaderTmpDirectory;
         try {
             tmpDir = Files.createTempDirectory("vari-joern");
             analyzerTmpDirectory = tmpDir.resolve("analyzer");
             Files.createDirectories(analyzerTmpDirectory);
+            composerTmpDirectory = tmpDir.resolve("composer");
+            Files.createDirectories(composerTmpDirectory);
+            featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
+            Files.createDirectories(featureModelReaderTmpDirectory);
         } catch (IOException e) {
             System.err.printf("Failed to create temporary directory: %s%n", e.getMessage());
             return STATUS_IO_ERROR;
+        }
+
+        FeatureModelReader featureModelReader = config.getFeatureModelReaderConfig().newFeatureModelReader();
+        IFeatureModel featureModel;
+        try {
+            featureModel = featureModelReader.read(featureModelReaderTmpDirectory);
+        } catch (IOException e) {
+            System.err.println("An I/O error occurred while reading the feature model");
+            e.printStackTrace();
+            return STATUS_IO_ERROR;
+        } catch (FeatureModelReaderException e) {
+            System.err.println("The feature model could not be read");
+            e.printStackTrace();
+            return STATUS_INTERNAL_ERROR;
         }
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
@@ -83,7 +95,8 @@ public class Main {
         List<AnalysisResult> allAnalysisResults = new ArrayList<>();
         List<AnalysisResult> iterationAnalysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
-            List<List<String>> sample;
+            System.out.printf("Iteration %d%n", i + 1);
+            List<Map<String, Boolean>> sample;
             try {
                 sample = sampler.sample(iterationAnalysisResults);
             } catch (SamplerException e) {
@@ -91,9 +104,10 @@ public class Main {
                 e.printStackTrace();
                 return STATUS_INTERNAL_ERROR;
             }
+            System.out.printf("Analyzing %d variants%n", sample.size());
             iterationAnalysisResults = new ArrayList<>();
             for (int j = 0; j < sample.size(); j++) {
-                List<String> features = sample.get(j);
+                Map<String, Boolean> features = sample.get(j);
                 System.out.println("Analyzing variant with features " + features);
                 String destinationDirectoryName = String.format("%d-%d", i, j);
                 Path composerDestination = tmpDir.resolve(destinationDirectoryName);
@@ -106,7 +120,8 @@ public class Main {
 
                 CompositionInformation composedSourceLocation;
                 try {
-                    composedSourceLocation = composer.compose(features, composerDestination);
+                    composedSourceLocation = composer.compose(features, composerDestination, composerTmpDirectory,
+                        featureModel);
                 } catch (IllegalFeatureNameException e) {
                     System.err.println("Invalid feature name has been found");
                     return STATUS_INVALID_CONFIG;
