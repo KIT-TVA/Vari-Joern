@@ -4,6 +4,7 @@ import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.Analyzer;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
+import edu.kit.varijoern.analyzers.Finding;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
@@ -83,7 +84,7 @@ public class Main {
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
         Composer composer = config.getComposerConfig().newComposer();
-        Analyzer analyzer;
+        Analyzer<?> analyzer;
         try {
             analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
         } catch (IOException e) {
@@ -92,8 +93,8 @@ public class Main {
             return STATUS_IO_ERROR;
         }
 
-        List<AnalysisResult> allAnalysisResults = new ArrayList<>();
-        List<AnalysisResult> iterationAnalysisResults = List.of();
+        List<AnalysisResult<?>> allAnalysisResults = new ArrayList<>();
+        List<AnalysisResult<?>> iterationAnalysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
             System.out.printf("Iteration %d%n", i + 1);
             List<Map<String, Boolean>> sample;
@@ -150,14 +151,17 @@ public class Main {
             allAnalysisResults.addAll(iterationAnalysisResults);
         }
 
+        System.out.println("Summary:");
         printSummary(allAnalysisResults);
+        System.out.println(analyzer.aggregateResults());
+        System.out.println("Aggregated results:");
+        System.out.println(analyzer.aggregateResults().toString());
         return 0;
     }
 
-    private static void printSummary(List<AnalysisResult> analysisResults) {
-        System.out.println("Summary:");
+    private static void printSummary(List<AnalysisResult<?>> analysisResults) {
         for (int i = 0; i < analysisResults.size(); i++) {
-            AnalysisResult analysisResult = analysisResults.get(i);
+            AnalysisResult<?> analysisResult = analysisResults.get(i);
             System.out.println(analysisResult);
             if (i != analysisResults.size() - 1) {
                 System.out.println();

@@ -10,9 +10,9 @@ import java.util.Map;
 /**
  * Contains information about the result of running a Joern scan.
  */
-public class JoernAnalysisResult extends AnalysisResult {
+public class JoernAnalysisResult extends AnalysisResult<JoernFinding> {
     private final List<JoernFinding> findings;
-    private final FeatureMapper featureMapper;
+    final FeatureMapper featureMapper;
     private final SourceMap sourceMap;
 
     /**
@@ -25,7 +25,7 @@ public class JoernAnalysisResult extends AnalysisResult {
      */
     public JoernAnalysisResult(List<JoernFinding> findings, Map<String, Boolean> enabledFeatures,
                                FeatureMapper featureMapper, SourceMap sourceMap) {
-        super(findings.size(), enabledFeatures);
+        super(enabledFeatures);
         this.findings = List.copyOf(findings);
         this.featureMapper = featureMapper;
         this.sourceMap = sourceMap;
@@ -36,6 +36,7 @@ public class JoernAnalysisResult extends AnalysisResult {
      *
      * @return a list of all findings
      */
+    @Override
     public List<JoernFinding> getFindings() {
         return findings;
     }

@@ -1,4 +1,4 @@
-package edu.kit.varijoern.analyzers.joern;
+package edu.kit.varijoern.analyzers;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -8,22 +8,23 @@ import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import org.prop4j.Node;
 
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
  * Contains information about a piece of code that caused a finding.
  */
-public class JoernEvidence {
+public class Evidence {
     private final Optional<SourceLocation> location;
 
     /**
-     * Creates a new {@link JoernEvidence} containing the specified information.
+     * Creates a new {@link Evidence} containing the specified information.
      *
      * @param filename   the name of the file in which this evidence was found
      * @param lineNumber the line number of the location of the evidence
      */
     @JsonCreator
-    public JoernEvidence(
+    public Evidence(
             @JsonProperty("filename") String filename, @JsonProperty("lineNumber") int lineNumber) {
         this.location = Optional.of(new SourceLocation(Path.of(filename), lineNumber));
     }
@@ -77,5 +78,18 @@ public class JoernEvidence {
      */
     public Optional<SourceLocation> resolveLocation(SourceMap sourceMap) {
         return this.location.flatMap(sourceMap::getOriginalLocation);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Evidence that = (Evidence) o;
+        return Objects.equals(location, that.location);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(location);
     }
 }

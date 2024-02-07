@@ -39,7 +39,7 @@ public class TWiseSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
+    public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult<?>> analysisResults) throws SamplerException {
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
         TWiseConfigurationGenerator generator = new TWiseConfigurationGenerator(cnf, this.t, this.maxSampleSize);
         List<LiteralSet> rawSample;

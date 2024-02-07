@@ -17,6 +17,7 @@ dependencies {
     implementation files('lib/de.ovgu.featureide.lib.fm-v3.9.3.jar', 'lib/org.sat4j.core.jar')
     implementation files('lib/jSMTLIB.jar')
     implementation files('lib/KernelHaven.jar', 'lib/KconfigReaderExtractor.jar')
+    implementation 'org.javatuples:javatuples:1.2'
     implementation 'org.tomlj:tomlj:1.1.0'
     implementation 'org.jetbrains:annotations:23.0.0'
     implementation 'org.jodd:jodd-util:6.2.1'

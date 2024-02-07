@@ -1,26 +1,16 @@
 package edu.kit.varijoern.analyzers;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * Contains information about the weaknesses an analyzer found.
  */
-public abstract class AnalysisResult {
-    private final int numFindings;
+public abstract class AnalysisResult<T extends Finding> {
     private final Map<String, Boolean> enabledFeatures;
 
-    protected AnalysisResult(int numFindings, Map<String, Boolean> enabledFeatures) {
-        this.numFindings = numFindings;
+    protected AnalysisResult(Map<String, Boolean> enabledFeatures) {
         this.enabledFeatures = Map.copyOf(enabledFeatures);
-    }
-
-    /**
-     * Returns the number of findings that were found during the analysis
-     *
-     * @return the number of findings
-     */
-    public int getNumFindings() {
-        return numFindings;
     }
 
     /**
@@ -32,10 +22,18 @@ public abstract class AnalysisResult {
         return enabledFeatures;
     }
 
+    /**
+     * Returns a list of all findings the analyzer reported.
+     *
+     * @return a list of all findings
+     */
+    public abstract List<T> getFindings();
+
     @Override
     public String toString() {
-        if (this.numFindings == 1)
+        int numFindings = this.getFindings().size();
+        if (numFindings == 1)
             return String.format("1 finding in variant %s", this.enabledFeatures);
-        return String.format("%d findings in variant %s", this.numFindings, this.enabledFeatures);
+        return String.format("%d findings in variant %s", numFindings, this.enabledFeatures);
     }
 }
