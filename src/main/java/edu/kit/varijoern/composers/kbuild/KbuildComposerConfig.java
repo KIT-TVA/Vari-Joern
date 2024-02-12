@@ -2,10 +2,13 @@ package edu.kit.varijoern.composers.kbuild;
 
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfig;
+import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
+import java.io.IOException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
@@ -30,9 +33,9 @@ public class KbuildComposerConfig extends ComposerConfig {
     public KbuildComposerConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
         super(toml);
         String sourceLocation = TomlUtils.getMandatoryString(
-            SOURCE_FIELD_NAME,
-            toml,
-            "Source location for Kbuild composer is missing or not a string"
+                SOURCE_FIELD_NAME,
+                toml,
+                "Source location for Kbuild composer is missing or not a string"
         );
         Path sourcePath;
         try {
@@ -46,9 +49,9 @@ public class KbuildComposerConfig extends ComposerConfig {
         this.sourceLocation = sourcePath;
 
         this.system = TomlUtils.getMandatoryString(
-            SYSTEM_FIELD_NAME,
-            toml,
-            "System for Kbuild composer is missing or not a string"
+                SYSTEM_FIELD_NAME,
+                toml,
+                "System for Kbuild composer is missing or not a string"
         );
         if (!KbuildComposer.isSupportedSystem(this.system)) {
             throw new InvalidConfigException("System for Kbuild composer is not supported");
@@ -56,7 +59,7 @@ public class KbuildComposerConfig extends ComposerConfig {
     }
 
     @Override
-    public Composer newComposer() {
-        return new KbuildComposer(this.sourceLocation, this.system);
+    public Composer newComposer(@NotNull Path tmpPath) throws IOException {
+        return new KbuildComposer(this.sourceLocation, this.system, tmpPath);
     }
 }

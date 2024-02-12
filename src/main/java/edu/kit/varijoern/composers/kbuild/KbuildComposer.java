@@ -86,6 +86,8 @@ public class KbuildComposer implements Composer {
 
     private final Path sourcePath;
     private final String system;
+    private final Path tmpPath;
+    private final Path tmpSourcePath;
     private KbuildFeatureMapperCreator featureMapperCreator = null;
 
     /**
@@ -94,46 +96,44 @@ public class KbuildComposer implements Composer {
      * @param sourcePath the path to the source directory
      * @param system     the variant of the Kbuild/Kconfig system. Use {@link KbuildComposer#isSupportedSystem(String)} to
      *                   determine if a given system is supported.
+     * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer
      */
-    public KbuildComposer(Path sourcePath, String system) {
+    public KbuildComposer(Path sourcePath, String system, Path tmpPath) throws IOException {
         this.sourcePath = sourcePath;
         this.system = system;
+        this.tmpPath = tmpPath;
+        this.tmpSourcePath = this.tmpPath.resolve("source");
+        this.copySourceTo(this.tmpSourcePath);
     }
 
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
-                                                   @NotNull Path tmpPath, @NotNull IFeatureModel featureModel)
+                                                   @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
         if (this.featureMapperCreator == null) {
             this.featureMapperCreator = new KbuildFeatureMapperCreator(this.sourcePath, this.system,
-                    tmpPath, featureModel);
+                    this.tmpPath, featureModel);
         }
 
-        Path tmpSourcePath = tmpPath.resolve("source");
-        try {
-            this.copySourceTo(tmpSourcePath);
-            this.generateConfig(features, tmpSourcePath);
-            Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
-            Map<Path, GenerationInformation> generationInformation = this.generateFiles(
-                    includedFiles, destination, tmpSourcePath
-            );
-            Map<Path, LineFeatureMapper> lineFeatureMappers = this.createLineFeatureMappers(
-                    generationInformation,
-                    includedFiles,
-                    featureModel.getFeatures().stream()
-                            .map(IFeatureModelElement::getName)
-                            .collect(Collectors.toSet()),
-                    tmpSourcePath
-            );
-            return new CompositionInformation(
-                    destination,
-                    features,
-                    this.featureMapperCreator.createFeatureMapper(generationInformation, lineFeatureMappers),
-                    new KbuildComposerSourceMap(generationInformation)
-            );
-        } finally {
-            FileUtils.deleteDirectory(tmpSourcePath.toFile());
-        }
+        this.generateConfig(features, tmpSourcePath);
+        Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
+        Map<Path, GenerationInformation> generationInformation = this.generateFiles(
+                includedFiles, destination, tmpSourcePath
+        );
+        Map<Path, LineFeatureMapper> lineFeatureMappers = this.createLineFeatureMappers(
+                generationInformation,
+                includedFiles,
+                featureModel.getFeatures().stream()
+                        .map(IFeatureModelElement::getName)
+                        .collect(Collectors.toSet()),
+                tmpSourcePath
+        );
+        return new CompositionInformation(
+                destination,
+                features,
+                this.featureMapperCreator.createFeatureMapper(generationInformation, lineFeatureMappers),
+                new KbuildComposerSourceMap(generationInformation)
+        );
     }
 
     /**

@@ -17,7 +17,6 @@ public interface Composer {
      *
      * @param features     a map of feature names to their enabled status
      * @param destination  a {@link Path} to an existing empty directory into which the resulting code should be saved
-     * @param tmpPath      a {@link Path} to a temporary directory that can be used by the composer
      * @param featureModel the feature model of the analyzed system
      * @return a {@link CompositionInformation} instance containing information about this composer pass
      * @throws IllegalFeatureNameException if one of the specified features has an invalid name
@@ -25,6 +24,6 @@ public interface Composer {
      */
     @NotNull
     CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
-                                   @NotNull Path tmpPath, @NotNull IFeatureModel featureModel)
+                                   @NotNull IFeatureModel featureModel)
         throws IllegalFeatureNameException, IOException, ComposerException;
 }
