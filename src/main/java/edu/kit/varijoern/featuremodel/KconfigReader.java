@@ -11,7 +11,6 @@ import net.ssehub.kernel_haven.config.DefaultSettings;
 import net.ssehub.kernel_haven.kconfigreader.KconfigReaderExtractor;
 import net.ssehub.kernel_haven.provider.AbstractCache;
 import net.ssehub.kernel_haven.provider.AbstractProvider;
-import net.ssehub.kernel_haven.util.FormatException;
 import net.ssehub.kernel_haven.util.null_checks.NonNull;
 import net.ssehub.kernel_haven.util.null_checks.Nullable;
 import net.ssehub.kernel_haven.variability_model.VariabilityModel;

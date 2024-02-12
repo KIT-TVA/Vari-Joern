@@ -7,7 +7,6 @@ import edu.kit.varijoern.analyzers.Finding;
 import edu.kit.varijoern.composers.FeatureMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
