@@ -89,6 +89,10 @@ public class Main {
             System.err.println("Failed to instantiate composer:");
             e.printStackTrace();
             return STATUS_IO_ERROR;
+        } catch (ComposerException e) {
+            System.err.println("Failed to instantiate composer:");
+            e.printStackTrace();
+            return STATUS_INTERNAL_ERROR;
         }
         Analyzer analyzer;
         try {

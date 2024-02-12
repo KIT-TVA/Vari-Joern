@@ -22,7 +22,7 @@ public abstract class ComposerConfig extends NamedComponentConfig {
      * @param tmpPath a {@link Path} to a temporary directory that can be used by the composer
      * @return the new composer
      */
-    public abstract Composer newComposer(@NotNull Path tmpPath) throws IOException;
+    public abstract Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException;
 
     @Override
     public String getComponentType() {

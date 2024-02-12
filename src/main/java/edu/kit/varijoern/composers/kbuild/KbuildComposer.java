@@ -84,7 +84,6 @@ public class KbuildComposer implements Composer {
     private static final Pattern HEADER_FILE_PATTERN = Pattern.compile(".*\\.(?:h|H|hpp|hxx|h++)");
     private static final Set<String> supportedSystems = Set.of("linux", "busybox");
 
-    private final Path sourcePath;
     private final String system;
     private final Path tmpPath;
     private final Path tmpSourcePath;
@@ -98,12 +97,19 @@ public class KbuildComposer implements Composer {
      *                   determine if a given system is supported.
      * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer
      */
-    public KbuildComposer(Path sourcePath, String system, Path tmpPath) throws IOException {
-        this.sourcePath = sourcePath;
+    public KbuildComposer(Path sourcePath, String system, Path tmpPath) throws IOException, ComposerException {
         this.system = system;
         this.tmpPath = tmpPath;
         this.tmpSourcePath = this.tmpPath.resolve("source");
-        this.copySourceTo(this.tmpSourcePath);
+        this.copySourceTo(sourcePath, this.tmpSourcePath);
+        // Make sure that there are no compilation artifacts.
+        // These would break dependency detection because make would not try to recompile them.
+        this.runMake("distclean");
+        if (this.system.equals("busybox")) {
+            // BusyBox's Kbuild variant allows to specify Kbuild information in the source files. Since kmax cannot
+            // handle this, we use `make gen_build_files` to generate Kbuild files.
+            this.runMake("gen_build_files");
+        }
     }
 
     @Override
@@ -111,7 +117,7 @@ public class KbuildComposer implements Composer {
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
         if (this.featureMapperCreator == null) {
-            this.featureMapperCreator = new KbuildFeatureMapperCreator(this.sourcePath, this.system,
+            this.featureMapperCreator = new KbuildFeatureMapperCreator(this.tmpSourcePath, this.system,
                     this.tmpPath, featureModel);
         }
 
@@ -148,7 +154,7 @@ public class KbuildComposer implements Composer {
     private void generateConfig(Map<String, Boolean> features, Path tmpSourcePath)
             throws IOException, ComposerException {
         System.out.println("Generating .config");
-        this.runMake(tmpSourcePath, "defconfig");
+        this.runMake("defconfig");
 
         Set<String> remainingFeatures = new HashSet<>(features.keySet());
         Path configPath = tmpSourcePath.resolve(".config");
@@ -179,7 +185,7 @@ public class KbuildComposer implements Composer {
         Files.write(configPath, defaultConfigLines);
 
         // Make sure that `include/autoconf.h` is generated
-        this.runMake(tmpSourcePath, "oldconfig");
+        this.runMake("oldconfig");
     }
 
     /**
@@ -478,7 +484,7 @@ public class KbuildComposer implements Composer {
         System.out.println("Creating line feature mappers");
 
         // Clean up to ensure that the header file containing config definitions doesn't exist
-        this.runMake(tmpSourcePath, "clean");
+        this.runMake("clean");
 
         Map<Path, LineFeatureMapper> lineFeatureMappers = new HashMap<>();
         Map<Path, Dependency> dependenciesByPath = dependencies.stream()
@@ -506,17 +512,16 @@ public class KbuildComposer implements Composer {
      * A helper function to run make with the specified arguments with the temporary source directory as the working
      * directory.
      *
-     * @param tmpSourcePath the path to the temporary source directory
-     * @param args          the arguments to pass to make
+     * @param args the arguments to pass to make
      * @throws ComposerException if make returns a non-zero exit code
      * @throws IOException       if an I/O error occurs
      */
-    private void runMake(Path tmpSourcePath, String... args) throws ComposerException, IOException {
+    private void runMake(String... args) throws ComposerException, IOException {
         ProcessBuilder makeProcessBuilder = new ProcessBuilder(
                 Stream.concat(Stream.of("make"), Arrays.stream(args))
                         .toList())
                 .inheritIO()
-                .directory(tmpSourcePath.toFile());
+                .directory(this.tmpSourcePath.toFile());
         int makeExitCode;
         try {
             makeExitCode = makeProcessBuilder.start().waitFor();
@@ -527,9 +532,9 @@ public class KbuildComposer implements Composer {
             throw new ComposerException("Make failed with exit code %d".formatted(makeExitCode));
     }
 
-    private void copySourceTo(Path tmpSourcePath) throws IOException {
+    private void copySourceTo(Path originalSourcePath, Path tmpSourcePath) throws IOException {
         System.out.println("Copying source");
-        FileUtils.copyDirectory(this.sourcePath.toFile(), tmpSourcePath.toFile());
+        FileUtils.copyDirectory(originalSourcePath.toFile(), tmpSourcePath.toFile());
     }
 
     /**

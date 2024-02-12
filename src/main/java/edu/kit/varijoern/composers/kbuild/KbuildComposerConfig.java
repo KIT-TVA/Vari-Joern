@@ -59,7 +59,7 @@ public class KbuildComposerConfig extends ComposerConfig {
     }
 
     @Override
-    public Composer newComposer(@NotNull Path tmpPath) throws IOException {
+    public Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException {
         return new KbuildComposer(this.sourceLocation, this.system, tmpPath);
     }
 }
