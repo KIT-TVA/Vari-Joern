@@ -2,20 +2,23 @@ package edu.kit.varijoern.analyzers.joern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.kit.varijoern.analyzers.Evidence;
+import edu.kit.varijoern.analyzers.Finding;
 import edu.kit.varijoern.composers.FeatureMapper;
+import edu.kit.varijoern.composers.sourcemap.SourceMap;
 
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Contains information about a finding Joern found.
  */
-public class JoernFinding {
+public class JoernFinding implements Finding {
     private final String name;
     private final String title;
     private final String description;
     private final double score;
-    private final List<JoernEvidence> evidence;
+    private final Set<Evidence> evidence;
 
     /**
      * Creates a new {@link JoernFinding} containing the specified information.
@@ -28,11 +31,11 @@ public class JoernFinding {
      */
     @JsonCreator
     public JoernFinding(
-        @JsonProperty("name") String name,
-        @JsonProperty("title") String title,
-        @JsonProperty("description") String description,
-        @JsonProperty("score") double score,
-        @JsonProperty("evidence") List<JoernEvidence> evidence) {
+            @JsonProperty("name") String name,
+            @JsonProperty("title") String title,
+            @JsonProperty("description") String description,
+            @JsonProperty("score") double score,
+            @JsonProperty("evidence") Set<Evidence> evidence) {
         this.name = name;
         this.title = title;
         this.description = description;
@@ -54,6 +57,7 @@ public class JoernFinding {
      *
      * @return the title of the finding
      */
+    @Override
     public String getTitle() {
         return this.title;
     }
@@ -81,15 +85,16 @@ public class JoernFinding {
      *
      * @return information about the source that caused this finding
      */
-    public List<JoernEvidence> getEvidence() {
+    @Override
+    public Set<Evidence> getEvidence() {
         return evidence;
     }
 
     @Override
     public String toString() {
         return "%s: %s at %s".formatted(this.title,
-            this.score,
-            this.evidence.stream().map(JoernEvidence::toString).collect(Collectors.joining(", "))
+                this.score,
+                this.evidence.stream().map(Evidence::toString).collect(Collectors.joining(", "))
         );
     }
 
@@ -98,14 +103,15 @@ public class JoernFinding {
      * in the composed code.
      *
      * @param featureMapper the feature mapper to be used
+     * @param sourceMap     the source map to be used to determine the location of the evidences in the original source
      * @return a string representing this finding
      */
-    public String toString(FeatureMapper featureMapper) {
+    public String toString(FeatureMapper featureMapper, SourceMap sourceMap) {
         return "%s: %s at %s".formatted(this.title,
-            this.score,
-            this.evidence.stream()
-                .map(joernEvidence -> joernEvidence.toString(featureMapper))
-                .collect(Collectors.joining(", "))
+                this.score,
+                this.evidence.stream()
+                        .map(evidence -> evidence.toString(featureMapper, sourceMap))
+                        .collect(Collectors.joining(", "))
         );
     }
 }

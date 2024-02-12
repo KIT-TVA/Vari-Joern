@@ -3,19 +3,18 @@ package edu.kit.varijoern.analyzers.joern;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.kit.varijoern.analyzers.AnalysisResult;
-import edu.kit.varijoern.analyzers.Analyzer;
-import edu.kit.varijoern.analyzers.AnalyzerFailureException;
+import edu.kit.varijoern.analyzers.*;
 import edu.kit.varijoern.composers.CompositionInformation;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
+import org.javatuples.Pair;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * An analyzer that uses Joern.
@@ -25,6 +24,7 @@ public class JoernAnalyzer implements Analyzer {
     private final String command;
     private final Path workspacePath;
     private final Path scanScriptPath;
+    private final List<JoernAnalysisResult> allAnalysisResults = new ArrayList<>();
 
     /**
      * Creates a new {@link JoernAnalyzer} instance which uses the specified command name to run joern-scan.
@@ -42,20 +42,54 @@ public class JoernAnalyzer implements Analyzer {
     }
 
     @Override
-    public AnalysisResult analyze(CompositionInformation compositionInformation)
-        throws IOException, AnalyzerFailureException {
+    public JoernAnalysisResult analyze(CompositionInformation compositionInformation)
+            throws IOException, AnalyzerFailureException {
         Path sourceLocation = compositionInformation.getLocation();
         Path outFile = this.workspacePath.resolve(
-            String.format("%s-%s.json",
-                sourceLocation.subpath(sourceLocation.getNameCount() - 1, sourceLocation.getNameCount()),
-                UUID.randomUUID()
-            )
+                String.format("%s-%s.json",
+                        sourceLocation.subpath(sourceLocation.getNameCount() - 1, sourceLocation.getNameCount()),
+                        UUID.randomUUID()
+                )
         );
         runJoern(sourceLocation, outFile);
         List<JoernFinding> findings = this.parseFindings(outFile);
-        return new JoernAnalysisResult(findings,
-            compositionInformation.getEnabledFeatures(),
-            compositionInformation.getFeatureMapper());
+        JoernAnalysisResult result = new JoernAnalysisResult(findings,
+                compositionInformation.getEnabledFeatures(),
+                compositionInformation.getFeatureMapper(),
+                compositionInformation.getSourceMap());
+        this.allAnalysisResults.add(result);
+        return result;
+    }
+
+    @Override
+    public AggregatedAnalysisResult aggregateResults() {
+        // Group findings by their evidence and query name, store the analysis result retrieve the enabled features
+        // and the feature mappers later
+        Map<?, List<Pair<JoernFinding, JoernAnalysisResult>>> groupedFindings =
+                this.allAnalysisResults.stream()
+                        .flatMap(result -> result.getFindings().stream()
+                                .map(finding -> Pair.with(finding, result)))
+                        .collect(Collectors.groupingBy(
+                                findingPair -> Pair.with(
+                                        findingPair.getValue0().getEvidence(),
+                                        findingPair.getValue0().getName()
+                                )
+                        ));
+        return new AggregatedAnalysisResult(groupedFindings
+                .values().stream()
+                .map(findingPairs -> {
+                    // Use the first finding as all findings in this group are (likely) equal.
+                    JoernFinding firstFinding = findingPairs.get(0).getValue0();
+                    return new FindingAggregation(firstFinding,
+                            findingPairs.stream()
+                                    .map(findingPair -> findingPair.getValue1().getEnabledFeatures())
+                                    .collect(Collectors.toSet()),
+                            findingPairs.stream()
+                                    .map(findingPair -> findingPair.getValue1().featureMapper)
+                                    .toList()
+                    );
+                })
+                .collect(Collectors.toSet()));
     }
 
     /**
@@ -68,14 +102,14 @@ public class JoernAnalyzer implements Analyzer {
      */
     private void runJoern(Path sourceLocation, Path outFile) throws IOException, AnalyzerFailureException {
         Process joernProcess = Runtime.getRuntime().exec(
-            new String[]{
-                this.command,
-                "--script", this.scanScriptPath.toString(),
-                "--param", String.format("codePath=%s", sourceLocation),
-                "--param", String.format("outFile=%s", outFile)
-            },
-            null,
-            this.workspacePath.toFile()
+                new String[]{
+                        this.command,
+                        "--script", this.scanScriptPath.toString(),
+                        "--param", String.format("codePath=%s", sourceLocation),
+                        "--param", String.format("outFile=%s", outFile)
+                },
+                null,
+                this.workspacePath.toFile()
         );
         StreamGobbler stdoutGobbler = new StreamGobbler(joernProcess.getInputStream(), System.out);
         StreamGobbler stderrGobbler = new StreamGobbler(joernProcess.getErrorStream(), System.err);
@@ -95,7 +129,7 @@ public class JoernAnalyzer implements Analyzer {
 
     private List<JoernFinding> parseFindings(Path findingsFile) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
         });
     }

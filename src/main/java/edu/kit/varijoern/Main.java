@@ -150,12 +150,13 @@ public class Main {
             allAnalysisResults.addAll(iterationAnalysisResults);
         }
 
+        System.out.println("Summary:");
         printSummary(allAnalysisResults);
+        System.out.println(analyzer.aggregateResults());
         return 0;
     }
 
     private static void printSummary(List<AnalysisResult> analysisResults) {
-        System.out.println("Summary:");
         for (int i = 0; i < analysisResults.size(); i++) {
             AnalysisResult analysisResult = analysisResults.get(i);
             System.out.println(analysisResult);

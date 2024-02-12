@@ -9,7 +9,8 @@ import java.io.IOException;
  */
 public interface Analyzer {
     /**
-     * Analyzes the source code referenced in the given {@link CompositionInformation}.
+     * Analyzes the source code referenced in the given {@link CompositionInformation}. The result is stored to be used
+     * in {@link #aggregateResults()}.
      *
      * @param compositionInformation information about the composer pass that generated the code to be analyzed
      * @return a summary of the weaknesses found during the analysis
@@ -17,4 +18,11 @@ public interface Analyzer {
      * @throws AnalyzerFailureException if the analysis failed for another reason
      */
     AnalysisResult analyze(CompositionInformation compositionInformation) throws IOException, AnalyzerFailureException;
+
+    /**
+     * Aggregates the results of multiple analysis runs, grouping them by their evidence.
+     *
+     * @return the aggregated results
+     */
+    AggregatedAnalysisResult aggregateResults();
 }

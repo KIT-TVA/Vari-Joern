@@ -127,7 +127,8 @@ public class KbuildComposer implements Composer {
             return new CompositionInformation(
                     destination,
                     features,
-                    this.featureMapperCreator.createFeatureMapper(generationInformation, lineFeatureMappers)
+                    this.featureMapperCreator.createFeatureMapper(generationInformation, lineFeatureMappers),
+                    new KbuildComposerSourceMap(generationInformation)
             );
         } finally {
             FileUtils.deleteDirectory(tmpSourcePath.toFile());
