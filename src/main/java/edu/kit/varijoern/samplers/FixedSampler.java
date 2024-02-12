@@ -35,7 +35,7 @@ public class FixedSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult<?>> analysisResults) throws SamplerException {
+    public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
         Map<String, Boolean> result = this.featureModel.getFeatures().stream()
             .collect(Collectors.toMap(IFeature::getName, feature -> false));
         for (String feature : this.features) {

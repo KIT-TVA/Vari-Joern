@@ -7,7 +7,7 @@ import java.io.IOException;
 /**
  * Analyzers scan composed source code for weaknesses.
  */
-public interface Analyzer<T extends Finding> {
+public interface Analyzer {
     /**
      * Analyzes the source code referenced in the given {@link CompositionInformation}. The result is stored to be used
      * in {@link #aggregateResults()}.
@@ -17,12 +17,12 @@ public interface Analyzer<T extends Finding> {
      * @throws IOException              if an I/O exception occurred
      * @throws AnalyzerFailureException if the analysis failed for another reason
      */
-    AnalysisResult<T> analyze(CompositionInformation compositionInformation) throws IOException, AnalyzerFailureException;
+    AnalysisResult analyze(CompositionInformation compositionInformation) throws IOException, AnalyzerFailureException;
 
     /**
      * Aggregates the results of multiple analysis runs, grouping them by their evidence.
      *
      * @return the aggregated results
      */
-    AggregatedAnalysisResult<T> aggregateResults();
+    AggregatedAnalysisResult aggregateResults();
 }

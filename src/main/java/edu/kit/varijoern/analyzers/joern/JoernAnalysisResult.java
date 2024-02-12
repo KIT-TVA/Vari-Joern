@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Contains information about the result of running a Joern scan.
  */
-public class JoernAnalysisResult extends AnalysisResult<JoernFinding> {
+public class JoernAnalysisResult extends AnalysisResult {
     private final List<JoernFinding> findings;
     final FeatureMapper featureMapper;
     private final SourceMap sourceMap;

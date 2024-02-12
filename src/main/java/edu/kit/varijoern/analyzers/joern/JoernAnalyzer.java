@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * An analyzer that uses Joern.
  */
-public class JoernAnalyzer implements Analyzer<JoernFinding> {
+public class JoernAnalyzer implements Analyzer {
     public static final String NAME = "joern";
     private final String command;
     private final Path workspacePath;
@@ -62,7 +62,7 @@ public class JoernAnalyzer implements Analyzer<JoernFinding> {
     }
 
     @Override
-    public AggregatedAnalysisResult<JoernFinding> aggregateResults() {
+    public AggregatedAnalysisResult aggregateResults() {
         // Group findings by their evidence and query name, store the analysis result retrieve the enabled features
         // and the feature mappers later
         Map<?, List<Pair<JoernFinding, JoernAnalysisResult>>> groupedFindings =
@@ -75,12 +75,12 @@ public class JoernAnalyzer implements Analyzer<JoernFinding> {
                                         findingPair.getValue0().getName()
                                 )
                         ));
-        return new AggregatedAnalysisResult<>(groupedFindings
+        return new AggregatedAnalysisResult(groupedFindings
                 .values().stream()
                 .map(findingPairs -> {
                     // Use the first finding as all findings in this group are (likely) equal.
                     JoernFinding firstFinding = findingPairs.get(0).getValue0();
-                    return new FindingAggregation<>(firstFinding,
+                    return new FindingAggregation(firstFinding,
                             findingPairs.stream()
                                     .map(findingPair -> findingPair.getValue1().getEnabledFeatures())
                                     .collect(Collectors.toSet()),

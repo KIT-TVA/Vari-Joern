@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Contains information about the weaknesses an analyzer found.
  */
-public abstract class AnalysisResult<T extends Finding> {
+public abstract class AnalysisResult {
     private final Map<String, Boolean> enabledFeatures;
 
     protected AnalysisResult(Map<String, Boolean> enabledFeatures) {
@@ -27,7 +27,7 @@ public abstract class AnalysisResult<T extends Finding> {
      *
      * @return a list of all findings
      */
-    public abstract List<T> getFindings();
+    public abstract List<? extends Finding> getFindings();
 
     @Override
     public String toString() {
