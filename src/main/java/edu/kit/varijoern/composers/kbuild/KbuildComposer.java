@@ -81,6 +81,7 @@ public class KbuildComposer implements Composer {
     public static final String NAME = "kbuild";
     private static final Pattern OPTION_NAME_VALUE_PATTERN = Pattern.compile("CONFIG_(\\w+)=.*");
     private static final Pattern OPTION_NOT_SET_PATTERN = Pattern.compile("# CONFIG_(\\w+) is not set");
+    private static final Pattern HEADER_FILE_PATTERN = Pattern.compile(".*\\.(?:h|H|hpp|hxx|h++)");
     private static final Set<String> supportedSystems = Set.of("linux", "busybox");
 
     private final Path sourcePath;
@@ -290,7 +291,7 @@ public class KbuildComposer implements Composer {
                 // Dependencies with absolute paths likely don't belong to the project.
                 .filter(dep -> !Path.of(dep).isAbsolute())
                 .map(dep -> {
-                    if (dep.endsWith(".h")) {
+                    if (HEADER_FILE_PATTERN.matcher(dep).matches()) {
                         return new HeaderDependency(dep);
                     } else {
                         return new CompiledDependency(new InclusionInformation(

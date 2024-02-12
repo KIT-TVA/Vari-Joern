@@ -6,12 +6,16 @@ import com.beust.jcommander.Parameter;
 
 import java.text.ParseException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
  * Extracts GCC calls from a command string.
  */
 public class GCCCallExtractor {
+    private final static List<String> COMMAND_NAMES = List.of("gcc", "g++");
+    // Match common C and C++ file names. Exclude files starting with a hyphen as they are probably actually GCC flags.
+    private final static Pattern SOURCE_FILE_PATTERN = Pattern.compile("^[^-].*\\.(?:c|C|cc|cpp|cxx|c++)$");
     private final CommandParser parser;
 
     /**
@@ -33,7 +37,7 @@ public class GCCCallExtractor {
     public List<GCCCall> getCalls() throws ParseException {
         List<GCCCall> calls = new ArrayList<>();
         for (List<String> command : this.parser.parse()) {
-            if (!command.get(0).equals("gcc")) continue;
+            if (!COMMAND_NAMES.contains(command.get(0))) continue;
             calls.add(this.parseCall(command));
         }
         return calls;
@@ -42,30 +46,30 @@ public class GCCCallExtractor {
     private GCCCall parseCall(List<String> command) {
         RawGCCCall rawCall = new RawGCCCall();
         List<String> preprocessedArguments = command.stream()
-            .flatMap(arg -> {
-                if (arg.startsWith("-D") && arg.length() > 2 && arg.indexOf('=') == -1) {
-                    return Stream.of(arg + "=");
-                } else if (arg.startsWith("-I") && arg.length() > 2) {
-                    return Stream.of(arg.substring(0, 2), arg.substring(2));
-                } else {
-                    return Stream.of(arg);
-                }
-            })
-            .toList();
+                .flatMap(arg -> {
+                    if (arg.startsWith("-D") && arg.length() > 2 && arg.indexOf('=') == -1) {
+                        return Stream.of(arg + "=");
+                    } else if (arg.startsWith("-I") && arg.length() > 2) {
+                        return Stream.of(arg.substring(0, 2), arg.substring(2));
+                    } else {
+                        return Stream.of(arg);
+                    }
+                })
+                .toList();
         JCommander.newBuilder()
-            .addObject(rawCall)
-            .build()
-            .parse(preprocessedArguments.subList(1, preprocessedArguments.size()).toArray(String[]::new));
+                .addObject(rawCall)
+                .build()
+                .parse(preprocessedArguments.subList(1, preprocessedArguments.size()).toArray(String[]::new));
         return new GCCCall(
-            Optional.ofNullable(rawCall.compiledFiles)
-                .map(files -> files.stream()
-                    .filter(file -> !file.startsWith("-") && file.endsWith(".c"))
-                    .toList()
-                )
-                .orElseGet(List::of),
-            Objects.requireNonNullElseGet(rawCall.includePaths, List::of),
-            Objects.requireNonNullElseGet(rawCall.includes, List::of),
-            Objects.requireNonNullElseGet(rawCall.defines, Map::of)
+                Optional.ofNullable(rawCall.compiledFiles)
+                        .map(files -> files.stream()
+                                .filter(file -> SOURCE_FILE_PATTERN.matcher(file).matches())
+                                .toList()
+                        )
+                        .orElseGet(List::of),
+                Objects.requireNonNullElseGet(rawCall.includePaths, List::of),
+                Objects.requireNonNullElseGet(rawCall.includes, List::of),
+                Objects.requireNonNullElseGet(rawCall.defines, Map::of)
         );
     }
 
