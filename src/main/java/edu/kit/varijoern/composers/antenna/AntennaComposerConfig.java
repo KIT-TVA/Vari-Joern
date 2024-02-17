@@ -4,6 +4,7 @@ import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.InvalidPathException;
@@ -44,7 +45,7 @@ public class AntennaComposerConfig extends ComposerConfig {
     }
 
     @Override
-    public Composer newComposer() {
+    public Composer newComposer(@NotNull Path tmpPath) {
         return new AntennaComposer(this.sourceLocation);
     }
 

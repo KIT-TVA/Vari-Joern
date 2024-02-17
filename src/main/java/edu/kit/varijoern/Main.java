@@ -82,12 +82,23 @@ public class Main {
         }
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
-        Composer composer = config.getComposerConfig().newComposer();
+        Composer composer;
+        try {
+            composer = config.getComposerConfig().newComposer(composerTmpDirectory);
+        } catch (IOException e) {
+            System.err.println("Failed to instantiate composer:");
+            e.printStackTrace();
+            return STATUS_IO_ERROR;
+        } catch (ComposerException e) {
+            System.err.println("Failed to instantiate composer:");
+            e.printStackTrace();
+            return STATUS_INTERNAL_ERROR;
+        }
         Analyzer analyzer;
         try {
             analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
         } catch (IOException e) {
-            System.err.println("Failed to instantiate composer:");
+            System.err.println("Failed to instantiate analyzer:");
             e.printStackTrace();
             return STATUS_IO_ERROR;
         }
@@ -120,8 +131,7 @@ public class Main {
 
                 CompositionInformation composedSourceLocation;
                 try {
-                    composedSourceLocation = composer.compose(features, composerDestination, composerTmpDirectory,
-                        featureModel);
+                    composedSourceLocation = composer.compose(features, composerDestination, featureModel);
                 } catch (IllegalFeatureNameException e) {
                     System.err.println("Invalid feature name has been found");
                     return STATUS_INVALID_CONFIG;

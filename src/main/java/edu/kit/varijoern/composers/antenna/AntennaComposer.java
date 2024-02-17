@@ -39,7 +39,7 @@ public class AntennaComposer implements Composer {
 
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
-                                                   @NotNull Path tmpPath, @NotNull IFeatureModel featureModel)
+                                                   @NotNull IFeatureModel featureModel)
         throws IllegalFeatureNameException, IOException, ComposerException {
         List<String> enabledFeatures = features.entrySet().stream()
             .filter(Map.Entry::getValue)
