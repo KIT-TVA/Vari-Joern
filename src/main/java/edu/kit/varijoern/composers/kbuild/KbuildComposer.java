@@ -534,7 +534,7 @@ public class KbuildComposer implements Composer {
 
     private void copySourceTo(Path originalSourcePath, Path tmpSourcePath) throws IOException {
         System.out.println("Copying source");
-        FileUtils.copyDirectory(originalSourcePath.toFile(), tmpSourcePath.toFile());
+        FileUtils.copyDirectory(originalSourcePath.toFile(), tmpSourcePath.toFile(), file -> !file.getName().equals(".git"));
     }
 
     /**
