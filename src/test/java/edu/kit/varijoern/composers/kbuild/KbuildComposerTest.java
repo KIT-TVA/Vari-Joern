@@ -9,6 +9,7 @@ import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -27,12 +28,11 @@ class KbuildComposerTest {
     @Test
     void busybox() throws GitAPIException, IOException {
         Set<String> standardIncludedFiles = Set.of("include/autoconf.h");
-        Map<String, String> standardDefines = Map.of(
-                "_GNU_SOURCE", "",
-                "NDEBUG", "",
-                "BB_VER", "\"1.37.0.git\"",
-                "KBUILD_BASENAME", "\"main\"",
-                "KBUILD_MODNAME", "\"main\""
+        InclusionInformation mainC = new InclusionInformation(
+                Path.of("src/main.c"),
+                standardIncludedFiles,
+                standardBusyboxDefinesForFile("main"),
+                List.of()
         );
         List<TestCase> testCases = List.of(
                 new TestCase(
@@ -45,17 +45,55 @@ class KbuildComposerTest {
                                 new FileAbsentVerifier(".*\\.o"),
                                 FileAbsentVerifier.originalSourceAndHeader("hello-cpp"),
                                 FileAbsentVerifier.originalSourceAndHeader("io-file"),
+                                new FileContentVerifier(mainC),
+                                new FileContentVerifier(Path.of("src/main.h"))
+                        )
+                ),
+                new TestCase(
+                        "busybox-sample",
+                        "busybox",
+                        List.of(
+                                "INCLUDE_IO_FILE",
+                                "PERFORM_RENAME",
+                                "PERFORM_CHMOD",
+                                "USE_GETS",
+                                "USE_CPP_FILE"
+                        ),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.src"),
+                                new FileAbsentVerifier(".*\\.in"),
+                                new FileAbsentVerifier(".*\\.o"),
                                 new FileContentVerifier(new InclusionInformation(
-                                        Path.of("src/main.c"),
+                                        Path.of("src/hello-cpp.cc"),
                                         standardIncludedFiles,
-                                        standardDefines,
+                                        standardBusyboxDefinesForFile("hello_cpp"),
                                         List.of()
                                 )),
+                                new FileContentVerifier(Path.of("src/hello-cpp.h")),
+                                new FileContentVerifier(new InclusionInformation(
+                                        Path.of("src/io-file.c"),
+                                        standardIncludedFiles,
+                                        standardBusyboxDefinesForFile("io_file"),
+                                        List.of()
+                                )),
+                                new FileContentVerifier(Path.of("src/io-file.h")),
+                                new FileContentVerifier(mainC),
                                 new FileContentVerifier(Path.of("src/main.h"))
                         )
                 )
         );
         runTestCases(testCases);
+    }
+
+    @NotNull
+    private static Map<String, String> standardBusyboxDefinesForFile(String baseName) {
+        return Map.of(
+                "_GNU_SOURCE", "",
+                "NDEBUG", "",
+                "BB_VER", "\"1.37.0.git\"",
+                "KBUILD_BASENAME", "\"%s\"".formatted(baseName),
+                "KBUILD_MODNAME", "\"%s\"".formatted(baseName)
+        );
     }
 
     private void runTestCases(List<TestCase> testCases) throws IOException, GitAPIException {

@@ -40,4 +40,5 @@ application {
 
 test {
     useJUnitPlatform()
+    maxHeapSize = "2g"
 }
