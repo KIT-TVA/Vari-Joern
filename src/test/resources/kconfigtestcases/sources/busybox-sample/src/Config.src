@@ -1,0 +1,7 @@
+config USE_GETS
+    bool "Have fun with gets"
+    default false
+
+config USE_CPP_FILE
+    bool "Include a file write in C++"
+    default false

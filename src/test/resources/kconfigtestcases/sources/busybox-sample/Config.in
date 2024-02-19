@@ -1,0 +1,12 @@
+#
+# For a description of the syntax of this configuration file,
+# see docs/Kconfig-language.txt.
+#
+
+mainmenu "Configuration"
+
+config HAVE_DOT_CONFIG
+	bool
+	default y
+
+source src/Config.in
