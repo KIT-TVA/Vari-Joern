@@ -25,17 +25,17 @@ class TorteKmaxFMReaderTest {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase);
         IFeatureModel featureModel = buildFeatureModel(testCaseManager, system);
         assertEquals(List.of(), testCaseManager.getModifications(), "Feature model reader modified original source");
-        assertEquals(featureModel.getFeatures().stream()
+        assertEquals(testCaseManager.getCorrectFeatureModel().getFeatures().stream()
                         .map(IFeature::getName)
                         .collect(Collectors.toSet()),
-                testCaseManager.getCorrectFeatureModel().getFeatures().stream()
+                featureModel.getFeatures().stream()
                         .map(IFeature::getName)
                         .collect(Collectors.toSet())
         );
-        assertEquals(featureModel.getConstraints().stream()
+        assertEquals(testCaseManager.getCorrectFeatureModel().getConstraints().stream()
                         .map(IConstraint::getNode)
                         .collect(Collectors.toSet()),
-                testCaseManager.getCorrectFeatureModel().getConstraints().stream()
+                featureModel.getConstraints().stream()
                         .map(IConstraint::getNode)
                         .collect(Collectors.toSet())
         );
