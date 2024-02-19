@@ -446,12 +446,7 @@ public class KbuildComposer implements Composer {
     private Map.Entry<Path, GenerationInformation> generateFileWithPreprocessorDirectives(
             InclusionInformation inclusionInformation, Path destination, Path tmpSourcePath) throws IOException {
         System.out.printf("Generating %s with preprocessor directives%n", inclusionInformation.filePath());
-        String fileName = inclusionInformation.filePath().getFileName().toString();
-        int dotIndex = fileName.lastIndexOf('.');
-        String baseName = dotIndex == -1 ? fileName : fileName.substring(0, dotIndex);
-        String extension = dotIndex == -1 ? "" : fileName.substring(dotIndex);
-        Path relativeDestinationPath = inclusionInformation.filePath().getParent()
-                .resolve(baseName + "-" + inclusionInformation.hashCode() + extension);
+        Path relativeDestinationPath = inclusionInformation.getComposedFilePath();
         Path destinationPath = destination
                 .resolve(relativeDestinationPath);
 

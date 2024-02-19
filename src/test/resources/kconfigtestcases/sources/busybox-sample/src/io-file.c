@@ -10,7 +10,7 @@
 //config:   default false
 //config:   depends INCLUDE_IO_FILE
 
-//kbuild:obj-$(CONFIG_IO_FILE) += io-file.o
+//kbuild:obj-$(CONFIG_INCLUDE_IO_FILE) += io-file.o
 
 #include <sys/stat.h>
 #include <stdio.h>

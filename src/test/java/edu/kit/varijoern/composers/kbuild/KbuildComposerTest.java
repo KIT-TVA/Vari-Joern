@@ -1,0 +1,257 @@
+package edu.kit.varijoern.composers.kbuild;
+
+import edu.kit.varijoern.IllegalFeatureNameException;
+import edu.kit.varijoern.KconfigTestCaseManager;
+import edu.kit.varijoern.composers.Composer;
+import edu.kit.varijoern.composers.ComposerException;
+import edu.kit.varijoern.composers.CompositionInformation;
+import edu.kit.varijoern.composers.sourcemap.SourceLocation;
+import edu.kit.varijoern.samplers.FixedSampler;
+import edu.kit.varijoern.samplers.SamplerException;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class KbuildComposerTest {
+    @Test
+    void busybox() throws GitAPIException, IOException {
+        Set<String> standardIncludedFiles = Set.of("include/autoconf.h");
+        Map<String, String> standardDefines = Map.of(
+                "_GNU_SOURCE", "",
+                "NDEBUG", "",
+                "BB_VER", "\"1.37.0.git\"",
+                "KBUILD_BASENAME", "\"main\"",
+                "KBUILD_MODNAME", "\"main\""
+        );
+        List<TestCase> testCases = List.of(
+                new TestCase(
+                        "busybox-sample",
+                        "busybox",
+                        List.of(),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.src"),
+                                new FileAbsentVerifier(".*\\.in"),
+                                new FileAbsentVerifier(".*\\.o"),
+                                FileAbsentVerifier.originalSourceAndHeader("hello-cpp"),
+                                FileAbsentVerifier.originalSourceAndHeader("io-file"),
+                                new FileContentVerifier(new InclusionInformation(
+                                        Path.of("src/main.c"),
+                                        standardIncludedFiles,
+                                        standardDefines,
+                                        List.of()
+                                )),
+                                new FileContentVerifier(Path.of("src/main.h"))
+                        )
+                )
+        );
+        runTestCases(testCases);
+    }
+
+    private void runTestCases(List<TestCase> testCases) throws IOException, GitAPIException {
+        for (TestCase testCase : testCases) {
+            runTestCase(testCase);
+        }
+    }
+
+    private void runTestCase(TestCase testCase) throws IOException, GitAPIException {
+        KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name);
+        Map<String, Boolean> featureMap;
+        try {
+            featureMap = new FixedSampler(testCase.enabledFeatures, testCaseManager.getCorrectFeatureModel())
+                    .sample(List.of())
+                    .get(0);
+        } catch (SamplerException e) {
+            throw new RuntimeException(e);
+        }
+
+        Path originalDirectory = testCaseManager.getPath();
+        Path destinationBaseDirectory = Files.createTempDirectory("vari-joern-test-kbuild-composer");
+        Path destinationDirectory = Files.createDirectory(destinationBaseDirectory.resolve("composition"));
+        Path composerTmpDirectory = Files.createDirectory(destinationBaseDirectory.resolve("tmp"));
+
+        System.err.println("Created temporary directory " + destinationBaseDirectory);
+
+        CompositionInformation compositionInformation;
+        try {
+            Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system, composerTmpDirectory);
+            compositionInformation = composer.compose(featureMap,
+                    destinationDirectory,
+                    testCaseManager.getCorrectFeatureModel()
+            );
+        } catch (IllegalFeatureNameException | ComposerException e) {
+            throw new RuntimeException(e);
+        }
+
+        for (Verifier verifier : testCase.verifiers) {
+            verifier.verify(compositionInformation, originalDirectory, destinationDirectory);
+        }
+
+        assertTrue(testCaseManager.getModifications().isEmpty(), "Composer modified original source");
+    }
+
+    /**
+     * A test case for the {@link KbuildComposer}.
+     *
+     * @param name            the name of the test case
+     * @param system          the Kconfig/Kbuild implementation of the test case
+     * @param enabledFeatures the features to enable for the test case
+     * @param verifiers       the verifiers to run on the composition
+     */
+    private record TestCase(String name, String system, List<String> enabledFeatures,
+                            List<Verifier> verifiers) {
+    }
+
+    /**
+     * A verifier for a composition. Each verifier checks a specific aspect of the composition and throws an exception
+     * if the aspect is not as expected.
+     */
+    private interface Verifier {
+        void verify(CompositionInformation compositionInformation, Path originalDirectory, Path compositionDirectory)
+                throws IOException;
+    }
+
+    /**
+     * A verifier that checks that there are no files matching a regular expression in the composition.
+     */
+    private static class FileAbsentVerifier implements Verifier {
+        private final Pattern regex;
+
+        public FileAbsentVerifier(String regex) {
+            this.regex = Pattern.compile(regex);
+        }
+
+        /**
+         * Returns a verifier that checks that there are no files related to the specified source file in the
+         * composition. Forbidden files are:
+         * <ul>
+         *     <li>{@code name.c}</li>
+         *     <li>{@code name.cc}</li>
+         *     <li>{@code name.h}</li>
+         * </ul>
+         * where {@code name} is the specified name. To make sure that the verifier also matches the file names
+         * generated by the {@link KbuildComposer}, the applied regular expression is {@code name[-0-9]*\.(cc|c|h)}.
+         *
+         * @param name the file to check for, without the extension
+         * @return the verifier
+         */
+        public static Verifier originalSourceAndHeader(String name) {
+            return new FileAbsentVerifier(name + "[-0-9]*\\.(cc|c|h)");
+        }
+
+        @Override
+        public void verify(CompositionInformation compositionInformation, Path originalDirectory,
+                           Path compositionDirectory) throws IOException {
+            try (var stream = Files.walk(compositionDirectory)) {
+                assertNull(stream.filter(path -> regex.matcher(compositionDirectory.relativize(path).toString()).matches())
+                                .findAny()
+                                .orElse(null),
+                        "File matching " + regex + " should not exist"
+                );
+            }
+        }
+    }
+
+    /**
+     * A verifier that checks that a file in the composition is present and has the expected content. This means that
+     * the original file's content is preserved and the correct preprocessor directives are prepended.
+     */
+    private static class FileContentVerifier implements Verifier {
+        private final Path originalRelativePath;
+        private final Path composedRelativePath;
+        private final List<String> expectedPrependedLines;
+
+        /**
+         * Creates a new verifier for a file in the composition. This constructor assumes that the file is not renamed
+         * by the composer and that no prepended preprocessor directives are expected.
+         *
+         * @param relativePath the relative path to the file
+         */
+        public FileContentVerifier(Path relativePath) {
+            this(relativePath, relativePath, List.of());
+        }
+
+        /**
+         * Creates a new verifier for a file in the composition with the specified paths to the original file name and
+         * the file name generated by the composer. The verifier checks that the file has the expected preprocessor
+         * directives prepended.
+         *
+         * @param originalRelativePath   the relative path to the original file
+         * @param composedRelativePath   the relative path to the file in the composition
+         * @param expectedPrependedLines the expected preprocessor directives
+         */
+        public FileContentVerifier(Path originalRelativePath, Path composedRelativePath,
+                                   List<String> expectedPrependedLines) {
+            if (originalRelativePath.isAbsolute())
+                throw new IllegalArgumentException("originalRelativePath must be relative");
+            if (composedRelativePath.isAbsolute())
+                throw new IllegalArgumentException("composedRelativePath must be relative");
+
+            this.originalRelativePath = originalRelativePath;
+            this.composedRelativePath = composedRelativePath;
+            this.expectedPrependedLines = expectedPrependedLines;
+        }
+
+        /**
+         * Creates a new verifier for a file in the composition with the specified inclusion information. The verifier
+         * checks that the file has the expected preprocessor directives prepended. It uses the inclusion information to
+         * determine the new file name generated by the composer.
+         *
+         * @param inclusionInformation the inclusion information
+         */
+        public FileContentVerifier(InclusionInformation inclusionInformation) {
+            this.originalRelativePath = inclusionInformation.filePath();
+            this.composedRelativePath = inclusionInformation.getComposedFilePath();
+            this.expectedPrependedLines = Stream.concat(
+                            inclusionInformation.defines().entrySet().stream()
+                                    .map(entry -> "#define %s %s".formatted(entry.getKey(), entry.getValue())),
+                            inclusionInformation.includedFiles().stream()
+                                    .map(includedFile -> this.originalRelativePath.getParent()
+                                            .relativize(Path.of(includedFile))
+                                    )
+                                    .map("#include \"%s\""::formatted)
+                    )
+                    .toList();
+        }
+
+        @Override
+        public void verify(CompositionInformation compositionInformation, Path originalDirectory,
+                           Path compositionDirectory) throws IOException {
+            Path compositionPath = compositionDirectory.resolve(this.composedRelativePath);
+            Path originalPath = originalDirectory.resolve(this.originalRelativePath);
+
+            System.err.println(compositionPath);
+
+            assertTrue(Files.exists(compositionPath),
+                    "File " + this.composedRelativePath + " should exist");
+            // Verify the source map
+            assertEquals(1,
+                    compositionInformation.getSourceMap()
+                            .getOriginalLocation(
+                                    new SourceLocation(this.composedRelativePath, this.expectedPrependedLines.size() + 1)
+                            )
+                            .map(SourceLocation::line)
+                            .orElseThrow()
+            );
+
+            List<String> compositionLines = Files.readAllLines(compositionPath);
+            List<String> originalLines = Files.readAllLines(originalPath);
+            assertEquals(new HashSet<>(this.expectedPrependedLines),
+                    new HashSet<>(compositionLines.subList(0, this.expectedPrependedLines.size()))
+            );
+            assertEquals(originalLines,
+                    compositionLines.subList(this.expectedPrependedLines.size(), compositionLines.size())
+            );
+        }
+    }
+}

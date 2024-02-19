@@ -2,7 +2,6 @@
 <featureModel>
 	<struct>
 		<and mandatory="true" name="Root">
-			<feature name="HAVE_DOT_CONFIG"/>
 			<feature name="INCLUDE_IO_FILE"/>
 			<feature name="PERFORM_RENAME"/>
 			<feature name="PERFORM_CHMOD"/>
@@ -11,9 +10,6 @@
 		</and>
 	</struct>
 	<constraints>
-		<rule>
-			<var>HAVE_DOT_CONFIG</var>
-		</rule>
 		<rule>
 			<disj>
 				<var>INCLUDE_IO_FILE</var>

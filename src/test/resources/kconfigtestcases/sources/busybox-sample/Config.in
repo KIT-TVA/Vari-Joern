@@ -5,8 +5,4 @@
 
 mainmenu "Configuration"
 
-config HAVE_DOT_CONFIG
-	bool
-	default y
-
 source src/Config.in
