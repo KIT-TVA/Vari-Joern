@@ -1,7 +1,7 @@
 #
 # Kbuild ignores
 #
-.*
+.gitignore
 *.o
 *.o.*
 *.a

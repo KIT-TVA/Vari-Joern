@@ -23,8 +23,8 @@ import java.util.stream.Stream;
 /**
  * A helper class for preparing test cases for the Kconfig/Kbuild implementation.
  * If a test case is named {@code foo}, the sources are expected to be located in
- * {@code src/test/resources/kconfigtestcases/sources/foo} and the correct feature model in
- * {@code src/test/resources/kconfigtestcases/models/foo.xml}.
+ * {@code src/test/resources/kconfigtestcases/foo/sources} and the correct feature model in
+ * {@code src/test/resources/kconfigtestcases/foo/model.xml}.
  */
 public class KconfigTestCaseManager {
     private final Path pathToExtractedTestCase;
@@ -40,9 +40,9 @@ public class KconfigTestCaseManager {
     public KconfigTestCaseManager(@NotNull String testCaseName, @NotNull KconfigTestCasePreparer preparer)
             throws IOException, GitAPIException {
         ClassLoader classLoader = this.getClass().getClassLoader();
-        URL resourceLocation = classLoader.getResource("kconfigtestcases/sources/%s".formatted(testCaseName));
+        URL resourceLocation = classLoader.getResource("kconfigtestcases/%s/source".formatted(testCaseName));
         URL correctFeatureModelLocation = classLoader.getResource(
-                "kconfigtestcases/models/%s.xml".formatted(testCaseName)
+                "kconfigtestcases/%s/model.xml".formatted(testCaseName)
         );
         if (resourceLocation == null) {
             throw new IllegalArgumentException("Test case sources not found: " + testCaseName);
