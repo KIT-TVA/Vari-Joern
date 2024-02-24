@@ -11,7 +11,9 @@ import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,8 +31,11 @@ class KbuildComposerTest {
             KbuildComposerTest::buildAllYesConfig
     );
 
-    @Test
-    void busybox() throws GitAPIException, IOException {
+    private static Stream<Arguments> testCases() {
+        return busyboxTestCases();
+    }
+
+    private static Stream<Arguments> busyboxTestCases() {
         Set<String> standardIncludedFiles = Set.of("include/autoconf.h");
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
@@ -38,7 +43,7 @@ class KbuildComposerTest {
                 standardBusyboxDefinesForFile("main"),
                 List.of()
         );
-        List<TestCase> testCases = List.of(
+        Stream<TestCase> testCases = Stream.of(
                 new TestCase(
                         "busybox-sample",
                         "busybox",
@@ -86,9 +91,10 @@ class KbuildComposerTest {
                         )
                 )
         );
-        for (TestCase testCase : testCases) {
-            runTestCaseWithPreparers(testCase, STANDARD_PREPARERS);
-        }
+        return testCases.flatMap(
+                testCase -> STANDARD_PREPARERS.stream()
+                        .map(preparer -> Arguments.of(testCase, preparer))
+        );
     }
 
     private static void buildAllYesConfig(Path sourcePath) throws IOException {
@@ -124,14 +130,9 @@ class KbuildComposerTest {
         );
     }
 
-    private void runTestCaseWithPreparers(TestCase testCase, List<KconfigTestCasePreparer> preparers)
-            throws IOException, GitAPIException {
-        for (KconfigTestCasePreparer preparer : preparers) {
-            runTestCase(testCase, preparer);
-        }
-    }
-
-    private void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer) throws IOException, GitAPIException {
+    @ParameterizedTest
+    @MethodSource("testCases")
+    void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer) throws IOException, GitAPIException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name, preparer);
         Map<String, Boolean> featureMap;
         try {
