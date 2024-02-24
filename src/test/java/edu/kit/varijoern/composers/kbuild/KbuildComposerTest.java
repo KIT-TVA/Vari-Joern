@@ -2,6 +2,7 @@ package edu.kit.varijoern.composers.kbuild;
 
 import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.KconfigTestCaseManager;
+import edu.kit.varijoern.KconfigTestCasePreparer;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
@@ -15,16 +16,19 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class KbuildComposerTest {
+    private static final List<KconfigTestCasePreparer> STANDARD_PREPARERS = List.of(
+            (path) -> {
+            },
+            KbuildComposerTest::buildAllYesConfig
+    );
+
     @Test
     void busybox() throws GitAPIException, IOException {
         Set<String> standardIncludedFiles = Set.of("include/autoconf.h");
@@ -82,7 +86,31 @@ class KbuildComposerTest {
                         )
                 )
         );
-        runTestCases(testCases);
+        for (TestCase testCase : testCases) {
+            runTestCaseWithPreparers(testCase, STANDARD_PREPARERS);
+        }
+    }
+
+    private static void buildAllYesConfig(Path sourcePath) throws IOException {
+        runMake(sourcePath, "allyesconfig");
+        runMake(sourcePath);
+    }
+
+    private static void runMake(Path sourcePath, String... args) throws IOException {
+        ProcessBuilder makeProcessBuilder = new ProcessBuilder(
+                Stream.concat(Stream.of("make"), Arrays.stream(args))
+                        .toList())
+                .directory(sourcePath.toFile());
+        Process makeProcess = makeProcessBuilder.start();
+        int makeExitCode;
+        try {
+            makeExitCode = makeProcess.waitFor();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        if (makeExitCode != 0) {
+            throw new RuntimeException("make failed with exit code " + makeExitCode);
+        }
     }
 
     @NotNull
@@ -96,14 +124,15 @@ class KbuildComposerTest {
         );
     }
 
-    private void runTestCases(List<TestCase> testCases) throws IOException, GitAPIException {
-        for (TestCase testCase : testCases) {
-            runTestCase(testCase);
+    private void runTestCaseWithPreparers(TestCase testCase, List<KconfigTestCasePreparer> preparers)
+            throws IOException, GitAPIException {
+        for (KconfigTestCasePreparer preparer : preparers) {
+            runTestCase(testCase, preparer);
         }
     }
 
-    private void runTestCase(TestCase testCase) throws IOException, GitAPIException {
-        KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name);
+    private void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer) throws IOException, GitAPIException {
+        KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name, preparer);
         Map<String, Boolean> featureMap;
         try {
             featureMap = new FixedSampler(testCase.enabledFeatures, testCaseManager.getCorrectFeatureModel())

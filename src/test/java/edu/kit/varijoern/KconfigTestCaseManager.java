@@ -11,6 +11,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.FileTreeIterator;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URL;
@@ -31,7 +32,13 @@ public class KconfigTestCaseManager {
     private final RevCommit initialCommit;
     private final IFeatureModel correctFeatureModel;
 
-    public KconfigTestCaseManager(String testCaseName) throws IOException, GitAPIException {
+    public KconfigTestCaseManager(@NotNull String testCaseName) throws IOException, GitAPIException {
+        this(testCaseName, (path) -> {
+        });
+    }
+
+    public KconfigTestCaseManager(@NotNull String testCaseName, @NotNull KconfigTestCasePreparer preparer)
+            throws IOException, GitAPIException {
         ClassLoader classLoader = this.getClass().getClassLoader();
         URL resourceLocation = classLoader.getResource("kconfigtestcases/sources/%s".formatted(testCaseName));
         URL correctFeatureModelLocation = classLoader.getResource(
@@ -68,6 +75,8 @@ public class KconfigTestCaseManager {
                 }
             });
         }
+
+        preparer.prepareTestCase(this.pathToExtractedTestCase);
 
         Repository repo = FileRepositoryBuilder.create(pathToExtractedTestCase.resolve(".git").toFile());
         repo.create();
