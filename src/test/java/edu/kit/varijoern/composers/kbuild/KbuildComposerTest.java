@@ -42,7 +42,7 @@ class KbuildComposerTest {
     }
 
     private static Stream<Arguments> busyboxTestCases() {
-        Set<String> standardIncludedFiles = Set.of("include/autoconf.h");
+        Set<String> standardIncludedFiles = Set.of("include/autoconf.h", "include/cmdline-included-header.h");
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
@@ -61,7 +61,8 @@ class KbuildComposerTest {
                                 FileAbsentVerifier.originalSourceAndHeader("hello-cpp"),
                                 FileAbsentVerifier.originalSourceAndHeader("io-file"),
                                 new FileContentVerifier(mainC),
-                                new FileContentVerifier(Path.of("src/main.h"))
+                                new FileContentVerifier(Path.of("src/main.h")),
+                                new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
                         )
                 ),
                 new TestCase(
@@ -93,7 +94,8 @@ class KbuildComposerTest {
                                 )),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
-                                new FileContentVerifier(Path.of("src/main.h"))
+                                new FileContentVerifier(Path.of("src/main.h")),
+                                new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
                         )
                 )
         );
