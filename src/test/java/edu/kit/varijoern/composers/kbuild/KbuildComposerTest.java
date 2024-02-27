@@ -3,9 +3,11 @@ package edu.kit.varijoern.composers.kbuild;
 import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.KconfigTestCaseManager;
 import edu.kit.varijoern.KconfigTestCasePreparer;
+import edu.kit.varijoern.PresenceConditionExpectation;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import edu.kit.varijoern.composers.FeatureMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
@@ -14,6 +16,10 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.prop4j.And;
+import org.prop4j.Node;
+import org.prop4j.Not;
+import org.prop4j.Or;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -162,7 +168,7 @@ class KbuildComposerTest {
         }
 
         for (Verifier verifier : testCase.verifiers) {
-            verifier.verify(compositionInformation, originalDirectory, destinationDirectory);
+            verifier.verify(compositionInformation, testCaseManager, originalDirectory, destinationDirectory);
         }
 
         assertTrue(testCaseManager.getModifications().isEmpty(), "Composer modified original source");
@@ -185,7 +191,8 @@ class KbuildComposerTest {
      * if the aspect is not as expected.
      */
     private interface Verifier {
-        void verify(CompositionInformation compositionInformation, Path originalDirectory, Path compositionDirectory)
+        void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
+                    Path originalDirectory, Path compositionDirectory)
                 throws IOException;
     }
 
@@ -218,8 +225,8 @@ class KbuildComposerTest {
         }
 
         @Override
-        public void verify(CompositionInformation compositionInformation, Path originalDirectory,
-                           Path compositionDirectory) throws IOException {
+        public void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
+                           Path originalDirectory, Path compositionDirectory) throws IOException {
             try (var stream = Files.walk(compositionDirectory)) {
                 assertNull(stream.filter(path -> regex.matcher(compositionDirectory.relativize(path).toString()).matches())
                                 .findAny()
@@ -232,7 +239,8 @@ class KbuildComposerTest {
 
     /**
      * A verifier that checks that a file in the composition is present and has the expected content. This means that
-     * the original file's content is preserved and the correct preprocessor directives are prepended.
+     * the original file's content is preserved and the correct preprocessor directives are prepended. It also verifies
+     * the presence conditions determined by the composer.
      */
     private static class FileContentVerifier implements Verifier {
         private final Path originalRelativePath;
@@ -293,8 +301,8 @@ class KbuildComposerTest {
         }
 
         @Override
-        public void verify(CompositionInformation compositionInformation, Path originalDirectory,
-                           Path compositionDirectory) throws IOException {
+        public void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
+                           Path originalDirectory, Path compositionDirectory) throws IOException {
             Path compositionPath = compositionDirectory.resolve(this.composedRelativePath);
             Path originalPath = originalDirectory.resolve(this.originalRelativePath);
 
@@ -302,15 +310,7 @@ class KbuildComposerTest {
 
             assertTrue(Files.exists(compositionPath),
                     "File " + this.composedRelativePath + " should exist");
-            // Verify the source map
-            assertEquals(1,
-                    compositionInformation.getSourceMap()
-                            .getOriginalLocation(
-                                    new SourceLocation(this.composedRelativePath, this.expectedPrependedLines.size() + 1)
-                            )
-                            .map(SourceLocation::line)
-                            .orElseThrow()
-            );
+            verifySourceMap(compositionInformation);
 
             List<String> compositionLines = Files.readAllLines(compositionPath);
             List<String> originalLines = Files.readAllLines(originalPath);
@@ -320,6 +320,69 @@ class KbuildComposerTest {
             assertEquals(originalLines,
                     compositionLines.subList(this.expectedPrependedLines.size(), compositionLines.size())
             );
+            verifyPresenceConditions(compositionInformation, testCaseManager);
+        }
+
+        private void verifySourceMap(CompositionInformation compositionInformation) {
+            assertEquals(1,
+                    compositionInformation.getSourceMap()
+                            .getOriginalLocation(
+                                    new SourceLocation(this.composedRelativePath, this.expectedPrependedLines.size() + 1)
+                            )
+                            .map(SourceLocation::line)
+                            .orElseThrow()
+            );
+        }
+
+        private void verifyPresenceConditions(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager) {
+            Optional<List<PresenceConditionExpectation>> expectedPresenceConditionsOptional = testCaseManager.
+                    getPresenceConditionExpectations(this.originalRelativePath);
+            if (expectedPresenceConditionsOptional.isEmpty())
+                return;
+            List<PresenceConditionExpectation> expectedPresenceConditions = expectedPresenceConditionsOptional.get();
+
+            FeatureMapper featureMapper = compositionInformation.getFeatureMapper();
+            for (int i = 1; i <= expectedPresenceConditions.size(); i++) {
+                if (i <= this.expectedPrependedLines.size()) {
+                    assertTrue(featureMapper.getPresenceCondition(this.composedRelativePath, i).isEmpty(),
+                            "Presence condition of line %d of %s should be absent"
+                                    .formatted(i, this.composedRelativePath)
+                    );
+                    continue;
+                }
+                int originalLineIndex = i - 1 - this.expectedPrependedLines.size();
+                PresenceConditionExpectation presenceConditionExpectation = expectedPresenceConditions.get(originalLineIndex);
+                System.out.println(presenceConditionExpectation.getPresenceCondition().toString() + " " + presenceConditionExpectation.isOptional() + " " + originalLineIndex);
+                Optional<Node> determinedPresenceCondition = featureMapper
+                        .getPresenceCondition(this.composedRelativePath, i);
+                if (!presenceConditionExpectation.isOptional()) {
+                    if (presenceConditionExpectation.getPresenceCondition().isEmpty()) {
+                        assertTrue(determinedPresenceCondition.isEmpty(),
+                                "Presence condition of line %d of %s should be absent"
+                                        .formatted(i, this.composedRelativePath)
+                        );
+                    }
+                    if (presenceConditionExpectation.getPresenceCondition().isPresent()) {
+                        assertTrue(determinedPresenceCondition.isPresent(),
+                                "Presence condition of line %d of %s should be present"
+                                        .formatted(i, this.composedRelativePath)
+                        );
+                    }
+                }
+                if (presenceConditionExpectation.getPresenceCondition().isEmpty()
+                        || determinedPresenceCondition.isEmpty())
+                    continue;
+                Node expectedPresenceCondition = presenceConditionExpectation.getPresenceCondition().get();
+
+                assertTrue(new Or(
+                                new And(expectedPresenceCondition, determinedPresenceCondition.get()),
+                                new And(new Not(expectedPresenceCondition), new Not(determinedPresenceCondition.get()))
+                        ).getContradictingAssignments().isEmpty(),
+                        "Presence condition of line %d of %s should be %s but was %s"
+                                .formatted(i, this.composedRelativePath, expectedPresenceCondition,
+                                        determinedPresenceCondition.get())
+                );
+            }
         }
     }
 }

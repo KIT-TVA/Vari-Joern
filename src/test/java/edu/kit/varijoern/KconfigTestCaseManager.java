@@ -17,20 +17,25 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
  * A helper class for preparing test cases for the Kconfig/Kbuild implementation.
  * If a test case is named {@code foo}, the sources are expected to be located in
- * {@code src/test/resources/kconfigtestcases/foo/sources} and the correct feature model in
- * {@code src/test/resources/kconfigtestcases/foo/model.xml}.
+ * {@code src/test/resources/kconfigtestcases/foo/sources}, the correct feature model in
+ * {@code src/test/resources/kconfigtestcases/foo/model.xml}, and the presence conditions in
+ * {@code src/test/resources/kconfigtestcases/foo/presence-conditions.txt}.
  */
 public class KconfigTestCaseManager {
     private final Path pathToExtractedTestCase;
     private final Git git;
     private final RevCommit initialCommit;
     private final IFeatureModel correctFeatureModel;
+    private final Map<Path, List<PresenceConditionExpectation>> presenceConditionExpectations;
 
     public KconfigTestCaseManager(@NotNull String testCaseName) throws IOException, GitAPIException {
         this(testCaseName, (path) -> {
@@ -45,10 +50,10 @@ public class KconfigTestCaseManager {
                 "kconfigtestcases/%s/model.xml".formatted(testCaseName)
         );
         if (resourceLocation == null) {
-            throw new IllegalArgumentException("Test case sources not found: " + testCaseName);
+            throw new InvalidTestCaseException("Test case sources not found: " + testCaseName);
         }
         if (correctFeatureModelLocation == null) {
-            throw new IllegalArgumentException("Test case feature model not found: " + testCaseName);
+            throw new InvalidTestCaseException("Test case feature model not found: " + testCaseName);
         }
 
         this.pathToExtractedTestCase = Files.createTempDirectory("vari-joern-test-case");
@@ -59,6 +64,8 @@ public class KconfigTestCaseManager {
                 .read(this.pathToExtractedTestCase);
         // In case the FM reader wrote something to the directory
         FileUtils.cleanDirectory(this.pathToExtractedTestCase.toFile());
+
+        this.presenceConditionExpectations = readPresenceConditionExpectations(testCaseName);
 
         try (Stream<Path> originalPaths = Files.walk(Path.of(resourceLocation.getPath()))) {
             originalPaths.forEach(sourcePath -> {
@@ -85,6 +92,23 @@ public class KconfigTestCaseManager {
         this.initialCommit = this.git.commit().setMessage("Initial commit").call();
     }
 
+    private Map<Path, List<PresenceConditionExpectation>> readPresenceConditionExpectations(@NotNull String testCaseName)
+            throws IOException {
+        URL presenceConditionExpectationsLocation = this.getClass().getClassLoader().getResource(
+                "kconfigtestcases/%s/presence-conditions.txt".formatted(testCaseName)
+        );
+        if (presenceConditionExpectationsLocation == null)
+            throw new InvalidTestCaseException("Test case presence conditions not found: " + testCaseName);
+        Map<Path, List<PresenceConditionExpectation>> result;
+        try {
+            result = PresenceConditionExpectationParser.parse(
+                    Files.readString(Path.of(presenceConditionExpectationsLocation.getPath())));
+        } catch (ParseException e) {
+            throw new InvalidTestCaseException("Presence conditions could not be parsed.", e);
+        }
+        return result;
+    }
+
     public Path getPath() {
         return this.pathToExtractedTestCase;
     }
@@ -101,5 +125,9 @@ public class KconfigTestCaseManager {
                 .setOldTree(initialCommitIterator)
                 .setNewTree(new FileTreeIterator(this.git.getRepository()))
                 .call();
+    }
+
+    public Optional<List<PresenceConditionExpectation>> getPresenceConditionExpectations(Path relativePath) {
+        return Optional.ofNullable(presenceConditionExpectations.get(relativePath));
     }
 }
