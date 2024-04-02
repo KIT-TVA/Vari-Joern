@@ -143,7 +143,7 @@ class KbuildComposerTest {
                                 new FileContentVerifier(new InclusionInformation(
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
-                                        standardLinuxDefinesForFile("io_file"),
+                                        standardLinuxDefinesForFile("io-file"),
                                         List.of()
                                 )),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
@@ -199,12 +199,13 @@ class KbuildComposerTest {
      */
     @NotNull
     private static Map<String, String> standardLinuxDefinesForFile(String baseName) {
+        String modName = baseName.replace('-', '_');
         return Map.of(
                 "__KERNEL__", "",
                 "KBUILD_MODFILE", "\"src/%s\"".formatted(baseName),
-                "KBUILD_BASENAME", "\"%s\"".formatted(baseName),
-                "KBUILD_MODNAME", "\"%s\"".formatted(baseName),
-                "__KBUILD_MODNAME", "kmod_%s".formatted(baseName)
+                "KBUILD_BASENAME", "\"%s\"".formatted(modName),
+                "KBUILD_MODNAME", "\"%s\"".formatted(modName),
+                "__KBUILD_MODNAME", "kmod_%s".formatted(modName)
         );
     }
 
