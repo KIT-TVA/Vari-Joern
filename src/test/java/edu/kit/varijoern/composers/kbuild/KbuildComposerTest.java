@@ -379,8 +379,6 @@ class KbuildComposerTest {
             Path compositionPath = compositionDirectory.resolve(this.composedRelativePath);
             Path originalPath = originalDirectory.resolve(this.originalRelativePath);
 
-            System.err.println(compositionPath);
-
             assertTrue(Files.exists(compositionPath),
                     "File " + this.composedRelativePath + " should exist");
             verifySourceMap(compositionInformation);
@@ -424,8 +422,8 @@ class KbuildComposerTest {
                     continue;
                 }
                 int originalLineIndex = i - 1 - this.expectedPrependedLines.size();
-                PresenceConditionExpectation presenceConditionExpectation = expectedPresenceConditions.get(originalLineIndex);
-                System.out.println(presenceConditionExpectation.getPresenceCondition().toString() + " " + presenceConditionExpectation.isOptional() + " " + originalLineIndex);
+                PresenceConditionExpectation presenceConditionExpectation =
+                        expectedPresenceConditions.get(originalLineIndex);
                 Optional<Node> determinedPresenceCondition = featureMapper
                         .getPresenceCondition(this.composedRelativePath, i);
                 if (!presenceConditionExpectation.isOptional()) {
