@@ -38,7 +38,7 @@ class KbuildComposerTest {
     );
 
     private static Stream<Arguments> testCases() {
-        return busyboxTestCases();
+        return Stream.concat(busyboxTestCases(), linuxTestCases());
     }
 
     private static Stream<Arguments> busyboxTestCases() {
@@ -105,6 +105,60 @@ class KbuildComposerTest {
         );
     }
 
+    private static Stream<Arguments> linuxTestCases() {
+        Set<String> standardIncludedFiles = Set.of("include/linux/compiler-version.h", "include/linux/kconfig.h",
+                "include/linux/compiler_types.h");
+        List<String> standardIncludePaths = List.of("arch/x86/include", "arch/x86/include/generated",
+                "include", "include/generated", "arch/x86/include/uapi", "arch/x86/include/generated/uapi",
+                "include/uapi", "include/generated/uapi");
+        InclusionInformation mainC = new InclusionInformation(
+                Path.of("src/main.c"),
+                standardIncludedFiles,
+                standardLinuxDefinesForFile("main"),
+                standardIncludePaths
+        );
+        Stream<TestCase> testCases = Stream.of(
+                new TestCase(
+                        "linux-sample",
+                        "linux",
+                        List.of(),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.o"),
+                                FileAbsentVerifier.originalSourceAndHeader("io-file"),
+                                new FileContentVerifier(mainC),
+                                new FileContentVerifier(Path.of("src/main.h"))
+                        )
+                ),
+                new TestCase(
+                        "linux-sample",
+                        "linux",
+                        List.of(
+                                "INCLUDE_IO_FILE",
+                                "PERFORM_RENAME",
+                                "PERFORM_CHMOD",
+                                "USE_GETS"
+                        ),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.o"),
+                                new FileContentVerifier(Path.of("src/hello-cpp.h")),
+                                new FileContentVerifier(new InclusionInformation(
+                                        Path.of("src/io-file.c"),
+                                        standardIncludedFiles,
+                                        standardLinuxDefinesForFile("io_file"),
+                                        List.of()
+                                )),
+                                new FileContentVerifier(Path.of("src/io-file.h")),
+                                new FileContentVerifier(mainC),
+                                new FileContentVerifier(Path.of("src/main.h"))
+                        )
+                )
+        );
+        return testCases.flatMap(
+                testCase -> STANDARD_PREPARERS.stream()
+                        .map(preparer -> Arguments.of(testCase, preparer))
+        );
+    }
+
     private static void buildAllYesConfig(Path sourcePath) throws IOException {
         runMake(sourcePath, "allyesconfig");
         runMake(sourcePath);
@@ -135,6 +189,23 @@ class KbuildComposerTest {
                 "BB_VER", "\"1.37.0.git\"",
                 "KBUILD_BASENAME", "\"%s\"".formatted(baseName),
                 "KBUILD_MODNAME", "\"%s\"".formatted(baseName)
+        );
+    }
+
+    /**
+     * Returns the command-line defines for a file in the `src` directory as used by the Linux variant of Kbuild.
+     *
+     * @param baseName the name of the file, without the extension and the directory
+     * @return the command-line defines
+     */
+    @NotNull
+    private static Map<String, String> standardLinuxDefinesForFile(String baseName) {
+        return Map.of(
+                "__KERNEL__", "1",
+                "KBUILD_MODFILE", "\"src/%s\"".formatted(baseName),
+                "KBUILD_BASENAME", "\"%s\"".formatted(baseName),
+                "KBUILD_MODNAME", "\"%s\"".formatted(baseName),
+                "__KBUILD_MODNAME", "\"kmod_%s\"".formatted(baseName)
         );
     }
 
