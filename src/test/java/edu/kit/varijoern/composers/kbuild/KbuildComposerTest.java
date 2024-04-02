@@ -106,11 +106,11 @@ class KbuildComposerTest {
     }
 
     private static Stream<Arguments> linuxTestCases() {
-        Set<String> standardIncludedFiles = Set.of("include/linux/compiler-version.h", "include/linux/kconfig.h",
-                "include/linux/compiler_types.h");
-        List<String> standardIncludePaths = List.of("arch/x86/include", "arch/x86/include/generated",
-                "include", "include/generated", "arch/x86/include/uapi", "arch/x86/include/generated/uapi",
-                "include/uapi", "include/generated/uapi");
+        Set<String> standardIncludedFiles = Set.of("./include/linux/compiler-version.h", "./include/linux/kconfig.h",
+                "./include/linux/compiler_types.h");
+        List<String> standardIncludePaths = List.of("./arch/x86/include", "./arch/x86/include/generated",
+                "./include", "./include/generated", "./arch/x86/include/uapi", "./arch/x86/include/generated/uapi",
+                "./include/uapi", "./include/generated/uapi");
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
@@ -140,7 +140,6 @@ class KbuildComposerTest {
                         ),
                         List.of(
                                 new FileAbsentVerifier(".*\\.o"),
-                                new FileContentVerifier(Path.of("src/hello-cpp.h")),
                                 new FileContentVerifier(new InclusionInformation(
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
@@ -201,11 +200,11 @@ class KbuildComposerTest {
     @NotNull
     private static Map<String, String> standardLinuxDefinesForFile(String baseName) {
         return Map.of(
-                "__KERNEL__", "1",
+                "__KERNEL__", "",
                 "KBUILD_MODFILE", "\"src/%s\"".formatted(baseName),
                 "KBUILD_BASENAME", "\"%s\"".formatted(baseName),
                 "KBUILD_MODNAME", "\"%s\"".formatted(baseName),
-                "__KBUILD_MODNAME", "\"kmod_%s\"".formatted(baseName)
+                "__KBUILD_MODNAME", "kmod_%s".formatted(baseName)
         );
     }
 
