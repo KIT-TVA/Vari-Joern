@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<featureModel>
+	<struct>
+		<and mandatory="true" name="Root">
+			<feature name="INCLUDE_IO_FILE"/>
+			<feature name="PERFORM_RENAME"/>
+			<feature name="PERFORM_CHMOD"/>
+			<feature name="USE_GETS"/>
+		</and>
+	</struct>
+	<constraints>
+		<rule>
+			<disj>
+				<conj>
+					<var>INCLUDE_IO_FILE</var>
+					<disj>
+						<var>INCLUDE_IO_FILE</var>
+						<not>
+							<var>PERFORM_RENAME</var>
+						</not>
+					</disj>
+				</conj>
+				<conj>
+					<not>
+						<var>INCLUDE_IO_FILE</var>
+					</not>
+					<not>
+						<var>PERFORM_RENAME</var>
+					</not>
+				</conj>
+			</disj>
+		</rule>
+		<rule>
+			<disj>
+				<conj>
+					<var>INCLUDE_IO_FILE</var>
+					<disj>
+						<var>INCLUDE_IO_FILE</var>
+						<not>
+							<var>PERFORM_CHMOD</var>
+						</not>
+					</disj>
+				</conj>
+				<conj>
+					<not>
+						<var>INCLUDE_IO_FILE</var>
+					</not>
+					<not>
+						<var>PERFORM_CHMOD</var>
+					</not>
+				</conj>
+			</disj>
+		</rule>
+	</constraints>
+</featureModel>
