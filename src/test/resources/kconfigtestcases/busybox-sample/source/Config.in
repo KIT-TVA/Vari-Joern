@@ -1,0 +1,8 @@
+#
+# For a description of the syntax of this configuration file,
+# see docs/Kconfig-language.txt.
+#
+
+mainmenu "Configuration"
+
+source src/Config.in

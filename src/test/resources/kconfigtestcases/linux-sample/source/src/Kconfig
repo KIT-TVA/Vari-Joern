@@ -1,0 +1,17 @@
+config USE_GETS
+    bool "Have fun with gets"
+    default false
+
+config INCLUDE_IO_FILE
+   bool "Include a file that contains a method performing I/O operations"
+   default true
+
+config PERFORM_CHMOD
+   bool "Run chmod on a path"
+   default false
+   depends on INCLUDE_IO_FILE
+
+config PERFORM_RENAME
+   bool "Rename a path"
+   default false
+   depends on INCLUDE_IO_FILE

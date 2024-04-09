@@ -1,0 +1,5 @@
+This is a test case for Linux's variant of the Kconfig/Kbuild system. It
+was created from the Linux kernel source code (v6.7) by stripping out
+most files that are not needed for this test case. Also, the src directory
+containing sample C code was added and the Kconfig files were modified
+accordingly.

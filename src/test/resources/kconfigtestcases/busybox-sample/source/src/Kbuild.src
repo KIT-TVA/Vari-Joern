@@ -1,0 +1,3 @@
+obj-y += main.o
+
+obj-$(CONFIG_USE_CPP_FILE)	+= hello-cpp.o

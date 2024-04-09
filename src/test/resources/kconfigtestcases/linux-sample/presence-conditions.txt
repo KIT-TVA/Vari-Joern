@@ -1,0 +1,16 @@
+file: src/main.c, 1|-1 # FeatureIDE's formula parser doesn't support a "true" value. This is a workaround.
+1-3?    1|-1
+4-5?    USE_CPP_FILE
+6-9?    1|-1
+10-12?  USE_GETS
+13-14?  -USE_GETS
+15-16?  1|-1
+17-18?  USE_CPP_FILE
+19-21?  1|-1
+
+file: src/io-file.c, INCLUDE_IO_FILE
+1-19?   1|-1
+20-21?  PERFORM_CHMOD
+22?     1|-1
+23-24?  PERFORM_RENAME
+25-28?  1|-1

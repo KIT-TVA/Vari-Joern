@@ -1,5 +1,7 @@
 package edu.kit.varijoern.composers.kbuild;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,21 @@ public record InclusionInformation(Path filePath, Set<String> includedFiles, Map
         this.includedFiles = includedFiles;
         this.defines = defines;
         this.includePaths = includePaths;
+    }
+
+    /**
+     * Returns the relative path to the file that the {@link KbuildComposer} would use for the composed file.
+     *
+     * @return the relative path
+     */
+    @NotNull
+    public Path getComposedFilePath() {
+        String fileName = this.filePath.getFileName().toString();
+        int dotIndex = fileName.lastIndexOf('.');
+        String baseName = dotIndex == -1 ? fileName : fileName.substring(0, dotIndex);
+        String extension = dotIndex == -1 ? "" : fileName.substring(dotIndex);
+        return this.filePath.getParent()
+                .resolve(baseName + "-" + this.hashCode() + extension);
     }
 
     @Override
