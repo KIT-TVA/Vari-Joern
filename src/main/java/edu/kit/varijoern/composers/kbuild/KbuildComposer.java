@@ -2,6 +2,7 @@ package edu.kit.varijoern.composers.kbuild;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
+import edu.kit.varijoern.composers.CCPPLanguageInformation;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
@@ -138,7 +139,14 @@ public class KbuildComposer implements Composer {
                 destination,
                 features,
                 this.featureMapperCreator.createFeatureMapper(generationInformation, lineFeatureMappers),
-                new KbuildComposerSourceMap(generationInformation)
+                new KbuildComposerSourceMap(generationInformation),
+                List.of(new CCPPLanguageInformation(
+                        includedFiles.stream()
+                                .filter(dependency -> dependency instanceof CompiledDependency)
+                                .map(dependency -> ((CompiledDependency) dependency).getInclusionInformation())
+                                .collect(Collectors.toMap(InclusionInformation::getComposedFilePath,
+                                        InclusionInformation::includePaths))
+                ))
         );
     }
 

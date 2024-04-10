@@ -4,10 +4,7 @@ import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.KconfigTestCaseManager;
 import edu.kit.varijoern.KconfigTestCasePreparer;
 import edu.kit.varijoern.PresenceConditionExpectation;
-import edu.kit.varijoern.composers.Composer;
-import edu.kit.varijoern.composers.ComposerException;
-import edu.kit.varijoern.composers.CompositionInformation;
-import edu.kit.varijoern.composers.FeatureMapper;
+import edu.kit.varijoern.composers.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
@@ -26,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,11 +41,12 @@ class KbuildComposerTest {
 
     private static Stream<Arguments> busyboxTestCases() {
         Set<String> standardIncludedFiles = Set.of("include/autoconf.h", "include/cmdline-included-header.h");
+        Set<String> standardIncludePaths = Set.of("include");
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("main"),
-                List.of()
+                List.of("include")
         );
         Stream<TestCase> testCases = Stream.of(
                 new TestCase(
@@ -83,14 +82,14 @@ class KbuildComposerTest {
                                         Path.of("src/hello-cpp.cc"),
                                         standardIncludedFiles,
                                         standardBusyboxDefinesForFile("hello_cpp"),
-                                        List.of()
+                                        List.of("include")
                                 )),
                                 new FileContentVerifier(Path.of("src/hello-cpp.h")),
                                 new FileContentVerifier(new InclusionInformation(
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
                                         standardBusyboxDefinesForFile("io_file"),
-                                        List.of()
+                                        List.of("include")
                                 )),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
@@ -109,7 +108,7 @@ class KbuildComposerTest {
         Set<String> standardIncludedFiles = Set.of("./include/linux/compiler-version.h", "./include/linux/kconfig.h",
                 "./include/linux/compiler_types.h");
         List<String> standardIncludePaths = List.of("./arch/x86/include", "./arch/x86/include/generated",
-                "./include", "./include/generated", "./arch/x86/include/uapi", "./arch/x86/include/generated/uapi",
+                "./include", "./arch/x86/include/uapi", "./arch/x86/include/generated/uapi",
                 "./include/uapi", "./include/generated/uapi");
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
@@ -144,7 +143,7 @@ class KbuildComposerTest {
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
                                         standardLinuxDefinesForFile("io-file"),
-                                        List.of()
+                                        standardIncludePaths
                                 )),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
@@ -319,6 +318,7 @@ class KbuildComposerTest {
         private final Path originalRelativePath;
         private final Path composedRelativePath;
         private final List<String> expectedPrependedLines;
+        private final List<String> expectedIncludePaths;
 
         /**
          * Creates a new verifier for a file in the composition. This constructor assumes that the file is not renamed
@@ -327,7 +327,7 @@ class KbuildComposerTest {
          * @param relativePath the relative path to the file
          */
         public FileContentVerifier(Path relativePath) {
-            this(relativePath, relativePath, List.of());
+            this(relativePath, relativePath, List.of(), null);
         }
 
         /**
@@ -338,9 +338,11 @@ class KbuildComposerTest {
          * @param originalRelativePath   the relative path to the original file
          * @param composedRelativePath   the relative path to the file in the composition
          * @param expectedPrependedLines the expected preprocessor directives
+         * @param expectedIncludePaths   the expected include paths for this file
          */
         public FileContentVerifier(Path originalRelativePath, Path composedRelativePath,
-                                   List<String> expectedPrependedLines) {
+                                   List<String> expectedPrependedLines, List<String> expectedIncludePaths) {
+            this.expectedIncludePaths = expectedIncludePaths;
             if (originalRelativePath.isAbsolute())
                 throw new IllegalArgumentException("originalRelativePath must be relative");
             if (composedRelativePath.isAbsolute())
@@ -371,6 +373,7 @@ class KbuildComposerTest {
                                     .map("#include \"%s\""::formatted)
                     )
                     .toList();
+            this.expectedIncludePaths = inclusionInformation.includePaths();
         }
 
         @Override
@@ -392,6 +395,7 @@ class KbuildComposerTest {
                     compositionLines.subList(this.expectedPrependedLines.size(), compositionLines.size())
             );
             verifyPresenceConditions(compositionInformation, testCaseManager);
+            verifyIncludePaths(compositionInformation);
         }
 
         private void verifySourceMap(CompositionInformation compositionInformation) {
@@ -454,6 +458,18 @@ class KbuildComposerTest {
                                         determinedPresenceCondition.get())
                 );
             }
+        }
+
+        private void verifyIncludePaths(CompositionInformation compositionInformation) {
+            if (this.expectedIncludePaths == null)
+                return;
+            List<LanguageInformation> languageInformation = compositionInformation.getLanguageInformation();
+            assertTrue(languageInformation.size() == 1 && languageInformation.get(0) instanceof CCPPLanguageInformation,
+                    "Composition should contain exactly one C/C++ language information");
+            CCPPLanguageInformation ccppLanguageInformation = (CCPPLanguageInformation) languageInformation.get(0);
+            assertEquals(this.expectedIncludePaths,
+                    ccppLanguageInformation.getIncludePaths().get(this.composedRelativePath)
+            );
         }
     }
 }

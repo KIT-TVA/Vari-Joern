@@ -7,6 +7,7 @@ import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import edu.kit.varijoern.composers.GenericLanguageInformation;
 import edu.kit.varijoern.composers.sourcemap.IdentitySourceMap;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,11 +41,11 @@ public class AntennaComposer implements Composer {
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
-        throws IllegalFeatureNameException, IOException, ComposerException {
+            throws IllegalFeatureNameException, IOException, ComposerException {
         List<String> enabledFeatures = features.entrySet().stream()
-            .filter(Map.Entry::getValue)
-            .map(Map.Entry::getKey)
-            .toList();
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .toList();
         Preprocessor preprocessor = new Preprocessor(null, null);
         try {
             preprocessor.addDefines(String.join(",", enabledFeatures));
@@ -65,8 +66,8 @@ public class AntennaComposer implements Composer {
 
                 try {
                     preprocessor.preprocess(
-                        lineVector,
-                        StandardCharsets.UTF_8.name()
+                            lineVector,
+                            StandardCharsets.UTF_8.name()
                     );
                 } catch (PPException e) {
                     throw new ComposerException(String.format("Could not preprocess %s", relativePath), e);
@@ -74,12 +75,18 @@ public class AntennaComposer implements Composer {
 
                 Files.createDirectories(destinationPath.getParent());
                 Files.writeString(destinationPath,
-                    lineVector.stream().collect(Collectors.joining(System.lineSeparator()))
+                        lineVector.stream().collect(Collectors.joining(System.lineSeparator()))
                 );
 
                 featureMapper.tryAddFile(relativePath, lineVector.stream().toList());
             }
         }
-        return new CompositionInformation(destination, features, featureMapper, new IdentitySourceMap());
+        return new CompositionInformation(
+                destination,
+                features,
+                featureMapper,
+                new IdentitySourceMap(),
+                List.of(new GenericLanguageInformation())
+        );
     }
 }
