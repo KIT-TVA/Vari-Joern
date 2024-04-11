@@ -129,9 +129,10 @@ Analyzers are used to scan a composed software variant.
 
 Only Joern is supported at the moment. Joern takes the following option:
 
-- `command`
-    - Specifies the name or the location of the `joern` executable.
-    - Optional: yes, default: `"joern"`
+- `joern-path`
+    - Specifies the path to the Joern executables. If this is empty, the system path is used. If a relative path is
+      specified, it is relative to the location of the configuration file.
+    - Optional: yes, default: `""`
 
 ### Example configuration
 

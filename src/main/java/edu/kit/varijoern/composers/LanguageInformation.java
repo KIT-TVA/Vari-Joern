@@ -15,6 +15,7 @@ public abstract class LanguageInformation {
      * Accepts a {@link LanguageInformationVisitor}.
      *
      * @param visitor the visitor to accept
+     * @param <T>     the type of exception that can be thrown by the visitor
      */
-    public abstract void accept(LanguageInformationVisitor visitor);
+    public abstract <T extends Throwable> void accept(LanguageInformationVisitor<T> visitor) throws T;
 }

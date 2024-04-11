@@ -4,8 +4,8 @@ case class FindingOutput(name: String, title: String, description: String, score
 
 case class EvidenceOutput(filename: String, lineNumber: Option[Integer])
 
-@main def exec(codePath: String, outFile: String) = {
-  importCode(codePath)
+@main def exec(cpgPath: String, outFile: String) = {
+  importCpg(cpgPath)
   run.scan
   val output = cpg.finding.map(finding => {
     val name = finding.keyValuePairs.find(_.key == "name").head.value

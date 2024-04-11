@@ -10,7 +10,7 @@ public class GenericLanguageInformation extends LanguageInformation {
     }
 
     @Override
-    public void accept(LanguageInformationVisitor visitor) {
+    public <T extends Throwable> void accept(LanguageInformationVisitor<T> visitor) throws T {
         visitor.visit(this);
     }
 
