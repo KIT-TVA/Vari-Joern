@@ -5,9 +5,12 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.kit.varijoern.analyzers.*;
 import edu.kit.varijoern.composers.CompositionInformation;
+import edu.kit.varijoern.composers.LanguageInformation;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
 import org.javatuples.Pair;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,7 +24,9 @@ import java.util.stream.Collectors;
  */
 public class JoernAnalyzer implements Analyzer {
     public static final String NAME = "joern";
-    private final String command;
+    private static final String JOERN_COMMAND = "joern";
+    @Nullable
+    private final Path joernPath;
     private final Path workspacePath;
     private final Path scanScriptPath;
     private final List<JoernAnalysisResult> allAnalysisResults = new ArrayList<>();
@@ -29,11 +34,12 @@ public class JoernAnalyzer implements Analyzer {
     /**
      * Creates a new {@link JoernAnalyzer} instance which uses the specified command name to run joern-scan.
      *
-     * @param command       the path to or name of the joern-scan command
+     * @param joernPath     the path to the directory containing the joern executables. May be null to use the system
+     *                      PATH.
      * @param workspacePath the directory to use for Joern's workspace folder
      */
-    public JoernAnalyzer(String command, Path workspacePath) throws IOException {
-        this.command = command;
+    public JoernAnalyzer(@Nullable Path joernPath, @NotNull Path workspacePath) throws IOException {
+        this.joernPath = joernPath;
         this.workspacePath = workspacePath;
 
         String scannerScript = ResourcesUtil.getResourceAsString("joern/scan.sc");
@@ -51,8 +57,11 @@ public class JoernAnalyzer implements Analyzer {
                         UUID.randomUUID()
                 )
         );
-        runJoern(sourceLocation, outFile);
-        List<JoernFinding> findings = this.parseFindings(outFile);
+        List<JoernFinding> findings = new ArrayList<>();
+        for (LanguageInformation languageInformation : compositionInformation.getLanguageInformation()) {
+            this.analyzeWithLanguageInformation(languageInformation, sourceLocation, outFile);
+            findings.addAll(this.parseFindings(outFile));
+        }
         JoernAnalysisResult result = new JoernAnalysisResult(findings,
                 compositionInformation.getEnabledFeatures(),
                 compositionInformation.getFeatureMapper(),
@@ -92,20 +101,29 @@ public class JoernAnalyzer implements Analyzer {
                 .collect(Collectors.toSet()));
     }
 
+    private void analyzeWithLanguageInformation(LanguageInformation languageInformation, Path sourceLocation,
+                                                Path outFile) throws AnalyzerFailureException, IOException {
+        Path cpgLocation = this.workspacePath.resolve("cpg.bin");
+        languageInformation.accept(
+                new CPGGenerationVisitor(sourceLocation, cpgLocation, this.joernPath)
+        );
+        runJoern(cpgLocation, outFile);
+    }
+
     /**
      * Runs Joern on the specified source code. The results are saved in the JSON format in the specified file.
      *
-     * @param sourceLocation the location of the source code
-     * @param outFile        the path of the file to save the findings in
+     * @param cpgLocation the location of the code property graph
+     * @param outFile     the path of the file to save the findings in
      * @throws IOException              if an I/O error occurred
      * @throws AnalyzerFailureException if Joern exited with a non-zero exit code
      */
-    private void runJoern(Path sourceLocation, Path outFile) throws IOException, AnalyzerFailureException {
+    private void runJoern(Path cpgLocation, Path outFile) throws IOException, AnalyzerFailureException {
         Process joernProcess = Runtime.getRuntime().exec(
                 new String[]{
-                        this.command,
+                        this.joernPath == null ? JOERN_COMMAND : this.joernPath.resolve(JOERN_COMMAND).toString(),
                         "--script", this.scanScriptPath.toString(),
-                        "--param", String.format("codePath=%s", sourceLocation),
+                        "--param", String.format("cpgPath=%s", cpgLocation),
                         "--param", String.format("outFile=%s", outFile)
                 },
                 null,

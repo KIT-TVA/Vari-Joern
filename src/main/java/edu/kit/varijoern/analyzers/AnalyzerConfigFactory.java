@@ -31,7 +31,7 @@ public class AnalyzerConfigFactory extends NamedComponentConfigFactory<AnalyzerC
     protected AnalyzerConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
         throws InvalidConfigException {
         return switch (componentName) {
-            case JoernAnalyzer.NAME -> new JoernAnalyzerConfig(toml);
+            case JoernAnalyzer.NAME -> new JoernAnalyzerConfig(toml, configPath);
             default -> throw new InvalidConfigException(String.format("Unknown analyzer \"%s\"", componentName));
         };
     }

@@ -3,6 +3,7 @@ package edu.kit.varijoern.analyzers.joern;
 import edu.kit.varijoern.analyzers.Analyzer;
 import edu.kit.varijoern.analyzers.AnalyzerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
+import org.jetbrains.annotations.Nullable;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
 
@@ -13,9 +14,9 @@ import java.nio.file.Path;
  * Contains the configuration of the Joern analyzer.
  */
 public class JoernAnalyzerConfig extends AnalyzerConfig {
-    private static final String COMMAND_NAME_FIELD_NAME = "command";
-    private static final String JOERN_DEFAULT_COMMAND = "joern";
-    private final String commandName;
+    private static final String JOERN_PATH_FIELD_NAME = "joern-path";
+    @Nullable
+    private final Path joernPath;
 
     /**
      * Creates a new {@link JoernAnalyzerConfig} by extracting data from the specified TOML section.
@@ -23,10 +24,15 @@ public class JoernAnalyzerConfig extends AnalyzerConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public JoernAnalyzerConfig(TomlTable toml) throws InvalidConfigException {
+    public JoernAnalyzerConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
         super(toml);
         try {
-            this.commandName = toml.getString(COMMAND_NAME_FIELD_NAME, () -> JOERN_DEFAULT_COMMAND);
+            String rawJoernPath = toml.getString(JOERN_PATH_FIELD_NAME, () -> "");
+            Path joernPath = rawJoernPath.isEmpty() ? null : Path.of(rawJoernPath);
+            if (joernPath != null && !joernPath.isAbsolute()) {
+                joernPath = configPath.getParent().resolve(joernPath);
+            }
+            this.joernPath = joernPath;
         } catch (TomlInvalidTypeException e) {
             throw new InvalidConfigException("Joern command is not a string");
         }
@@ -34,16 +40,16 @@ public class JoernAnalyzerConfig extends AnalyzerConfig {
 
     @Override
     public Analyzer newAnalyzer(Path workspacePath) throws IOException {
-        return new JoernAnalyzer(this.commandName, workspacePath);
+        return new JoernAnalyzer(this.joernPath, workspacePath);
     }
 
     /**
-     * Returns the command name or path to be used for invoking Joern. The value has either been specified in the
-     * configuration file or is a default value.
+     * Returns the path to the Joern executables. May be {@code null} to use the system PATH.
      *
-     * @return the command to be used for invoking Joern
+     * @return the path to the Joern executables
      */
-    public String getCommandName() {
-        return commandName;
+    @Nullable
+    Path getJoernPath() {
+        return joernPath;
     }
 }
