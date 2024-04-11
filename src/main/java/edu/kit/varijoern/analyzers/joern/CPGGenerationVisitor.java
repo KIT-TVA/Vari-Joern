@@ -3,6 +3,7 @@ package edu.kit.varijoern.analyzers.joern;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.composers.CCPPLanguageInformation;
 import edu.kit.varijoern.composers.GenericLanguageInformation;
+import edu.kit.varijoern.composers.LanguageInformation;
 import edu.kit.varijoern.composers.LanguageInformationVisitor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +41,11 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
             throw new IllegalArgumentException("Input directory must be absolute");
         if (!outputFile.isAbsolute())
             throw new IllegalArgumentException("Output file must be absolute");
+    }
+
+    @Override
+    protected void visitUnimplemented(LanguageInformation languageInformation) {
+        System.err.printf("Language %s is not supported by the analyzer.%n", languageInformation.getName());
     }
 
     @Override

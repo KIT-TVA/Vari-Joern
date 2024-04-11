@@ -1,7 +1,7 @@
 package edu.kit.varijoern.composers;
 
 /**
- * Visits {@link LanguageInformation} instances. Unimplemented subclasses will print a warning.
+ * Visits {@link LanguageInformation} instances.
  *
  * @param <T> the type of exception that can be thrown by the visitor
  */
@@ -11,12 +11,7 @@ public abstract class LanguageInformationVisitor<T extends Throwable> {
      *
      * @param languageInformation the instance to visit whose subclass has no specific implementation
      */
-    protected void visitUnimplemented(LanguageInformation languageInformation) throws T {
-        System.err.printf(
-                "Language %s is not supported%n",
-                languageInformation.getName()
-        );
-    }
+    protected abstract void visitUnimplemented(LanguageInformation languageInformation) throws T;
 
     /**
      * Visits a {@link CCPPLanguageInformation} instance.
