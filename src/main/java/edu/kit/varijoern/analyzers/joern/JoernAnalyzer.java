@@ -8,13 +8,16 @@ import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.LanguageInformation;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.io.IoBuilder;
 import org.javatuples.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +31,7 @@ public class JoernAnalyzer implements Analyzer {
     public static final String NAME = "joern";
     private static final String JOERN_COMMAND = "joern";
     private static final Logger logger = LogManager.getLogger();
+    private static final OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
     @Nullable
     private final Path joernPath;
@@ -128,18 +132,16 @@ public class JoernAnalyzer implements Analyzer {
      * @throws AnalyzerFailureException if Joern exited with a non-zero exit code
      */
     private void runJoern(Path cpgLocation, Path outFile) throws IOException, AnalyzerFailureException {
-        Process joernProcess = Runtime.getRuntime().exec(
-                new String[]{
-                        this.joernPath == null ? JOERN_COMMAND : this.joernPath.resolve(JOERN_COMMAND).toString(),
-                        "--script", this.scanScriptPath.toString(),
-                        "--param", String.format("cpgPath=%s", cpgLocation),
-                        "--param", String.format("outFile=%s", outFile)
-                },
-                null,
-                this.workspacePath.toFile()
-        );
-        StreamGobbler stdoutGobbler = new StreamGobbler(joernProcess.getInputStream(), System.out);
-        StreamGobbler stderrGobbler = new StreamGobbler(joernProcess.getErrorStream(), System.err);
+        Process joernProcess = new ProcessBuilder(
+                this.joernPath == null ? JOERN_COMMAND : this.joernPath.resolve(JOERN_COMMAND).toString(),
+                "--script", this.scanScriptPath.toString(),
+                "--param", String.format("cpgPath=%s", cpgLocation),
+                "--param", String.format("outFile=%s", outFile)
+        )
+                .directory(this.workspacePath.toFile())
+                .start();
+        StreamGobbler stdoutGobbler = new StreamGobbler(joernProcess.getInputStream(), streamLogger);
+        StreamGobbler stderrGobbler = new StreamGobbler(joernProcess.getErrorStream(), streamLogger);
         stdoutGobbler.start();
         stderrGobbler.start();
         int joernExitCode;

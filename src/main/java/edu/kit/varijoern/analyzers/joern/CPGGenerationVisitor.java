@@ -5,12 +5,16 @@ import edu.kit.varijoern.composers.CCPPLanguageInformation;
 import edu.kit.varijoern.composers.GenericLanguageInformation;
 import edu.kit.varijoern.composers.LanguageInformation;
 import edu.kit.varijoern.composers.LanguageInformationVisitor;
+import jodd.io.StreamGobbler;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +28,7 @@ import java.util.stream.Stream;
  */
 public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFailureException> {
     private final static Logger logger = LogManager.getLogger();
+    private final static OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
     private final Path inputDirectory;
     private final Path outputFile;
     @Nullable
@@ -84,10 +89,14 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
         ).toList();
         Process parserProcess;
         try {
-            parserProcess = new ProcessBuilder(command).inheritIO().start();
+            parserProcess = new ProcessBuilder(command).start();
         } catch (IOException e) {
             throw new AnalyzerFailureException("Failed to parse source code", e);
         }
+        StreamGobbler stdoutGobbler = new StreamGobbler(parserProcess.getInputStream(), streamLogger);
+        StreamGobbler stderrGobbler = new StreamGobbler(parserProcess.getErrorStream(), streamLogger);
+        stdoutGobbler.start();
+        stderrGobbler.start();
         int exitCode;
         try {
             exitCode = parserProcess.waitFor();

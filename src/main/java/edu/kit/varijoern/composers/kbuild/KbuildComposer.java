@@ -6,10 +6,13 @@ import edu.kit.varijoern.composers.CCPPLanguageInformation;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import jodd.io.StreamGobbler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -87,6 +90,7 @@ public class KbuildComposer implements Composer {
     private static final Pattern HEADER_FILE_PATTERN = Pattern.compile(".*\\.(?:h|H|hpp|hxx|h++)");
     private static final Set<String> supportedSystems = Set.of("linux", "busybox");
     private static final Logger logger = LogManager.getLogger();
+    private static final OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
     private final String system;
     private final Path tmpPath;
@@ -521,14 +525,18 @@ public class KbuildComposer implements Composer {
      * @throws IOException       if an I/O error occurs
      */
     private void runMake(String... args) throws ComposerException, IOException {
-        ProcessBuilder makeProcessBuilder = new ProcessBuilder(
+        Process makeProcessBuilder = new ProcessBuilder(
                 Stream.concat(Stream.of("make"), Arrays.stream(args))
                         .toList())
-                .inheritIO()
-                .directory(this.tmpSourcePath.toFile());
+                .directory(this.tmpSourcePath.toFile())
+                .start();
+        StreamGobbler stdoutGobbler = new StreamGobbler(makeProcessBuilder.getInputStream(), streamLogger);
+        StreamGobbler stderrGobbler = new StreamGobbler(makeProcessBuilder.getErrorStream(), streamLogger);
+        stdoutGobbler.start();
+        stderrGobbler.start();
         int makeExitCode;
         try {
-            makeExitCode = makeProcessBuilder.start().waitFor();
+            makeExitCode = makeProcessBuilder.waitFor();
         } catch (InterruptedException e) {
             throw new RuntimeException("Unexpected interruption of make process", e);
         }
