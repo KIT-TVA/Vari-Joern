@@ -37,6 +37,8 @@ public class Main {
             System.exit(STATUS_COMMAND_LINE_USAGE_ERROR);
         }
 
+        logger.info("Reading configuration");
+
         Config config;
         try {
             config = new Config(Path.of(args[0]));

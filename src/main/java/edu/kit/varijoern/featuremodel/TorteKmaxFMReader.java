@@ -59,6 +59,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
 
     @Override
     public IFeatureModel read(Path tmpPath) throws IOException, FeatureModelReaderException {
+        logger.info("Reading feature model from Kconfig files in {}", this.sourcePath);
         String readerScript = ResourcesUtil.getResourceAsString("torte/" + getExperimentScriptName());
         Path readerScriptPath = tmpPath.resolve(getExperimentScriptName());
         Files.writeString(readerScriptPath, readerScript, StandardCharsets.UTF_8);
@@ -79,6 +80,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                     new XmlFeatureModelFormat())) {
                 logger.warn("Could not save feature model");
             }
+            logger.info("Feature model read successfully");
             return featureModel;
         } finally {
             // The source code probably takes a large amount of disk space.

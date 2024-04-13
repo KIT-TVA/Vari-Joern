@@ -9,6 +9,8 @@ import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.GenericLanguageInformation;
 import edu.kit.varijoern.composers.sourcemap.IdentitySourceMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -26,6 +28,7 @@ import java.util.stream.Stream;
  */
 public class AntennaComposer implements Composer {
     public static final String NAME = "antenna";
+    private static final Logger logger = LogManager.getLogger();
 
     private final Path sourceLocation;
 
@@ -42,6 +45,7 @@ public class AntennaComposer implements Composer {
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
             throws IllegalFeatureNameException, IOException, ComposerException {
+        logger.info("Running Antenna composer");
         List<String> enabledFeatures = features.entrySet().stream()
                 .filter(Map.Entry::getValue)
                 .map(Map.Entry::getKey)
@@ -81,6 +85,7 @@ public class AntennaComposer implements Composer {
                 featureMapper.tryAddFile(relativePath, lineVector.stream().toList());
             }
         }
+        logger.info("Composer finished successfully");
         return new CompositionInformation(
                 destination,
                 features,
