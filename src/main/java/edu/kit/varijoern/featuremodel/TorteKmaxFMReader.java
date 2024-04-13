@@ -8,6 +8,8 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -29,6 +31,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         "linux", "linux-working-tree-kmax.sh",
         "busybox", "busybox-working-tree-kmax.sh"
     );
+    private static final Logger logger = LogManager.getLogger();
 
     private final Path sourcePath;
     private final String system;
@@ -69,7 +72,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             if (!FeatureModelManager.save(featureModel,
                 tmpPath.resolve("filtered-model.xml"),
                 new XmlFeatureModelFormat())) {
-                System.err.println("Could not save feature model");
+                logger.warn("Could not save feature model");
             }
             return featureModel;
         } finally {
@@ -144,7 +147,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                     if (!parts[2].equals("tristate") && !parts[2].equals("bool")) continue;
                     if (!parts[1].startsWith("CONFIG_"))
                         throw new FeatureModelReaderException("Unexpected feature name in kextractor line: " + line);
-                    System.out.println("Adding probably unconstrained feature " + featureName);
+                    logger.debug("Adding probably unconstrained feature {}", featureName);
                     Feature feature = new Feature(featureModel, featureName);
                     featureModel.addFeature(feature);
                     featureModel.getStructure().getRoot().addChild(feature.getStructure());
@@ -158,7 +161,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
 
     private static void deleteFeatures(IFeatureModel featureModel, List<String> nonTristateFeatures) {
         for (String feature : nonTristateFeatures) {
-            System.err.printf("Feature %s does not appear to be tristate.%n", feature);
+            logger.debug("Feature {} does not appear to be tristate.", feature);
             featureModel.deleteFeature(featureModel.getFeature(feature));
         }
         List<IConstraint> constraints = featureModel.getConstraints();
@@ -166,7 +169,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             IConstraint constraint = constraints.get(i);
             if (constraint.getContainedFeatures().stream().map(IFeatureModelElement::getName).anyMatch(nonTristateFeatures::contains)) {
                 featureModel.removeConstraint(i);
-                System.err.printf("Constraint %s contains non-tristate feature%n", constraint);
+                logger.debug("Constraint {} contains non-tristate feature", constraint);
             }
         }
     }

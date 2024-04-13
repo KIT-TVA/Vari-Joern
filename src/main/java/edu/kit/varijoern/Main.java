@@ -41,11 +41,11 @@ public class Main {
         try {
             config = new Config(Path.of(args[0]));
         } catch (IOException e) {
-            logger.fatal("The configuration file could not be read: {}", e.getMessage());
+            logger.atFatal().withThrowable(e).log("The configuration file could not be read");
             System.exit(STATUS_INVALID_CONFIG);
             return;
         } catch (InvalidConfigException e) {
-            logger.fatal("The configuration file could not be parsed: {}", e.getMessage());
+            logger.atFatal().withThrowable(e).log("The configuration file could not be parsed");
             System.exit(STATUS_INVALID_CONFIG);
             return;
         }
@@ -104,7 +104,7 @@ public class Main {
         List<AnalysisResult> allAnalysisResults = new ArrayList<>();
         List<AnalysisResult> iterationAnalysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
-            System.out.printf("Iteration %d%n", i + 1);
+            logger.info("Iteration {}", i + 1);
             List<Map<String, Boolean>> sample;
             try {
                 sample = sampler.sample(iterationAnalysisResults);
@@ -112,11 +112,11 @@ public class Main {
                 logger.atFatal().withThrowable(e).log("A sampler error occurred");
                 return STATUS_INTERNAL_ERROR;
             }
-            System.out.printf("Analyzing %d variants%n", sample.size());
+            logger.info("Analyzing {} variants", sample.size());
             iterationAnalysisResults = new ArrayList<>();
             for (int j = 0; j < sample.size(); j++) {
                 Map<String, Boolean> features = sample.get(j);
-                System.out.println("Analyzing variant with features " + features);
+                logger.info("Analyzing variant with features {}", features);
                 String destinationDirectoryName = String.format("%d-%d", i, j);
                 Path composerDestination = tmpDir.resolve(destinationDirectoryName);
                 try {

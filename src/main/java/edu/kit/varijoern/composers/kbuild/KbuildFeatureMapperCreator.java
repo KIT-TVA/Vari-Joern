@@ -7,6 +7,8 @@ import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.composers.ComposerException;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.prop4j.Node;
 
 import java.io.IOException;
@@ -27,6 +29,7 @@ import java.util.stream.Stream;
  * </ul>
  */
 public class KbuildFeatureMapperCreator {
+    private static final Logger logger = LogManager.getLogger();
     private final Map<Path, Node> filePresenceConditions = new HashMap<>();
 
     /**
@@ -98,7 +101,7 @@ public class KbuildFeatureMapperCreator {
                 Node presenceCondition = smtLibConverter.convert(entry.getValue());
                 presenceCondition.modifyFeatureNames(name -> {
                     if (!name.startsWith("CONFIG_")) {
-                        System.err.printf("Option in presence condition does not start with CONFIG_: %s; file: %s%n",
+                        logger.warn("Option in presence condition does not start with CONFIG_: {}; file: {}",
                                 name, entry.getKey());
                         return name;
                     }
@@ -117,7 +120,7 @@ public class KbuildFeatureMapperCreator {
                             .append("Changed from %s".formatted(presenceCondition));
                     presenceCondition = Node.replaceLiterals(presenceCondition, unknownFeatures, true);
                     warning.append(" to %s".formatted(presenceCondition));
-                    System.err.println(warning);
+                    logger.warn(warning);
                 }
                 filePresenceConditions.put(path, presenceCondition);
             } catch (ParseException e) {

@@ -8,6 +8,8 @@ import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.LanguageInformation;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,6 +27,8 @@ import java.util.stream.Collectors;
 public class JoernAnalyzer implements Analyzer {
     public static final String NAME = "joern";
     private static final String JOERN_COMMAND = "joern";
+    private static final Logger logger = LogManager.getLogger();
+
     @Nullable
     private final Path joernPath;
     private final Path workspacePath;
@@ -50,6 +54,7 @@ public class JoernAnalyzer implements Analyzer {
     @Override
     public JoernAnalysisResult analyze(CompositionInformation compositionInformation)
             throws IOException, AnalyzerFailureException {
+        logger.info("Running analysis");
         Path sourceLocation = compositionInformation.getLocation();
         Path outFile = this.workspacePath.resolve(
                 String.format("%s-%s.json",
@@ -67,6 +72,7 @@ public class JoernAnalyzer implements Analyzer {
                 compositionInformation.getFeatureMapper(),
                 compositionInformation.getSourceMap());
         this.allAnalysisResults.add(result);
+        logger.info("Analysis finished");
         return result;
     }
 
@@ -103,10 +109,13 @@ public class JoernAnalyzer implements Analyzer {
 
     private void analyzeWithLanguageInformation(LanguageInformation languageInformation, Path sourceLocation,
                                                 Path outFile) throws AnalyzerFailureException, IOException {
+        logger.info("Running analysis for language {}", languageInformation.getName());
         Path cpgLocation = this.workspacePath.resolve("cpg.bin");
+        logger.info("Generating CPG");
         languageInformation.accept(
                 new CPGGenerationVisitor(sourceLocation, cpgLocation, this.joernPath)
         );
+        logger.info("Running analysis on CPG");
         runJoern(cpgLocation, outFile);
     }
 

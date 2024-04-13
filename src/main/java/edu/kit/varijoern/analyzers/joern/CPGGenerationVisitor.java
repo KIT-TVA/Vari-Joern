@@ -5,6 +5,8 @@ import edu.kit.varijoern.composers.CCPPLanguageInformation;
 import edu.kit.varijoern.composers.GenericLanguageInformation;
 import edu.kit.varijoern.composers.LanguageInformation;
 import edu.kit.varijoern.composers.LanguageInformationVisitor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,6 +23,7 @@ import java.util.stream.Stream;
  * This visitor generates code property graphs using {@code joern-parse} for each language information it visits.
  */
 public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFailureException> {
+    private final static Logger logger = LogManager.getLogger();
     private final Path inputDirectory;
     private final Path outputFile;
     @Nullable
@@ -45,7 +48,7 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
 
     @Override
     protected void visitUnimplemented(LanguageInformation languageInformation) {
-        System.err.printf("Language %s is not supported by the analyzer.%n", languageInformation.getName());
+        logger.warn("Language {} is not supported by the analyzer.", languageInformation.getName());
     }
 
     @Override
