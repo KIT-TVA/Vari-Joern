@@ -17,6 +17,8 @@ dependencies {
     implementation files('lib/de.ovgu.featureide.lib.fm-v3.9.3.jar', 'lib/org.sat4j.core.jar')
     implementation files('lib/jSMTLIB.jar')
     implementation files('lib/KernelHaven.jar', 'lib/KconfigReaderExtractor.jar')
+    implementation 'org.apache.logging.log4j:log4j-api:2.23.1'
+    implementation 'org.apache.logging.log4j:log4j-core:2.23.1'
     implementation 'org.javatuples:javatuples:1.2'
     implementation 'org.tomlj:tomlj:1.1.0'
     implementation 'org.jetbrains:annotations:23.0.0'
