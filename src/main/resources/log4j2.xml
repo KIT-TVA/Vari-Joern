@@ -6,7 +6,7 @@
         </Appender>
     </Appenders>
     <Loggers>
-        <Root level="info">
+        <Root level="${level:-info}">
             <AppenderRef ref="STDERR" />
         </Root>
     </Loggers>

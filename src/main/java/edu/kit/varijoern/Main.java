@@ -1,5 +1,7 @@
 package edu.kit.varijoern;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.Analyzer;
@@ -15,6 +17,11 @@ import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 public class Main {
-    private static final String USAGE = "Usage: vari-joern [config]";
     private static final int STATUS_COMMAND_LINE_USAGE_ERROR = 64;
     private static final int STATUS_INVALID_CONFIG = 78;
     private static final int STATUS_IO_ERROR = 74;
@@ -32,16 +38,40 @@ public class Main {
     private static final Logger logger = LogManager.getLogger();
 
     public static void main(String[] args) {
-        if (args.length != 1) {
-            System.err.println(USAGE);
+        Args parsedArgs = new Args();
+        JCommander jCommander = JCommander.newBuilder()
+                .addObject(parsedArgs)
+                .build();
+        try {
+            jCommander.parse(args);
+        } catch (ParameterException e) {
+            e.usage();
             System.exit(STATUS_COMMAND_LINE_USAGE_ERROR);
         }
+        if (parsedArgs.isHelp()) {
+            jCommander.usage();
+            return;
+        }
+        String logLevel = "info";
+        if (parsedArgs.isTrace()) {
+            logLevel = "trace";
+        } else if (parsedArgs.isVerbose()) {
+            logLevel = "debug";
+        }
+        Configuration log4jConfig = new XmlConfiguration(LoggerContext.getContext(), ConfigurationSource.fromResource(
+                "log4j2.xml", Main.class.getClassLoader()
+        ));
+        log4jConfig.getProperties().put("level", logLevel);
+        Configurator.reconfigure(log4jConfig);
+
+        logger.trace("Trace");
+        logger.debug("Debug");
 
         logger.info("Reading configuration");
 
         Config config;
         try {
-            config = new Config(Path.of(args[0]));
+            config = new Config(parsedArgs.getConfig());
         } catch (IOException e) {
             logger.atFatal().withThrowable(e).log("The configuration file could not be read");
             System.exit(STATUS_INVALID_CONFIG);
