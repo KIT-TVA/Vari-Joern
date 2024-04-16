@@ -64,9 +64,6 @@ public class Main {
         log4jConfig.getProperties().put("level", logLevel);
         Configurator.reconfigure(log4jConfig);
 
-        logger.trace("Trace");
-        logger.debug("Debug");
-
         logger.info("Reading configuration");
 
         Config config;
