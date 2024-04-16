@@ -9,6 +9,8 @@ import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.job.monitor.ConsoleMonitor;
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
  */
 public class TWiseSampler implements Sampler {
     public static final String NAME = "t-wise";
+    private static final Logger logger = LogManager.getLogger();
+
     private final IFeatureModel featureModel;
     private final int t;
     private final int maxSampleSize;
@@ -40,6 +44,7 @@ public class TWiseSampler implements Sampler {
 
     @Override
     public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
+        logger.info("Calculating {}-wise sample", this.t);
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
         TWiseConfigurationGenerator generator = new TWiseConfigurationGenerator(cnf, this.t, this.maxSampleSize);
         List<LiteralSet> rawSample;
@@ -64,6 +69,7 @@ public class TWiseSampler implements Sampler {
             }
             result.add(assignment);
         }
+        logger.info("Generated {} configurations", result.size());
         return result;
     }
 }

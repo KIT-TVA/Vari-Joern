@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration xmlns="http://logging.apache.org/log4j/2.0/config" strict="true" name="Default" status="info" dest="err">
+    <Appenders>
+        <Appender type="Console" name="STDERR" target="SYSTEM_ERR">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %highlight{%-5level} %logger{36} - %msg%n" />
+        </Appender>
+    </Appenders>
+    <Loggers>
+        <Root level="${level:-info}">
+            <AppenderRef ref="STDERR" />
+        </Root>
+    </Loggers>
+</Configuration>

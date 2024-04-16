@@ -6,8 +6,13 @@ import edu.kit.varijoern.composers.CCPPLanguageInformation;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import jodd.io.StreamGobbler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -84,6 +89,8 @@ public class KbuildComposer implements Composer {
     private static final Pattern OPTION_NOT_SET_PATTERN = Pattern.compile("# CONFIG_(\\w+) is not set");
     private static final Pattern HEADER_FILE_PATTERN = Pattern.compile(".*\\.(?:h|H|hpp|hxx|h++)");
     private static final Set<String> supportedSystems = Set.of("linux", "busybox");
+    private static final Logger logger = LogManager.getLogger();
+    private static final OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
     private final String system;
     private final Path tmpPath;
@@ -161,7 +168,7 @@ public class KbuildComposer implements Composer {
      */
     private void generateConfig(Map<String, Boolean> features, Path tmpSourcePath)
             throws IOException, ComposerException {
-        System.out.println("Generating .config");
+        logger.info("Generating .config");
         this.runMake("defconfig");
 
         Set<String> remainingFeatures = new HashSet<>(features.keySet());
@@ -219,13 +226,13 @@ public class KbuildComposer implements Composer {
      * @throws ComposerException if the files could not be determined
      */
     private Set<Dependency> getIncludedFiles(Path tmpSourcePath) throws IOException, ComposerException {
-        System.out.println("Determining files to be included");
+        logger.info("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
                 .directory(tmpSourcePath.toFile());
         int makeExitCode;
         String output;
         try {
-            System.out.println("Running make -in");
+            logger.debug("Running make -in");
             Process makeProcess = makeProcessBuilder.start();
             output = IOUtils.toString(makeProcess.getInputStream(), Charset.defaultCharset());
             makeExitCode = makeProcess.waitFor();
@@ -236,12 +243,12 @@ public class KbuildComposer implements Composer {
             throw new ComposerException("make -in failed with exit code %d".formatted(makeExitCode));
         List<GCCCall> gccCalls;
         try {
-            System.out.println("Parsing gcc calls");
+            logger.debug("Parsing gcc calls");
             gccCalls = new GCCCallExtractor(output).getCalls();
         } catch (ParseException e) {
             throw new ComposerException("gcc calls could not be parsed", e);
         }
-        System.out.printf("Found %d gcc calls%n", gccCalls.size());
+        logger.debug("Found %d gcc calls%n", gccCalls.size());
         List<InclusionInformation> compiledFiles = new ArrayList<>();
         for (GCCCall gccCall : gccCalls) {
             for (String file : gccCall.compiledFiles()) {
@@ -268,13 +275,13 @@ public class KbuildComposer implements Composer {
      */
     private Set<Dependency> getDependencies(List<InclusionInformation> compiledFiles, Path tmpSourcePath)
             throws ComposerException, IOException {
-        System.out.println("Getting dependencies");
+        logger.info("Getting dependencies");
         Set<Dependency> dependencies = new HashSet<>();
         for (InclusionInformation compiledFile : compiledFiles) {
             dependencies.add(new CompiledDependency(compiledFile));
             dependencies.addAll(this.getDependenciesOfFile(compiledFile, tmpSourcePath));
         }
-        System.out.printf("Found %d dependencies in total%n", dependencies.size());
+        logger.debug("Found %d dependencies in total%n", dependencies.size());
         return dependencies;
     }
 
@@ -291,10 +298,11 @@ public class KbuildComposer implements Composer {
     private List<Dependency> getDependenciesOfFile(InclusionInformation inclusionInformation, Path tmpSourcePath)
             throws IOException, ComposerException {
         if (!Files.exists(tmpSourcePath.resolve(inclusionInformation.filePath()))) {
-            System.err.printf("File %s does not exist, skipping%n", inclusionInformation.filePath());
+            logger.warn("File {} does not exist, skipping dependency calculation",
+                    inclusionInformation.filePath());
             return List.of();
         }
-        System.out.printf("Getting dependencies of %s%n", inclusionInformation.filePath());
+        logger.info("Getting dependencies of {}", inclusionInformation.filePath());
         String makeRule = this.getFileMakeRule(inclusionInformation, tmpSourcePath);
         String dependencyList = makeRule.substring(makeRule.indexOf(':') + 1);
         Stream<String> dependencies = Arrays.stream(dependencyList.replace("\\", "").split("\\s+"))
@@ -319,7 +327,7 @@ public class KbuildComposer implements Composer {
                     }
                 })
                 .toList();
-        System.out.printf("Found %d dependencies%n", dependencyInformation.size());
+        logger.debug("Found {} dependencies", dependencyInformation.size());
         return dependencyInformation;
     }
 
@@ -364,12 +372,9 @@ public class KbuildComposer implements Composer {
             throw new RuntimeException("gcc was interrupted", e);
         }
         if (gccExitCode != 0) {
-            System.err.println("GCC failed with the following error:");
-            System.err.println(error);
-            System.err.println("Its output was:");
-            System.err.println(output);
-            System.err.println("The command was:");
-            System.err.println(String.join(" ", gccCall));
+            logger.error("GCC failed with the following error: {}", error);
+            logger.error("Its output was: {}", output);
+            logger.error("The command was: {}", String.join(" ", gccCall));
             throw new ComposerException("gcc failed with exit code %d".formatted(gccExitCode));
         }
         return output;
@@ -387,7 +392,7 @@ public class KbuildComposer implements Composer {
     private Map<Path, GenerationInformation> generateFiles(Set<Dependency> dependencies, Path destination,
                                                            Path tmpSourcePath)
             throws IOException {
-        System.out.println("Generating files");
+        logger.info("Generating files");
         Map<Path, List<Dependency>> targets = new HashMap<>();
         for (Dependency dependency : dependencies) {
             targets.computeIfAbsent(dependency.getFilePath(), k -> new ArrayList<>()).add(dependency);
@@ -418,7 +423,7 @@ public class KbuildComposer implements Composer {
             throws IOException {
         Path sourcePath = tmpSourcePath.resolve(filePath);
         if (!Files.exists(sourcePath)) {
-            System.err.printf("File %s does not exist, skipping%n", filePath);
+            logger.warn("File {} does not exist, not generating.", filePath);
             return Map.of();
         }
         Path destinationPath = destination.resolve(filePath);
@@ -438,7 +443,7 @@ public class KbuildComposer implements Composer {
                 generated = true;
             } else if (configuration instanceof HeaderDependency) {
                 if (!copied) {
-                    System.out.printf("Copying %s%n", filePath);
+                    logger.debug("Copying {}", filePath);
                     Files.copy(sourcePath, destinationPath);
                     copied = true;
                     generationInformation.put(filePath, new GenerationInformation(filePath, 0));
@@ -453,7 +458,7 @@ public class KbuildComposer implements Composer {
 
     private Map.Entry<Path, GenerationInformation> generateFileWithPreprocessorDirectives(
             InclusionInformation inclusionInformation, Path destination, Path tmpSourcePath) throws IOException {
-        System.out.printf("Generating %s with preprocessor directives%n", inclusionInformation.filePath());
+        logger.debug("Generating {} with preprocessor directives", inclusionInformation.filePath());
         Path relativeDestinationPath = inclusionInformation.getComposedFilePath();
         Path destinationPath = destination
                 .resolve(relativeDestinationPath);
@@ -480,11 +485,11 @@ public class KbuildComposer implements Composer {
                                                                   Path tmpSourcePath)
             throws IOException, ComposerException {
         if (!LineFeatureMapper.isSupportedSystem(this.system)) {
-            System.out.printf("System %s is not supported, skipping line feature mapper creation%n", this.system);
+            logger.warn("System {} is not supported, skipping line feature mapper creation", this.system);
             return Map.of();
         }
 
-        System.out.println("Creating line feature mappers");
+        logger.info("Creating line feature mappers");
 
         // Clean up to ensure that the header file containing config definitions doesn't exist
         this.runMake("clean");
@@ -499,7 +504,7 @@ public class KbuildComposer implements Composer {
             if (!(dependency instanceof CompiledDependency)) {
                 continue;
             }
-            System.out.printf("Creating line feature mapper for %s%n", entry.getKey());
+            logger.debug("Creating line feature mapper for {}", entry.getKey());
             InclusionInformation inclusionInformation = ((CompiledDependency) dependency).getInclusionInformation();
             lineFeatureMappers.put(
                     generatedFilePath,
@@ -520,14 +525,18 @@ public class KbuildComposer implements Composer {
      * @throws IOException       if an I/O error occurs
      */
     private void runMake(String... args) throws ComposerException, IOException {
-        ProcessBuilder makeProcessBuilder = new ProcessBuilder(
+        Process makeProcessBuilder = new ProcessBuilder(
                 Stream.concat(Stream.of("make"), Arrays.stream(args))
                         .toList())
-                .inheritIO()
-                .directory(this.tmpSourcePath.toFile());
+                .directory(this.tmpSourcePath.toFile())
+                .start();
+        StreamGobbler stdoutGobbler = new StreamGobbler(makeProcessBuilder.getInputStream(), streamLogger);
+        StreamGobbler stderrGobbler = new StreamGobbler(makeProcessBuilder.getErrorStream(), streamLogger);
+        stdoutGobbler.start();
+        stderrGobbler.start();
         int makeExitCode;
         try {
-            makeExitCode = makeProcessBuilder.start().waitFor();
+            makeExitCode = makeProcessBuilder.waitFor();
         } catch (InterruptedException e) {
             throw new RuntimeException("Unexpected interruption of make process", e);
         }
@@ -536,7 +545,7 @@ public class KbuildComposer implements Composer {
     }
 
     private void copySourceTo(Path originalSourcePath, Path tmpSourcePath) throws IOException {
-        System.out.println("Copying source");
+        logger.info("Copying source");
         FileUtils.copyDirectory(originalSourcePath.toFile(), tmpSourcePath.toFile(), file -> !file.getName().equals(".git"));
     }
 

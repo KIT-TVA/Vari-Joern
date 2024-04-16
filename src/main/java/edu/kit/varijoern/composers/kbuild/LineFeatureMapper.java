@@ -1,6 +1,8 @@
 package edu.kit.varijoern.composers.kbuild;
 
 import net.sf.javabdd.BDD;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.prop4j.*;
 import xtc.lang.cpp.*;
 import xtc.tree.Location;
@@ -31,6 +33,7 @@ public class LineFeatureMapper {
     // In busybox, enabled (non-module) tristate features are defined as CONFIG_<feature> as well as ENABLE_<feature>
     private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN =
             Pattern.compile("(?:CONFIG_|ENABLE_)([A-Za-z0-9_]+)");
+    private static final Logger logger = LogManager.getLogger();
 
     private final Map<Integer, Node> linePresenceConditions = new HashMap<>();
     private final int addedLines;
@@ -62,7 +65,7 @@ public class LineFeatureMapper {
     private void determinePresenceConditions(InclusionInformation inclusionInformation, Path sourcePath,
                                              Set<String> knownFeatures, String system)
             throws FileNotFoundException {
-        System.out.printf("Determining line presence conditions for %s%n", inclusionInformation.filePath());
+        logger.debug("Determining line presence conditions for {}", inclusionInformation.filePath());
         Path filePath = sourcePath.resolve(inclusionInformation.filePath());
 
         // Create preprocessor
@@ -95,8 +98,8 @@ public class LineFeatureMapper {
             try {
                 next = preprocessor.next();
             } catch (IllegalStateException e) {
-                System.err.printf("Preprocessor encountered an internal error at %s: %s%n",
-                        headerFileManager.include.getLocation(), e);
+                logger.atWarn().withThrowable(e).log("Preprocessor encountered an internal error at {}",
+                        headerFileManager.include.getLocation());
                 break;
             }
             if (preprocessor.isExpanding()) continue;
@@ -113,7 +116,7 @@ public class LineFeatureMapper {
                     !presenceCondition.getBDD().equals(rawPresenceConditions.get(line).getBDD())) {
                 numSeenPresenceConditions.put(line, numSeenPresenceConditions.get(line) + 1);
                 if (numSeenPresenceConditions.get(line) > 1) {
-                    System.err.printf("Conflict in line %d on token %s between %s and %s%n", line, next,
+                    logger.warn("Conflict in line {} on token {} between {} and {}", line, next,
                             Optional.ofNullable(rawPresenceConditions.get(line))
                                     .map(PresenceConditionManager.PresenceCondition::toString)
                                     .orElse("<not parsed>"),
@@ -136,7 +139,7 @@ public class LineFeatureMapper {
         for (Map.Entry<Integer, PresenceConditionManager.PresenceCondition> entry : rawPresenceConditions.entrySet()) {
             Optional<Node> nodeOptional = this.convertBDD(entry.getValue().getBDD(), presenceConditionManager);
             if (nodeOptional.isEmpty()) {
-                System.err.printf("Could not convert presence condition to node at %s:%s:%n%s%n", filePath,
+                logger.warn("Could not convert presence condition to node at {}:{}: {}", filePath,
                         entry.getKey(), entry.getValue());
                 continue;
             }
@@ -150,7 +153,7 @@ public class LineFeatureMapper {
                     .toList();
 
             if (!unknownFeatures.isEmpty()) {
-                System.err.printf("Unknown features %s in presence condition at %s:%s%n", unknownFeatures, filePath,
+                logger.warn("Unknown features {} in presence condition at {}:{}", unknownFeatures, filePath,
                         entry.getKey());
                 node = Node.replaceLiterals(node, unknownFeatures, true);
             }
@@ -163,7 +166,7 @@ public class LineFeatureMapper {
         }
 
         if (this.linePresenceConditions.isEmpty()) {
-            System.err.printf("No presence conditions found for %s%n", inclusionInformation.filePath());
+            logger.debug("No presence conditions found for {}", inclusionInformation.filePath());
         }
     }
 
@@ -249,7 +252,7 @@ public class LineFeatureMapper {
             String variableName = definedMatcher.group(1) == null ? definedMatcher.group(2) : definedMatcher.group(1);
             return Optional.of(new Literal(variableName));
         }
-        System.err.printf("Could not parse condition: %s%n", rawCondition);
+        logger.debug("Could not parse condition: {}", rawCondition);
         return Optional.empty();
     }
 

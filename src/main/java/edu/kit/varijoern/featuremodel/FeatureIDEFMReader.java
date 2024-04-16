@@ -7,6 +7,8 @@ import de.ovgu.featureide.fm.core.base.impl.FMFactoryManager;
 import de.ovgu.featureide.fm.core.base.impl.FMFormatManager;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Path;
 
@@ -16,6 +18,8 @@ import java.nio.file.Path;
 public class FeatureIDEFMReader implements FeatureModelReader {
     public static final String NAME = "featureide-fm-reader";
     private static boolean featureIDEInitialized = false;
+    private static final Logger logger = LogManager.getLogger();
+
     private final Path path;
 
     /**
@@ -35,6 +39,7 @@ public class FeatureIDEFMReader implements FeatureModelReader {
 
     @Override
     public IFeatureModel read(Path tmpPath) {
+        logger.info("Reading feature model from {}", this.path);
         FMFormatManager.getInstance().addExtension(new XmlFeatureModelFormat());
         return FeatureModelManager.load(this.path);
     }

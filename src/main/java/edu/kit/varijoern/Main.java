@@ -1,5 +1,7 @@
 package edu.kit.varijoern;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.Analyzer;
@@ -13,6 +15,13 @@ import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,27 +31,50 @@ import java.util.List;
 import java.util.Map;
 
 public class Main {
-    private static final String USAGE = "Usage: vari-joern [config]";
     private static final int STATUS_COMMAND_LINE_USAGE_ERROR = 64;
     private static final int STATUS_INVALID_CONFIG = 78;
     private static final int STATUS_IO_ERROR = 74;
     private static final int STATUS_INTERNAL_ERROR = 70;
+    private static final Logger logger = LogManager.getLogger();
 
     public static void main(String[] args) {
-        if (args.length != 1) {
-            System.err.println(USAGE);
+        Args parsedArgs = new Args();
+        JCommander jCommander = JCommander.newBuilder()
+                .addObject(parsedArgs)
+                .build();
+        try {
+            jCommander.parse(args);
+        } catch (ParameterException e) {
+            e.usage();
             System.exit(STATUS_COMMAND_LINE_USAGE_ERROR);
         }
+        if (parsedArgs.isHelp()) {
+            jCommander.usage();
+            return;
+        }
+        String logLevel = "info";
+        if (parsedArgs.isTrace()) {
+            logLevel = "trace";
+        } else if (parsedArgs.isVerbose()) {
+            logLevel = "debug";
+        }
+        Configuration log4jConfig = new XmlConfiguration(LoggerContext.getContext(), ConfigurationSource.fromResource(
+                "log4j2.xml", Main.class.getClassLoader()
+        ));
+        log4jConfig.getProperties().put("level", logLevel);
+        Configurator.reconfigure(log4jConfig);
+
+        logger.info("Reading configuration");
 
         Config config;
         try {
-            config = new Config(Path.of(args[0]));
+            config = new Config(parsedArgs.getConfig());
         } catch (IOException e) {
-            System.err.printf("The configuration file could not be read: %s%n", e.getMessage());
+            logger.atFatal().withThrowable(e).log("The configuration file could not be read");
             System.exit(STATUS_INVALID_CONFIG);
             return;
         } catch (InvalidConfigException e) {
-            System.err.printf("The configuration file could not be parsed:%n%s%n", e.getMessage());
+            logger.atFatal().withThrowable(e).log("The configuration file could not be parsed");
             System.exit(STATUS_INVALID_CONFIG);
             return;
         }
@@ -63,7 +95,7 @@ public class Main {
             featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
             Files.createDirectories(featureModelReaderTmpDirectory);
         } catch (IOException e) {
-            System.err.printf("Failed to create temporary directory: %s%n", e.getMessage());
+            logger.atFatal().withThrowable(e).log("Failed to create temporary directory");
             return STATUS_IO_ERROR;
         }
 
@@ -72,12 +104,10 @@ public class Main {
         try {
             featureModel = featureModelReader.read(featureModelReaderTmpDirectory);
         } catch (IOException e) {
-            System.err.println("An I/O error occurred while reading the feature model");
-            e.printStackTrace();
+            logger.atFatal().withThrowable(e).log("An I/O error occurred while reading the feature model");
             return STATUS_IO_ERROR;
         } catch (FeatureModelReaderException e) {
-            System.err.println("The feature model could not be read");
-            e.printStackTrace();
+            logger.atFatal().withThrowable(e).log("The feature model could not be read");
             return STATUS_INTERNAL_ERROR;
         }
 
@@ -86,46 +116,42 @@ public class Main {
         try {
             composer = config.getComposerConfig().newComposer(composerTmpDirectory);
         } catch (IOException e) {
-            System.err.println("Failed to instantiate composer:");
-            e.printStackTrace();
+            logger.atFatal().withThrowable(e).log("Failed to instantiate composer:");
             return STATUS_IO_ERROR;
         } catch (ComposerException e) {
-            System.err.println("Failed to instantiate composer:");
-            e.printStackTrace();
+            logger.atFatal().withThrowable(e).log("Failed to instantiate composer:");
             return STATUS_INTERNAL_ERROR;
         }
         Analyzer analyzer;
         try {
             analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
         } catch (IOException e) {
-            System.err.println("Failed to instantiate analyzer:");
-            e.printStackTrace();
+            logger.atFatal().withThrowable(e).log("Failed to instantiate analyzer:");
             return STATUS_IO_ERROR;
         }
 
         List<AnalysisResult> allAnalysisResults = new ArrayList<>();
         List<AnalysisResult> iterationAnalysisResults = List.of();
         for (int i = 0; i < config.getIterations(); i++) {
-            System.out.printf("Iteration %d%n", i + 1);
+            logger.info("Iteration {}", i + 1);
             List<Map<String, Boolean>> sample;
             try {
                 sample = sampler.sample(iterationAnalysisResults);
             } catch (SamplerException e) {
-                System.err.println("A sampler error occurred");
-                e.printStackTrace();
+                logger.atFatal().withThrowable(e).log("A sampler error occurred");
                 return STATUS_INTERNAL_ERROR;
             }
-            System.out.printf("Analyzing %d variants%n", sample.size());
+            logger.info("Analyzing {} variants", sample.size());
             iterationAnalysisResults = new ArrayList<>();
             for (int j = 0; j < sample.size(); j++) {
                 Map<String, Boolean> features = sample.get(j);
-                System.out.println("Analyzing variant with features " + features);
+                logger.info("Analyzing variant with features {}", features);
                 String destinationDirectoryName = String.format("%d-%d", i, j);
                 Path composerDestination = tmpDir.resolve(destinationDirectoryName);
                 try {
                     Files.createDirectories(composerDestination);
                 } catch (IOException e) {
-                    System.err.printf("Failed to create composer destination directory: %s%n", e.getMessage());
+                    logger.atFatal().withThrowable(e).log("Failed to create composer destination directory");
                     return STATUS_IO_ERROR;
                 }
 
@@ -133,27 +159,23 @@ public class Main {
                 try {
                     composedSourceLocation = composer.compose(features, composerDestination, featureModel);
                 } catch (IllegalFeatureNameException e) {
-                    System.err.println("Invalid feature name has been found");
+                    logger.atFatal().withThrowable(e).log("Invalid feature name has been found");
                     return STATUS_INVALID_CONFIG;
                 } catch (IOException e) {
-                    System.err.println("An IO error occurred:");
-                    e.printStackTrace();
+                    logger.atFatal().withThrowable(e).log("An IO error occurred:");
                     return STATUS_IO_ERROR;
                 } catch (ComposerException e) {
-                    System.err.println("A composer error occurred:");
-                    e.printStackTrace();
+                    logger.atFatal().withThrowable(e).log("A composer error occurred:");
                     return STATUS_INTERNAL_ERROR;
                 }
 
                 try {
                     iterationAnalysisResults.add(analyzer.analyze(composedSourceLocation));
                 } catch (IOException e) {
-                    System.err.println("An I/O error occurred while running the analyzer");
-                    e.printStackTrace();
+                    logger.atFatal().withThrowable(e).log("An I/O error occurred while running the analyzer");
                     return STATUS_IO_ERROR;
                 } catch (AnalyzerFailureException e) {
-                    System.err.println("The analysis did not complete successfully.");
-                    e.printStackTrace();
+                    logger.atFatal().withThrowable(e).log("The analysis did not complete successfully.");
                     return STATUS_INTERNAL_ERROR;
                 }
             }

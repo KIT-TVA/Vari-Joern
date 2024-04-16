@@ -6,11 +6,17 @@ import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
 import de.ovgu.featureide.fm.core.base.impl.Feature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
+import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,9 +32,11 @@ import java.util.stream.Stream;
 public class TorteKmaxFMReader implements FeatureModelReader {
     public static final String NAME = "torte-kmax";
     private static final Map<String, String> experimentScriptFiles = Map.of(
-        "linux", "linux-working-tree-kmax.sh",
-        "busybox", "busybox-working-tree-kmax.sh"
+            "linux", "linux-working-tree-kmax.sh",
+            "busybox", "busybox-working-tree-kmax.sh"
     );
+    private static final Logger logger = LogManager.getLogger();
+    private static final OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
 
     private final Path sourcePath;
     private final String system;
@@ -51,6 +59,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
 
     @Override
     public IFeatureModel read(Path tmpPath) throws IOException, FeatureModelReaderException {
+        logger.info("Reading feature model from Kconfig files in {}", this.sourcePath);
         String readerScript = ResourcesUtil.getResourceAsString("torte/" + getExperimentScriptName());
         Path readerScriptPath = tmpPath.resolve(getExperimentScriptName());
         Files.writeString(readerScriptPath, readerScript, StandardCharsets.UTF_8);
@@ -67,10 +76,11 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             IFeatureModel featureModel = new FeatureIDEFMReader(fmPath).read(tmpPath);
             this.postprocessFeatureModel(featureModel, tmpPath);
             if (!FeatureModelManager.save(featureModel,
-                tmpPath.resolve("filtered-model.xml"),
-                new XmlFeatureModelFormat())) {
-                System.err.println("Could not save feature model");
+                    tmpPath.resolve("filtered-model.xml"),
+                    new XmlFeatureModelFormat())) {
+                logger.warn("Could not save feature model");
             }
+            logger.info("Feature model read successfully");
             return featureModel;
         } finally {
             // The source code probably takes a large amount of disk space.
@@ -80,11 +90,15 @@ public class TorteKmaxFMReader implements FeatureModelReader {
 
     private void runReader(Path tmpPath) throws IOException, FeatureModelReaderException {
         ProcessBuilder readerProcessBuilder = new ProcessBuilder("bash", getExperimentScriptName())
-            .inheritIO()
-            .directory(tmpPath.toFile());
+                .directory(tmpPath.toFile());
         readerProcessBuilder.environment().put("TORTE_INPUT_DIRECTORY", tmpPath.resolve("input").toString());
         readerProcessBuilder.environment().put("TORTE_OUTPUT_DIRECTORY", tmpPath.resolve("output").toString());
         Process readerProcess = readerProcessBuilder.start();
+        StreamGobbler stdoutGobbler = new StreamGobbler(readerProcess.getInputStream(), streamLogger);
+        StreamGobbler stderrGobbler = new StreamGobbler(readerProcess.getErrorStream(), streamLogger);
+        stdoutGobbler.start();
+        stderrGobbler.start();
+
         int readerExitCode;
         try {
             readerExitCode = readerProcess.waitFor();
@@ -99,8 +113,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     private Path findGeneratedFeatureModel(Path tmpPath) throws IOException, FeatureModelReaderException {
         try (Stream<Path> files = Files.walk(tmpPath.resolve("output/model_to_xml_featureide/" + this.system))) {
             List<Path> featureModelPaths = files.filter(Files::isRegularFile)
-                .filter(path -> path.getFileName().toString().endsWith(".xml"))
-                .toList();
+                    .filter(path -> path.getFileName().toString().endsWith(".xml"))
+                    .toList();
             if (featureModelPaths.isEmpty())
                 throw new FeatureModelReaderException("No feature model found");
             if (featureModelPaths.size() > 1)
@@ -121,8 +135,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     private void postprocessFeatureModel(IFeatureModel featureModel, Path tmpPath) throws FeatureModelReaderException {
         try (Stream<Path> files = Files.walk(tmpPath.resolve("output/kconfig/" + this.system))) {
             List<Path> kextractorFiles = files.filter(Files::isRegularFile)
-                .filter(path -> path.getFileName().toString().endsWith(".kextractor"))
-                .toList();
+                    .filter(path -> path.getFileName().toString().endsWith(".kextractor"))
+                    .toList();
             if (kextractorFiles.isEmpty())
                 throw new FeatureModelReaderException("No kextractor file found");
             if (kextractorFiles.size() > 1)
@@ -144,7 +158,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                     if (!parts[2].equals("tristate") && !parts[2].equals("bool")) continue;
                     if (!parts[1].startsWith("CONFIG_"))
                         throw new FeatureModelReaderException("Unexpected feature name in kextractor line: " + line);
-                    System.out.println("Adding probably unconstrained feature " + featureName);
+                    logger.debug("Adding probably unconstrained feature {}", featureName);
                     Feature feature = new Feature(featureModel, featureName);
                     featureModel.addFeature(feature);
                     featureModel.getStructure().getRoot().addChild(feature.getStructure());
@@ -158,7 +172,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
 
     private static void deleteFeatures(IFeatureModel featureModel, List<String> nonTristateFeatures) {
         for (String feature : nonTristateFeatures) {
-            System.err.printf("Feature %s does not appear to be tristate.%n", feature);
+            logger.debug("Feature {} does not appear to be tristate.", feature);
             featureModel.deleteFeature(featureModel.getFeature(feature));
         }
         List<IConstraint> constraints = featureModel.getConstraints();
@@ -166,7 +180,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             IConstraint constraint = constraints.get(i);
             if (constraint.getContainedFeatures().stream().map(IFeatureModelElement::getName).anyMatch(nonTristateFeatures::contains)) {
                 featureModel.removeConstraint(i);
-                System.err.printf("Constraint %s contains non-tristate feature%n", constraint);
+                logger.debug("Constraint {} contains non-tristate feature", constraint);
             }
         }
     }

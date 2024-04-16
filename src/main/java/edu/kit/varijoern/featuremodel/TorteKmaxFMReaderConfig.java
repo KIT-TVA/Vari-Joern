@@ -38,9 +38,7 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
             throw new InvalidConfigException("Path to source directory is not a valid path", e);
         }
         if (!sourcePath.isAbsolute()) {
-            System.err.println("Path to source directory is not absolute");
             sourcePath = configPath.getParent().resolve(sourcePath);
-            System.err.println("Using " + sourcePath + " instead");
         }
         this.sourcePath = sourcePath;
 

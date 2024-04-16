@@ -1,6 +1,8 @@
 package edu.kit.varijoern.composers.antenna;
 
 import edu.kit.varijoern.composers.FeatureMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.prop4j.Node;
 
 import java.nio.file.Path;
@@ -10,6 +12,7 @@ import java.util.*;
  * A feature mapper for the Antenna composer. Builds a tree of {@code //#if} conditions for each file.
  */
 public class ConditionTreeFeatureMapper implements FeatureMapper {
+    private static final Logger logger = LogManager.getLogger();
     private final Map<Path, ConditionTree> trees = new HashMap<>();
 
     /**
@@ -24,10 +27,8 @@ public class ConditionTreeFeatureMapper implements FeatureMapper {
         ConditionTree tree;
         try {
             tree = new ConditionTree(lines);
-            System.out.println(path);
-            System.out.println(tree);
         } catch (ConditionTreeException e) {
-            System.err.printf("Failed to create condition tree for file %s: %s%n", path, e.getMessage());
+            logger.atWarn().withThrowable(e).log("Failed to create condition tree for file {}", path);
             return false;
         }
         this.trees.put(path, tree);

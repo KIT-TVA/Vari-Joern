@@ -1,6 +1,8 @@
 package edu.kit.varijoern.composers.kbuild;
 
 import edu.kit.varijoern.composers.FeatureMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.prop4j.And;
 import org.prop4j.Node;
 
@@ -15,6 +17,7 @@ public class KbuildFeatureMapper implements FeatureMapper {
     private final Map<Path, Node> filePresenceConditions;
     private final Map<Path, LineFeatureMapper> lineFeatureMappers;
     private final Map<Path, GenerationInformation> generationInformation;
+    private static final Logger logger = LogManager.getLogger();
 
     /**
      * Creates a new {@link KbuildFeatureMapper} with the specified information.
@@ -41,7 +44,7 @@ public class KbuildFeatureMapper implements FeatureMapper {
     public Optional<Node> getPresenceCondition(Path file, int lineNumber) {
         GenerationInformation fileGenerationInformation = this.generationInformation.get(file.normalize());
         if (fileGenerationInformation == null) {
-            System.err.println("Could not find generation information for file " + file.normalize());
+            logger.warn("Could not find generation information for file {}", file.normalize());
             return Optional.empty();
         }
         Path originalPath = fileGenerationInformation.originalPath();
