@@ -4,7 +4,10 @@ import net.sf.javabdd.BDD;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.prop4j.*;
-import xtc.lang.cpp.*;
+import superc.Builtins;
+import superc.core.*;
+import superc.cparser.CLexerCreator;
+import superc.cparser.CTokenCreator;
 import xtc.tree.Location;
 
 import java.io.*;
@@ -70,12 +73,13 @@ public class LineFeatureMapper {
 
         // Create preprocessor
         TokenCreator tokenCreator = new CTokenCreator();
+        LexerCreator lexerCreator = new CLexerCreator();
         MacroTable macroTable = new MacroTable(tokenCreator);
         PresenceConditionManager presenceConditionManager = new PresenceConditionManager();
         ConditionEvaluator conditionEvaluator = new ConditionEvaluator(ExpressionParser.fromRats(),
                 presenceConditionManager, macroTable);
         this.preparePreprocessor(inclusionInformation, macroTable, presenceConditionManager, conditionEvaluator,
-                tokenCreator, sourcePath);
+                lexerCreator, tokenCreator, sourcePath);
         HeaderFileManager headerFileManager = new HeaderFileManager(
                 new FileReader(filePath.toFile()),
                 filePath.toFile(),
@@ -84,6 +88,7 @@ public class LineFeatureMapper {
                         .map(p -> Path.of(p).isAbsolute() ? p : sourcePath.resolve(p).toString())
                         .toList(),
                 Arrays.asList(Builtins.sysdirs),
+                lexerCreator,
                 tokenCreator,
                 new StopWatch()
         );
@@ -116,7 +121,8 @@ public class LineFeatureMapper {
                     !presenceCondition.getBDD().equals(rawPresenceConditions.get(line).getBDD())) {
                 numSeenPresenceConditions.put(line, numSeenPresenceConditions.get(line) + 1);
                 if (numSeenPresenceConditions.get(line) > 1) {
-                    logger.warn("Conflict in line {} on token {} between {} and {}", line, next,
+                    logger.warn("Conflict at {}:{} on token {} between {} and {}",
+                            inclusionInformation.filePath(), line, next,
                             Optional.ofNullable(rawPresenceConditions.get(line))
                                     .map(PresenceConditionManager.PresenceCondition::toString)
                                     .orElse("<not parsed>"),
@@ -182,8 +188,11 @@ public class LineFeatureMapper {
      */
     private void preparePreprocessor(InclusionInformation inclusionInformation, MacroTable macroTable,
                                      PresenceConditionManager presenceConditionManager,
-                                     ConditionEvaluator conditionEvaluator, TokenCreator tokenCreator,
-                                     Path sourceRoot) {
+                                     ConditionEvaluator conditionEvaluator, LexerCreator lexerCreator,
+                                     TokenCreator tokenCreator, Path sourceRoot) {
+        injectSource(Builtins.builtin, macroTable, presenceConditionManager, conditionEvaluator, lexerCreator, tokenCreator, inclusionInformation,
+                sourceRoot);
+
         StringBuilder commandLineDirectives = new StringBuilder();
 
         for (Map.Entry<String, String> define : inclusionInformation.defines().entrySet()) {
@@ -195,14 +204,21 @@ public class LineFeatureMapper {
             commandLineDirectives.append("#include \"").append(includedFile).append("\"\n");
         }
 
+        injectSource(commandLineDirectives.toString(), macroTable, presenceConditionManager, conditionEvaluator, lexerCreator, tokenCreator, inclusionInformation,
+                sourceRoot);
+    }
+
+    private static void injectSource(String source, MacroTable macroTable, PresenceConditionManager presenceConditionManager, ConditionEvaluator conditionEvaluator, LexerCreator lexerCreator, TokenCreator tokenCreator, InclusionInformation inclusionInformation,
+                                     Path sourceRoot) {
         HeaderFileManager headerFileManager = new HeaderFileManager(
-                new StringReader(commandLineDirectives.toString()),
-                new File("<command-line>"),
+                new StringReader(source),
+                new File("<injected-source>"),
                 List.of(),
                 inclusionInformation.includePaths().stream()
                         .map(p -> Path.of(p).isAbsolute() ? p : sourceRoot.resolve(p).toString())
                         .toList(),
                 Arrays.asList(Builtins.sysdirs),
+                lexerCreator,
                 tokenCreator,
                 new StopWatch()
         );
