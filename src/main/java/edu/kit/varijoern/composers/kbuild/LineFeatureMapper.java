@@ -92,6 +92,7 @@ public class LineFeatureMapper {
                 new StopWatch(),
                 presenceConditionManager
         )) {
+            headerFileManager.showErrors(false);
             Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
                     conditionEvaluator, tokenCreator);
 
@@ -200,9 +201,9 @@ public class LineFeatureMapper {
                 tokenCreator,
                 new StopWatch()
         );
+        headerFileManager.showErrors(false);
         Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
                 conditionEvaluator, tokenCreator);
-        preprocessor.showErrors(true);
         Syntax next;
         do {
             next = preprocessor.next();
