@@ -100,7 +100,11 @@ public class LineFeatureMapper {
             do {
                 try {
                     next = preprocessor.next();
-                } catch (IllegalStateException e) {
+                } catch (IllegalStateException | Error e) {
+                    // The preprocessor can `throw new Error()` when it encounters an internal error. If a subclass of
+                    // `Error` is caught, it was not thrown by the preprocessor and something is seriously wrong.
+                    if (e instanceof Error && e.getClass() != Error.class)
+                        throw (Error) e;
                     logger.atWarn().withThrowable(e).log("Preprocessor encountered an internal error at {}",
                             headerFileManager.include.getLocation());
                     break;
