@@ -248,7 +248,7 @@ public class KbuildComposer implements Composer {
         } catch (ParseException e) {
             throw new ComposerException("gcc calls could not be parsed", e);
         }
-        logger.debug("Found %d gcc calls%n", gccCalls.size());
+        logger.debug("Found {} gcc calls", gccCalls.size());
         List<InclusionInformation> compiledFiles = new ArrayList<>();
         for (GCCCall gccCall : gccCalls) {
             for (String file : gccCall.compiledFiles()) {
@@ -281,7 +281,7 @@ public class KbuildComposer implements Composer {
             dependencies.add(new CompiledDependency(compiledFile));
             dependencies.addAll(this.getDependenciesOfFile(compiledFile, tmpSourcePath));
         }
-        logger.debug("Found %d dependencies in total%n", dependencies.size());
+        logger.debug("Found {} dependencies in total", dependencies.size());
         return dependencies;
     }
 
