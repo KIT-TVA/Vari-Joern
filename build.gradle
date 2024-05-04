@@ -9,6 +9,9 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    maven {
+        url "https://artifacts.itemis.cloud/repository/maven-mps/"
+    }
 }
 
 dependencies {
@@ -27,7 +30,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'commons-io:commons-io:2.14.0'
     implementation 'com.beust:jcommander:1.82'
-    implementation files('lib/xtc.jar', 'lib/javabdd.jar')
+    implementation files('lib/superc.jar', 'lib/xtc.jar', 'lib/javabdd.jar')
+    implementation 'com.microsoft.z3:java-jar:4.11.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
