@@ -64,6 +64,11 @@ public class LineFeatureMapper {
         this.determinePresenceConditions(inclusionInformation, sourcePath, knownFeatures, system);
     }
 
+    static {
+        // Prevent JavaBDD from printing a warning to stdout if `buddy` cannot be loaded
+        System.setProperty("bdd", "__this_bdd_package_does_not_exist__");
+    }
+
     private void determinePresenceConditions(InclusionInformation inclusionInformation, Path sourcePath,
                                              Set<String> knownFeatures, String system)
             throws FileNotFoundException {
@@ -92,6 +97,7 @@ public class LineFeatureMapper {
                 new StopWatch(),
                 presenceConditionManager
         )) {
+            headerFileManager.showErrors(false);
             Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
                     conditionEvaluator, tokenCreator);
 
@@ -200,9 +206,9 @@ public class LineFeatureMapper {
                 tokenCreator,
                 new StopWatch()
         );
+        headerFileManager.showErrors(false);
         Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
                 conditionEvaluator, tokenCreator);
-        preprocessor.showErrors(true);
         Syntax next;
         do {
             next = preprocessor.next();
