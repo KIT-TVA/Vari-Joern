@@ -186,29 +186,15 @@ public class Main {
         }
 
         try {
-            printResult(allAnalysisResults, analyzer, args.getResultOutputArgs());
+            args.getResultOutputArgs().getFormatter().printResults(
+                    allAnalysisResults,
+                    analyzer.aggregateResults(),
+                    args.getResultOutputArgs().getDestination().getStream()
+            );
         } catch (IOException e) {
             logger.atError().withThrowable(e).log("Failed to print results");
             return STATUS_IO_ERROR;
         }
         return 0;
-    }
-
-    private static void printResult(List<AnalysisResult> allAnalysisResults, Analyzer analyzer,
-                                    ResultOutputArgs outputArgs) throws IOException {
-        PrintStream outStream = outputArgs.getDestination().getStream();
-        outStream.println("Summary:");
-        printSummary(allAnalysisResults, outStream);
-        outStream.println(analyzer.aggregateResults());
-    }
-
-    private static void printSummary(List<AnalysisResult> analysisResults, PrintStream outStream) {
-        for (int i = 0; i < analysisResults.size(); i++) {
-            AnalysisResult analysisResult = analysisResults.get(i);
-            outStream.println(analysisResult);
-            if (i != analysisResults.size() - 1) {
-                outStream.println();
-            }
-        }
     }
 }
