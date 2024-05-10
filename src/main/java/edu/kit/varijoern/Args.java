@@ -1,6 +1,7 @@
 package edu.kit.varijoern;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.PathConverter;
 
 import java.nio.file.Path;
@@ -17,6 +18,9 @@ public class Args {
 
     @Parameter(description = "<path to configuration file>", required = true, converter = PathConverter.class)
     private Path config;
+
+    @ParametersDelegate
+    private ResultOutputArgs resultOutputArgs = new ResultOutputArgs();
 
     /**
      * Returns whether verbose logging is enabled. This corresponds to logging level DEBUG.
@@ -52,5 +56,14 @@ public class Args {
      */
     public boolean isHelp() {
         return help;
+    }
+
+    /**
+     * Returns information about the format of the output and its destination.
+     *
+     * @return information about the format of the output and its destination
+     */
+    public ResultOutputArgs getResultOutputArgs() {
+        return resultOutputArgs;
     }
 }

@@ -23,7 +23,9 @@ import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -46,6 +48,7 @@ public class Main {
             jCommander.parse(args);
         } catch (ParameterException e) {
             e.usage();
+            e.printStackTrace();
             System.exit(STATUS_COMMAND_LINE_USAGE_ERROR);
         }
         if (parsedArgs.isHelp()) {
@@ -78,10 +81,10 @@ public class Main {
             System.exit(STATUS_INVALID_CONFIG);
             return;
         }
-        System.exit(runUsingConfig(config));
+        System.exit(runUsingConfig(config, parsedArgs));
     }
 
-    private static int runUsingConfig(Config config) {
+    private static int runUsingConfig(Config config, Args args) {
         Path tmpDir;
         Path analyzerTmpDirectory;
         Path composerTmpDirectory;
@@ -182,18 +185,29 @@ public class Main {
             allAnalysisResults.addAll(iterationAnalysisResults);
         }
 
-        System.out.println("Summary:");
-        printSummary(allAnalysisResults);
-        System.out.println(analyzer.aggregateResults());
+        try {
+            printResult(allAnalysisResults, analyzer, args.getResultOutputArgs());
+        } catch (IOException e) {
+            logger.atError().withThrowable(e).log("Failed to print results");
+            return STATUS_IO_ERROR;
+        }
         return 0;
     }
 
-    private static void printSummary(List<AnalysisResult> analysisResults) {
+    private static void printResult(List<AnalysisResult> allAnalysisResults, Analyzer analyzer,
+                                    ResultOutputArgs outputArgs) throws IOException {
+        PrintStream outStream = outputArgs.getDestination().getStream();
+        outStream.println("Summary:");
+        printSummary(allAnalysisResults, outStream);
+        outStream.println(analyzer.aggregateResults());
+    }
+
+    private static void printSummary(List<AnalysisResult> analysisResults, PrintStream outStream) {
         for (int i = 0; i < analysisResults.size(); i++) {
             AnalysisResult analysisResult = analysisResults.get(i);
-            System.out.println(analysisResult);
+            outStream.println(analysisResult);
             if (i != analysisResults.size() - 1) {
-                System.out.println();
+                outStream.println();
             }
         }
     }
