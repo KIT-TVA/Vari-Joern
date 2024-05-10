@@ -2,6 +2,7 @@ package edu.kit.varijoern;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.ParameterException;
+import edu.kit.varijoern.output.JSONOutputFormatter;
 import edu.kit.varijoern.output.OutputFormatter;
 import edu.kit.varijoern.output.TextOutputFormatter;
 
@@ -11,11 +12,10 @@ import edu.kit.varijoern.output.TextOutputFormatter;
 public class OutputFormatterConverter implements IStringConverter<OutputFormatter> {
     @Override
     public OutputFormatter convert(String s) {
-        switch (s) {
-            case "text":
-                return new TextOutputFormatter();
-            default:
-                throw new ParameterException("Unknown output format: " + s);
-        }
+        return switch (s) {
+            case "text" -> new TextOutputFormatter();
+            case "json" -> new JSONOutputFormatter();
+            default -> throw new ParameterException("Unknown output format: " + s);
+        };
     }
 }

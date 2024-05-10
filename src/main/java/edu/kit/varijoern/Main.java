@@ -13,6 +13,7 @@ import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
+import edu.kit.varijoern.output.OutputData;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.apache.logging.log4j.LogManager;
@@ -187,8 +188,7 @@ public class Main {
 
         try {
             args.getResultOutputArgs().getFormatter().printResults(
-                    allAnalysisResults,
-                    analyzer.aggregateResults(),
+                    new OutputData(allAnalysisResults, analyzer.aggregateResults()),
                     args.getResultOutputArgs().getDestination().getStream()
             );
         } catch (IOException e) {

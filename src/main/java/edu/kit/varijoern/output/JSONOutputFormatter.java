@@ -1,0 +1,24 @@
+package edu.kit.varijoern.output;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import edu.kit.varijoern.analyzers.AggregatedAnalysisResult;
+import edu.kit.varijoern.analyzers.AnalysisResult;
+import org.prop4j.Node;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.List;
+
+public class JSONOutputFormatter implements OutputFormatter {
+    @Override
+    public void printResults(OutputData results, PrintStream outStream) throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new Jdk8Module());
+        SimpleModule nodeModule = new SimpleModule("NodeSerializer");
+        nodeModule.addSerializer(Node.class, new NodeSerializer());
+        objectMapper.registerModule(nodeModule);
+        objectMapper.writeValue(outStream, results);
+    }
+}
