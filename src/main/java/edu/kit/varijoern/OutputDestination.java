@@ -68,7 +68,12 @@ public class OutputDestination {
         if (path == null) {
             return System.out;
         }
-        Files.createDirectories(path.getParent());
+
+        Path parentDirectory = path.getParent();
+        if (parentDirectory != null) {
+            Files.createDirectories(parentDirectory);
+        }
+
         return new PrintStream(path.toFile());
     }
 }
