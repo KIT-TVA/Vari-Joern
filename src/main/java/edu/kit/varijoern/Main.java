@@ -24,9 +24,7 @@ import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -49,7 +47,6 @@ public class Main {
             jCommander.parse(args);
         } catch (ParameterException e) {
             e.usage();
-            e.printStackTrace();
             System.exit(STATUS_COMMAND_LINE_USAGE_ERROR);
         }
         if (parsedArgs.isHelp()) {

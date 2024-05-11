@@ -13,7 +13,7 @@ public class ResultOutputArgs {
             converter = OutputDestinationConverter.class)
     private OutputDestination destination = new OutputDestination();
 
-    @Parameter(names = {"-f", "--format"}, description = "Output format, allowed value: text (default)",
+    @Parameter(names = {"-f", "--format"}, description = "Output format, allowed values: text (default), json",
             converter = OutputFormatterConverter.class)
     private OutputFormatter formatter = new TextOutputFormatter();
 

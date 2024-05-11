@@ -5,7 +5,7 @@ import edu.kit.varijoern.analyzers.AnalysisResult;
 import java.io.PrintStream;
 
 /**
- * Formats the individualResults of the analysis into a human-readable text format.
+ * Formats the results of the analysis into a human-readable text format.
  */
 public class TextOutputFormatter implements OutputFormatter {
     @Override

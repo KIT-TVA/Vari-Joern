@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 
+/**
+ * Formats the results of the analysis into a JSON format.
+ */
 public class JSONOutputFormatter implements OutputFormatter {
     @Override
     public void printResults(OutputData results, PrintStream outStream) throws IOException {
