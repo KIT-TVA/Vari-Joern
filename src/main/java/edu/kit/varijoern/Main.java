@@ -13,6 +13,7 @@ import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
+import edu.kit.varijoern.output.OutputData;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.apache.logging.log4j.LogManager;
@@ -78,10 +79,10 @@ public class Main {
             System.exit(STATUS_INVALID_CONFIG);
             return;
         }
-        System.exit(runUsingConfig(config));
+        System.exit(runUsingConfig(config, parsedArgs));
     }
 
-    private static int runUsingConfig(Config config) {
+    private static int runUsingConfig(Config config, Args args) {
         Path tmpDir;
         Path analyzerTmpDirectory;
         Path composerTmpDirectory;
@@ -182,19 +183,15 @@ public class Main {
             allAnalysisResults.addAll(iterationAnalysisResults);
         }
 
-        System.out.println("Summary:");
-        printSummary(allAnalysisResults);
-        System.out.println(analyzer.aggregateResults());
-        return 0;
-    }
-
-    private static void printSummary(List<AnalysisResult> analysisResults) {
-        for (int i = 0; i < analysisResults.size(); i++) {
-            AnalysisResult analysisResult = analysisResults.get(i);
-            System.out.println(analysisResult);
-            if (i != analysisResults.size() - 1) {
-                System.out.println();
-            }
+        try {
+            args.getResultOutputArgs().getFormatter().printResults(
+                    new OutputData(allAnalysisResults, analyzer.aggregateResults()),
+                    args.getResultOutputArgs().getDestination().getStream()
+            );
+        } catch (IOException e) {
+            logger.atError().withThrowable(e).log("Failed to print results");
+            return STATUS_IO_ERROR;
         }
+        return 0;
     }
 }

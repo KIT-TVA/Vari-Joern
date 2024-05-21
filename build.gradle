@@ -28,6 +28,7 @@ dependencies {
     implementation 'org.jetbrains:annotations:23.0.0'
     implementation 'org.jodd:jodd-util:6.2.1'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
     implementation 'commons-io:commons-io:2.14.0'
     implementation 'com.beust:jcommander:1.82'
     implementation files('lib/superc.jar', 'lib/xtc.jar', 'lib/javabdd.jar')
