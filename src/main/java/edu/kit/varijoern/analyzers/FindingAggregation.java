@@ -1,5 +1,6 @@
 package edu.kit.varijoern.analyzers;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import org.prop4j.Node;
 
@@ -68,6 +69,7 @@ public class FindingAggregation {
      *
      * @return the original evidence locations
      */
+    @JsonProperty("evidence")
     public Set<SourceLocation> getOriginalEvidenceLocations() {
         return originalEvidenceLocations;
     }
