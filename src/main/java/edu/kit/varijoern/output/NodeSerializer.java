@@ -7,6 +7,9 @@ import org.prop4j.Node;
 
 import java.io.IOException;
 
+/**
+ * Serializes {@link Node} objects to strings using {@link Node#toString()}.
+ */
 public class NodeSerializer extends StdSerializer<Node> {
     public NodeSerializer() {
         this(null);

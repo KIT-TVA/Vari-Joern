@@ -9,6 +9,7 @@ import org.prop4j.Node;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -21,6 +22,7 @@ public class JSONOutputFormatter implements OutputFormatter {
         objectMapper.registerModule(new Jdk8Module());
         SimpleModule nodeModule = new SimpleModule("NodeSerializer");
         nodeModule.addSerializer(Node.class, new NodeSerializer());
+        nodeModule.addSerializer(Path.class, new PathSerializer());
         objectMapper.registerModule(nodeModule);
         objectMapper.writeValue(outStream, results);
     }
