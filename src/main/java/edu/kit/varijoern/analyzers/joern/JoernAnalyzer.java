@@ -84,28 +84,30 @@ public class JoernAnalyzer implements Analyzer {
     public AggregatedAnalysisResult aggregateResults() {
         // Group findings by their evidence and query name, store the analysis result retrieve the enabled features
         // and the feature mappers later
-        Map<?, List<Pair<JoernFinding, JoernAnalysisResult>>> groupedFindings =
+        Map<?, List<Pair<AnnotatedFinding, JoernAnalysisResult>>> groupedFindings =
                 this.allAnalysisResults.stream()
                         .flatMap(result -> result.getFindings().stream()
                                 .map(finding -> Pair.with(finding, result)))
                         .collect(Collectors.groupingBy(
                                 findingPair -> Pair.with(
-                                        findingPair.getValue0().getEvidence(),
-                                        findingPair.getValue0().getName()
+                                        findingPair.getValue0().originalEvidenceLocations(),
+                                        ((JoernFinding) findingPair.getValue0().finding()).getName()
                                 )
                         ));
         return new AggregatedAnalysisResult(groupedFindings
                 .values().stream()
                 .map(findingPairs -> {
                     // Use the first finding as all findings in this group are (likely) equal.
-                    JoernFinding firstFinding = findingPairs.get(0).getValue0();
+                    AnnotatedFinding firstAnnotatedFinding = findingPairs.get(0).getValue0();
+                    JoernFinding firstFinding = (JoernFinding) firstAnnotatedFinding.finding();
                     return new FindingAggregation(firstFinding,
                             findingPairs.stream()
                                     .map(findingPair -> findingPair.getValue1().getEnabledFeatures())
                                     .collect(Collectors.toSet()),
                             findingPairs.stream()
-                                    .map(findingPair -> findingPair.getValue1().featureMapper)
-                                    .toList()
+                                    .map(findingPair -> findingPair.getValue0().condition())
+                                    .collect(Collectors.toSet()),
+                            firstAnnotatedFinding.originalEvidenceLocations()
                     );
                 })
                 .collect(Collectors.toSet()));

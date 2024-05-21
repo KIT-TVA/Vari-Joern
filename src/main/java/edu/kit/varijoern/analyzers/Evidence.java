@@ -20,7 +20,7 @@ public class Evidence {
     /**
      * Creates a new {@link Evidence} containing the specified information.
      *
-     * @param filename   the name of the file in which this evidence was found
+     * @param filename   the name of the file in the composed source in which this evidence was found
      * @param lineNumber the line number of the location of the evidence
      */
     @JsonCreator
@@ -30,7 +30,7 @@ public class Evidence {
     }
 
     /**
-     * Returns the location of the evidence.
+     * Returns the location of the evidence in the composed source.
      *
      * @return the location of the evidence
      */

@@ -1,19 +1,24 @@
 package edu.kit.varijoern.analyzers.joern;
 
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.analyzers.Evidence;
+import edu.kit.varijoern.analyzers.AnnotatedFinding;
 import edu.kit.varijoern.composers.FeatureMapper;
+import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import org.prop4j.Node;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Contains information about the result of running a Joern scan.
  */
 public class JoernAnalysisResult extends AnalysisResult {
     private final List<JoernFinding> findings;
-    final FeatureMapper featureMapper;
-    private final SourceMap sourceMap;
 
     /**
      * Creates a new {@link JoernAnalysisResult} from a list of findings.
@@ -25,10 +30,8 @@ public class JoernAnalysisResult extends AnalysisResult {
      */
     public JoernAnalysisResult(List<JoernFinding> findings, Map<String, Boolean> enabledFeatures,
                                FeatureMapper featureMapper, SourceMap sourceMap) {
-        super(enabledFeatures);
+        super(enabledFeatures, featureMapper, sourceMap);
         this.findings = List.copyOf(findings);
-        this.featureMapper = featureMapper;
-        this.sourceMap = sourceMap;
     }
 
     /**
@@ -37,8 +40,25 @@ public class JoernAnalysisResult extends AnalysisResult {
      * @return a list of all findings
      */
     @Override
-    public List<JoernFinding> getFindings() {
-        return findings;
+    public List<AnnotatedFinding> getFindings() {
+        return findings.stream()
+                .map(finding -> {
+                    Evidence evidenceForConditionCalculation = finding.getEvidence().size() == 1
+                            ? finding.getEvidence().iterator().next()
+                            : null;
+                    Node condition = evidenceForConditionCalculation == null
+                            ? null
+                            : evidenceForConditionCalculation.getCondition(this.getFeatureMapper()).orElse(null);
+                    Set<SourceLocation> originalLocations = finding.getEvidence().stream()
+                            .map(currentEvidence -> currentEvidence.getLocation()
+                                    .flatMap(location -> this.getSourceMap().getOriginalLocation(location))
+                                    .orElse(null)
+                            )
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toSet());
+                    return new AnnotatedFinding(finding, originalLocations, condition);
+                })
+                .toList();
     }
 
     @Override
@@ -46,7 +66,7 @@ public class JoernAnalysisResult extends AnalysisResult {
         StringBuilder sb = new StringBuilder(super.toString());
         for (JoernFinding finding : this.findings) {
             sb.append(System.lineSeparator());
-            sb.append(finding.toString(this.featureMapper, this.sourceMap));
+            sb.append(finding.toString(this.getFeatureMapper(), this.getSourceMap()));
         }
         return sb.toString();
     }
