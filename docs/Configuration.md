@@ -26,32 +26,8 @@ Feature model readers create a feature model by reading it from a single file or
 
 The following feature model readers are available:
 
-### The `featureide-fm-reader` feature model reader
-
-This is the simplest available reader. It parses an existing FeatureIDE feature model file.
-It is configured using one option:
-
-- `path`
-    - Specifies the location of the FeatureIDE feature model file.
-      Relative paths are relative to the location of the configuration file.
-    - Optional: no
-
-### The `torte-kmax` feature model reader
-
-This reader extracts a feature model from a Kconfig files. It uses
-[torte](https://github.com/ekuiter/torte/tree/79a4df3) which is downloaded automatically but depends on Docker being
-installed and rootless mode being enabled.
-
-Tristate options are treated as boolean options. All options that are neither tristate nor boolean are ignored.
-
-The reader takes the following options:
-
-- `path`
-    - Specifies the source directory.
-      Relative paths are relative to the location of the configuration file.
-    - Optional: no
-- `system`
-    - Specifies the used Kconfig implementation. Currently, `busybox` and `linux` are supported.
+- [FeatureIDE feature model reader](feature-model-readers/FeatureIDE.md): Reads FeatureIDE models in XML format.
+- [Torte-kmax feature model reader](feature-model-readers/Torte-kmax.md): Extracts a feature model from Kconfig files.
 
 ## Samplers
 
@@ -61,73 +37,21 @@ Samplers may use the results of the analysis to optimize the set of feature comb
 
 The following samplers are available:
 
-### The `fixed` sampler
-
-This sampler always returns the specified set of features. It ignores the results of previous iterations. If the
-specified configuration contradicts the constraints of the feature model, the sampler will fail.
-
-Currently, one option is available:
-
-- `features`
-    - Specifies the set of features the sampler returns.
-    - Optional: no
-
-### The `t-wise` sampler
-
-This sampler returns a sample that achieves t-wise feature coverage.
-It takes one option:
-
-- `t`
-    - The parameter `t`. The sampler will try to cover all possible combinations of `t` features.
-      Should be less than or equal to the number of total features.
-    - Optional: no
+- [Fixed sampler](samplers/Fixed.md): Always returns the same set of features.
+- [T-Wise sampler](samplers/T-Wise.md): Returns a set of configurations that achieves t-wise coverage.
 
 ## Composers
 
 Composers create a variant of the software by enabling a set of features which has been chosen by a sampler.
 
-Currently, only one composer is available:
+The following composers are available:
 
-### The `antenna` composer
-
-The Antenna composer is a simple preprocessor for Java source files.
-
-It takes only one option:
-
-- `source`
-    - Specifies the location of the original source code which has not been preprocessed yet.
-      Relative paths are relative to the location of the configuration file.
-    - Optional: no
-
-### The `kbuild` composer
-
-The Kbuild composer generates variants for codebases that use the Kbuild build system. For more details on its
-limitations and how it works, see the
-[JavaDoc of the implementation](../src/main/java/edu/kit/varijoern/composers/kbuild/KbuildComposer.java).
-
-To use this composer, [kmax](https://github.com/paulgazz/kmax) needs to be installed and in the path variable.
-Vari-Joern has been tested with kmax version 4.5.2.
-
-The composer takes the following options:
-
-- `source`
-    - Specifies the location of the source code.
-      Relative paths are relative to the location of the configuration file.
-    - Optional: no
-- `system`
-    - Specifies the used Kconfig/Kbuild implementation. Currently, `busybox` and `linux` are supported.
-    - Optional: no
+- [Antenna composer](composers/Antenna.md): A simple preprocessor for Java source files.
+- [Kbuild composer](composers/Kbuild.md): A composer for Kbuild, the Linux kernel build system.
 
 ## Analyzers
 
-Analyzers are used to scan a composed software variant.
-
-Only Joern is supported at the moment. Joern takes the following option:
-
-- `joern-path`
-    - Specifies the path to the Joern executables. If this is empty, the system path is used. If a relative path is
-      specified, it is relative to the location of the configuration file.
-    - Optional: yes, default: `""`
+Analyzers are used to scan a composed software variant. Only [Joern](analyzers/Joern.md) is supported at the moment.
 
 ## Example configuration
 
@@ -135,6 +59,7 @@ A complete configuration file might look like this:
 
 ```toml
 [feature-model-reader]
+name = "featureide-fm-reader"
 path = "model.xml"
 
 [sampler]

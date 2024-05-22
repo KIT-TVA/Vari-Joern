@@ -21,21 +21,14 @@ public class JoernAnalyzerConfig extends AnalyzerConfig {
     /**
      * Creates a new {@link JoernAnalyzerConfig} by extracting data from the specified TOML section.
      *
-     * @param toml the TOML section
+     * @param toml       the TOML section
+     * @param configPath the path to the configuration file
+     * @param args       the command line arguments for the Joern analyzer
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public JoernAnalyzerConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
+    public JoernAnalyzerConfig(TomlTable toml, Path configPath, JoernArgs args) throws InvalidConfigException {
         super(toml);
-        try {
-            String rawJoernPath = toml.getString(JOERN_PATH_FIELD_NAME, () -> "");
-            Path joernPath = rawJoernPath.isEmpty() ? null : Path.of(rawJoernPath);
-            if (joernPath != null && !joernPath.isAbsolute()) {
-                joernPath = configPath.getParent().resolve(joernPath);
-            }
-            this.joernPath = joernPath;
-        } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Joern command is not a string");
-        }
+        this.joernPath = args.getJoernPath();
     }
 
     @Override

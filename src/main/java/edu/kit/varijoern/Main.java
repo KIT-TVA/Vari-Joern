@@ -5,16 +5,20 @@ import com.beust.jcommander.ParameterException;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.Analyzer;
+import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.composers.Composer;
+import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderConfigFactory;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.output.OutputData;
 import edu.kit.varijoern.samplers.Sampler;
+import edu.kit.varijoern.samplers.SamplerConfigFactory;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,8 +44,10 @@ public class Main {
 
     public static void main(String[] args) {
         Args parsedArgs = new Args();
-        JCommander jCommander = JCommander.newBuilder()
-                .addObject(parsedArgs)
+        JCommander.Builder jcommanderBuilder = JCommander.newBuilder()
+                .addObject(parsedArgs);
+        addComponentArgs(jcommanderBuilder);
+        JCommander jCommander = jcommanderBuilder
                 .build();
         try {
             jCommander.parse(args);
@@ -80,6 +86,19 @@ public class Main {
             return;
         }
         System.exit(runUsingConfig(config, parsedArgs));
+    }
+
+    private static void addComponentArgs(JCommander.Builder jcommanderBuilder) {
+        for (List<Object> componentArgs : List.of(
+                FeatureModelReaderConfigFactory.getComponentArgs(),
+                SamplerConfigFactory.getComponentArgs(),
+                ComposerConfigFactory.getComponentArgs(),
+                AnalyzerConfigFactory.getComponentArgs()
+        )) {
+            for (Object componentArg : componentArgs) {
+                jcommanderBuilder.addObject(componentArg);
+            }
+        }
     }
 
     private static int runUsingConfig(Config config, Args args) {

@@ -9,6 +9,7 @@ import edu.kit.varijoern.config.NamedComponentConfigFactory;
 import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * This class is used for parsing the composer section of a configuration file. It uses its {@code name} field to
@@ -29,9 +30,19 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
         return instance;
     }
 
+    /**
+     * Returns the objects into which the command line arguments for the composers should be parsed. These objects
+     * are static. Depending on the configuration, some objects may not be used.
+     *
+     * @return the objects into which the command line arguments for the composers should be parsed
+     */
+    public static List<Object> getComponentArgs() {
+        return List.of(); // Currently, no composer has command line arguments
+    }
+
     @Override
     protected ComposerConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
-        throws InvalidConfigException {
+            throws InvalidConfigException {
         return switch (componentName) {
             case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath);
             case KbuildComposer.NAME -> new KbuildComposerConfig(toml, configPath);
