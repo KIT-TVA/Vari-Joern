@@ -106,6 +106,7 @@ public class JoernAnalyzer implements Analyzer {
                                     .collect(Collectors.toSet()),
                             findingPairs.stream()
                                     .map(findingPair -> findingPair.getValue0().condition())
+                                    .filter(Objects::nonNull)
                                     .collect(Collectors.toSet()),
                             firstAnnotatedFinding.originalEvidenceLocations()
                     );

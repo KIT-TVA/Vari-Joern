@@ -1,9 +1,6 @@
 package edu.kit.varijoern.composers.kbuild;
 
-import edu.kit.varijoern.IllegalFeatureNameException;
-import edu.kit.varijoern.KconfigTestCaseManager;
-import edu.kit.varijoern.KconfigTestCasePreparer;
-import edu.kit.varijoern.PresenceConditionExpectation;
+import edu.kit.varijoern.*;
 import edu.kit.varijoern.composers.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.samplers.FixedSampler;
@@ -448,10 +445,8 @@ class KbuildComposerTest {
                     continue;
                 Node expectedPresenceCondition = presenceConditionExpectation.getPresenceCondition().get();
 
-                assertTrue(new Or(
-                                new And(expectedPresenceCondition, determinedPresenceCondition.get()),
-                                new And(new Not(expectedPresenceCondition), new Not(determinedPresenceCondition.get()))
-                        ).getContradictingAssignments().isEmpty(),
+                assertTrue(
+                        ConditionUtils.areEquivalent(expectedPresenceCondition, determinedPresenceCondition.get()),
                         "Presence condition of line %d of %s should be %s but was %s"
                                 .formatted(i, this.composedRelativePath, expectedPresenceCondition,
                                         determinedPresenceCondition.get())
