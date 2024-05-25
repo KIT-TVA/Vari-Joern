@@ -56,7 +56,7 @@ public class AntennaComposer implements Composer {
         } catch (PPException e) {
             throw new IllegalFeatureNameException(e);
         }
-        ConditionTreeFeatureMapper featureMapper = new ConditionTreeFeatureMapper();
+        ConditionTreePresenceConditionMapper presenceConditionMapper = new ConditionTreePresenceConditionMapper();
 
         try (Stream<Path> sourceFiles = Files.walk(this.sourceLocation)) {
             for (Path sourcePath : (Iterable<Path>) sourceFiles::iterator) {
@@ -82,14 +82,14 @@ public class AntennaComposer implements Composer {
                         lineVector.stream().collect(Collectors.joining(System.lineSeparator()))
                 );
 
-                featureMapper.tryAddFile(relativePath, lineVector.stream().toList());
+                presenceConditionMapper.tryAddFile(relativePath, lineVector.stream().toList());
             }
         }
         logger.info("Composer finished successfully");
         return new CompositionInformation(
                 destination,
                 features,
-                featureMapper,
+                presenceConditionMapper,
                 new IdentitySourceMap(),
                 List.of(new GenericLanguageInformation())
         );

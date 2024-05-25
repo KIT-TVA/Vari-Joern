@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  *     they are used in BusyBox.</li>
  * </ul>
  */
-public class LineFeatureMapper {
+public class LinePresenceConditionMapper {
     private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)|([A-Za-z0-9_]+)");
     // In busybox, enabled (non-module) tristate features are defined as CONFIG_<feature> as well as ENABLE_<feature>
     private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN =
@@ -42,7 +42,7 @@ public class LineFeatureMapper {
     private final int totalLines;
 
     /**
-     * Creates a new {@link LineFeatureMapper} for the specified file.
+     * Creates a new {@link LinePresenceConditionMapper} for the specified file.
      * <p>
      * The defines declared in {@code inclusionInformation} are considered to be enabled in every configuration because
      * there is currently no way to determine their conditions.
@@ -54,8 +54,8 @@ public class LineFeatureMapper {
      * @param knownFeatures        the features recorded in the feature model
      * @param system               the system the file belongs to. Currently, only {@code busybox} is supported.
      */
-    public LineFeatureMapper(InclusionInformation inclusionInformation, Path sourcePath, int addedLines,
-                             Set<String> knownFeatures, String system)
+    public LinePresenceConditionMapper(InclusionInformation inclusionInformation, Path sourcePath, int addedLines,
+                                       Set<String> knownFeatures, String system)
             throws IOException {
         if (!isSupportedSystem(system)) throw new UnsupportedOperationException("Only busybox is supported");
 
@@ -291,7 +291,7 @@ public class LineFeatureMapper {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("LineFeatureMapper{");
+        StringBuilder sb = new StringBuilder("LinePresenceConditionMapper{");
         int indent = 4 + (int) (Math.floor(Math.log10(this.totalLines))) + 1;
         for (int line = 0; line < this.totalLines; line++) {
             sb.append("\n").append(" ".repeat(indent)).append(line).append(": ");

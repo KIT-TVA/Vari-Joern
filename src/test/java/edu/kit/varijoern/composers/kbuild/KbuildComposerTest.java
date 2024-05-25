@@ -10,10 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.prop4j.And;
 import org.prop4j.Node;
-import org.prop4j.Not;
-import org.prop4j.Or;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -412,10 +409,10 @@ class KbuildComposerTest {
                 return;
             List<PresenceConditionExpectation> expectedPresenceConditions = expectedPresenceConditionsOptional.get();
 
-            FeatureMapper featureMapper = compositionInformation.getFeatureMapper();
+            PresenceConditionMapper presenceConditionMapper = compositionInformation.getPresenceConditionMapper();
             for (int i = 1; i <= expectedPresenceConditions.size(); i++) {
                 if (i <= this.expectedPrependedLines.size()) {
-                    assertTrue(featureMapper.getPresenceCondition(this.composedRelativePath, i).isEmpty(),
+                    assertTrue(presenceConditionMapper.getPresenceCondition(this.composedRelativePath, i).isEmpty(),
                             "Presence condition of line %d of %s should be absent"
                                     .formatted(i, this.composedRelativePath)
                     );
@@ -424,7 +421,7 @@ class KbuildComposerTest {
                 int originalLineIndex = i - 1 - this.expectedPrependedLines.size();
                 PresenceConditionExpectation presenceConditionExpectation =
                         expectedPresenceConditions.get(originalLineIndex);
-                Optional<Node> determinedPresenceCondition = featureMapper
+                Optional<Node> determinedPresenceCondition = presenceConditionMapper
                         .getPresenceCondition(this.composedRelativePath, i);
                 if (!presenceConditionExpectation.isOptional()) {
                     if (presenceConditionExpectation.getPresenceCondition().isEmpty()) {

@@ -1,6 +1,6 @@
 package edu.kit.varijoern.composers.antenna;
 
-import edu.kit.varijoern.composers.FeatureMapper;
+import edu.kit.varijoern.composers.PresenceConditionMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.prop4j.Node;
@@ -9,15 +9,15 @@ import java.nio.file.Path;
 import java.util.*;
 
 /**
- * A feature mapper for the Antenna composer. Builds a tree of {@code //#if} conditions for each file.
+ * A presence condition mapper for the Antenna composer. Builds a tree of {@code //#if} conditions for each file.
  */
-public class ConditionTreeFeatureMapper implements FeatureMapper {
+public class ConditionTreePresenceConditionMapper implements PresenceConditionMapper {
     private static final Logger logger = LogManager.getLogger();
     private final Map<Path, ConditionTree> trees = new HashMap<>();
 
     /**
      * Builds a condition tree for the specified file contents and stores them for use by
-     * {@link ConditionTreeFeatureMapper#getPresenceCondition(Path, int)}. The specified path is used to identify the tree.
+     * {@link ConditionTreePresenceConditionMapper#getPresenceCondition(Path, int)}. The specified path is used to identify the tree.
      *
      * @param path  the path to the file whose content is specified
      * @param lines the lines of the file

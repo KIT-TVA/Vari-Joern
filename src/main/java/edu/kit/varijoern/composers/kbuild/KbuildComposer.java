@@ -33,14 +33,14 @@ import java.util.stream.Stream;
  * defines to Joern.
  * <p>
  * The composer uses kmax to determine the presence conditions of the individual files
- * (see {@link KbuildFeatureMapperCreator}). The presence conditions of individual lines are determined using
- * SuperC (see {@link LineFeatureMapper}).
+ * (see {@link KbuildPresenceConditionMapperCreator}). The presence conditions of individual lines are determined using
+ * SuperC (see {@link LinePresenceConditionMapper}).
  * <p>
  * Currently, only the Kbuild and Kconfig variants of Linux and Busybox are supported. For Linux, no presence
  * conditions can be determined at the moment.
  * <h2>How it works</h2>
  * <ol>
- *     <li>If not yet done, create a {@link KbuildFeatureMapperCreator} which determines the presence conditions
+ *     <li>If not yet done, create a {@link KbuildPresenceConditionMapperCreator} which determines the presence conditions
  *     of most C files.</li>
  *     <li>Copy the source directory to a temporary directory.</li>
  *     <li>Generate a .config file based on the specified features:
@@ -64,7 +64,7 @@ import java.util.stream.Stream;
  *     <li>Copy the files determined in the previous step to the output directory and add {@code #define} and {@code #include}
  *     directives to non-header files.</li>
  *     <li>Determine the presence conditions of the individual lines of the files in the output directory. See
- *     {@link LineFeatureMapper} for details.</li>
+ *     {@link LinePresenceConditionMapper} for details.</li>
  * </ol>
  *
  * <h2>Issues</h2>
@@ -74,7 +74,7 @@ import java.util.stream.Stream;
  *         <li>The presence conditions of lines are determined using the include and define arguments to their
  *         respective GCC calls. These can vary depending on the variant analyzed and since the conditions of the
  *         compiler flags can't be determined, the extracted presence conditions can vary as well.</li>
- *         <li>See {@link KbuildFeatureMapperCreator} and {@link LineFeatureMapper} for more information.</li>
+ *         <li>See {@link KbuildPresenceConditionMapperCreator} and {@link LinePresenceConditionMapper} for more information.</li>
  *     </ul>
  *     </li>
  *     <li>Header files are copied to the output directory without adding define and include directives. This is
@@ -95,7 +95,7 @@ public class KbuildComposer implements Composer {
     private final String system;
     private final Path tmpPath;
     private final Path tmpSourcePath;
-    private KbuildFeatureMapperCreator featureMapperCreator = null;
+    private KbuildPresenceConditionMapperCreator presenceConditionMapperCreator = null;
 
     /**
      * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
@@ -124,8 +124,8 @@ public class KbuildComposer implements Composer {
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
-        if (this.featureMapperCreator == null) {
-            this.featureMapperCreator = new KbuildFeatureMapperCreator(this.tmpSourcePath, this.system,
+        if (this.presenceConditionMapperCreator == null) {
+            this.presenceConditionMapperCreator = new KbuildPresenceConditionMapperCreator(this.tmpSourcePath, this.system,
                     this.tmpPath, featureModel);
         }
 
@@ -134,7 +134,7 @@ public class KbuildComposer implements Composer {
         Map<Path, GenerationInformation> generationInformation = this.generateFiles(
                 includedFiles, destination, tmpSourcePath
         );
-        Map<Path, LineFeatureMapper> lineFeatureMappers = this.createLineFeatureMappers(
+        Map<Path, LinePresenceConditionMapper> linePresenceConditionMappers = this.createLinePresenceConditionMappers(
                 generationInformation,
                 includedFiles,
                 featureModel.getFeatures().stream()
@@ -145,7 +145,8 @@ public class KbuildComposer implements Composer {
         return new CompositionInformation(
                 destination,
                 features,
-                this.featureMapperCreator.createFeatureMapper(generationInformation, lineFeatureMappers),
+                this.presenceConditionMapperCreator.createPresenceConditionMapper(generationInformation,
+                        linePresenceConditionMappers),
                 new KbuildComposerSourceMap(generationInformation),
                 List.of(new CCPPLanguageInformation(
                         includedFiles.stream()
@@ -479,22 +480,24 @@ public class KbuildComposer implements Composer {
         ));
     }
 
-    private Map<Path, LineFeatureMapper> createLineFeatureMappers(Map<Path, GenerationInformation> generationInformation,
-                                                                  Set<Dependency> dependencies,
-                                                                  Set<String> knownFeatures,
-                                                                  Path tmpSourcePath)
+    private Map<Path, LinePresenceConditionMapper> createLinePresenceConditionMappers(
+            Map<Path, GenerationInformation> generationInformation,
+            Set<Dependency> dependencies,
+            Set<String> knownFeatures,
+            Path tmpSourcePath)
             throws IOException, ComposerException {
-        if (!LineFeatureMapper.isSupportedSystem(this.system)) {
-            logger.warn("System {} is not supported, skipping line feature mapper creation", this.system);
+        if (!LinePresenceConditionMapper.isSupportedSystem(this.system)) {
+            logger.warn("System {} is not supported, skipping line presence condition mapper creation",
+                    this.system);
             return Map.of();
         }
 
-        logger.info("Creating line feature mappers");
+        logger.info("Creating line presence condition mappers");
 
         // Clean up to ensure that the header file containing config definitions doesn't exist
         this.runMake("clean");
 
-        Map<Path, LineFeatureMapper> lineFeatureMappers = new HashMap<>();
+        Map<Path, LinePresenceConditionMapper> linePresenceConditionMappers = new HashMap<>();
         Map<Path, Dependency> dependenciesByPath = dependencies.stream()
                 .collect(Collectors.toMap(Dependency::getFilePath, dependency -> dependency));
         for (Map.Entry<Path, GenerationInformation> entry : generationInformation.entrySet()) {
@@ -504,16 +507,16 @@ public class KbuildComposer implements Composer {
             if (!(dependency instanceof CompiledDependency)) {
                 continue;
             }
-            logger.debug("Creating line feature mapper for {}", entry.getKey());
+            logger.debug("Creating line presence condition mapper for {}", entry.getKey());
             InclusionInformation inclusionInformation = ((CompiledDependency) dependency).getInclusionInformation();
-            lineFeatureMappers.put(
+            linePresenceConditionMappers.put(
                     generatedFilePath,
-                    new LineFeatureMapper(inclusionInformation, tmpSourcePath, fileGenerationInformation.addedLines(),
-                            knownFeatures, this.system)
+                    new LinePresenceConditionMapper(inclusionInformation, tmpSourcePath,
+                            fileGenerationInformation.addedLines(), knownFeatures, this.system)
             );
         }
 
-        return lineFeatureMappers;
+        return linePresenceConditionMappers;
     }
 
     /**

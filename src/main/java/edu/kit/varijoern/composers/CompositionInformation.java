@@ -12,24 +12,24 @@ import java.util.Map;
 public class CompositionInformation {
     private final Path location;
     private final Map<String, Boolean> enabledFeatures;
-    private final FeatureMapper featureMapper;
+    private final PresenceConditionMapper presenceConditionMapper;
     private final SourceMap sourceMap;
     private final List<LanguageInformation> languageInformation;
 
     /**
      * Creates a new {@link CompositionInformation} instance.
      *
-     * @param location            the location of the composed code. See {@link CompositionInformation#getLocation()}.
-     * @param enabledFeatures     a map of feature names to their enabled status at the time of composition
-     * @param featureMapper       a {@link FeatureMapper} for this composition result
-     * @param sourceMap           a {@link SourceMap} for this composition result
-     * @param languageInformation relevant details about how the languages in the composition should be handled
+     * @param location                the location of the composed code. See {@link CompositionInformation#getLocation()}.
+     * @param enabledFeatures         a map of feature names to their enabled status at the time of composition
+     * @param presenceConditionMapper a {@link PresenceConditionMapper} for this composition result
+     * @param sourceMap               a {@link SourceMap} for this composition result
+     * @param languageInformation     relevant details about how the languages in the composition should be handled
      */
-    public CompositionInformation(Path location, Map<String, Boolean> enabledFeatures, FeatureMapper featureMapper,
+    public CompositionInformation(Path location, Map<String, Boolean> enabledFeatures, PresenceConditionMapper presenceConditionMapper,
                                   SourceMap sourceMap, List<LanguageInformation> languageInformation) {
         this.location = location;
         this.enabledFeatures = enabledFeatures;
-        this.featureMapper = featureMapper;
+        this.presenceConditionMapper = presenceConditionMapper;
         this.sourceMap = sourceMap;
         this.languageInformation = languageInformation;
     }
@@ -54,12 +54,12 @@ public class CompositionInformation {
     }
 
     /**
-     * Returns the feature mapper for the composition result.
+     * Returns the presence condition mapper for the composition result.
      *
-     * @return a feature mapper
+     * @return a presence condition mapper
      */
-    public FeatureMapper getFeatureMapper() {
-        return featureMapper;
+    public PresenceConditionMapper getPresenceConditionMapper() {
+        return presenceConditionMapper;
     }
 
     /**

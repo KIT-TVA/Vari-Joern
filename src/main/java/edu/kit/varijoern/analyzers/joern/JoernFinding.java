@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.Finding;
-import edu.kit.varijoern.composers.FeatureMapper;
+import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 
 import java.util.Set;
@@ -102,15 +102,15 @@ public class JoernFinding implements Finding {
      * Converts this finding to a string containing information about conditions under which evidence lines are included
      * in the composed code.
      *
-     * @param featureMapper the feature mapper to be used
+     * @param presenceConditionMapper the presence condition mapper to be used
      * @param sourceMap     the source map to be used to determine the location of the evidences in the original source
      * @return a string representing this finding
      */
-    public String toString(FeatureMapper featureMapper, SourceMap sourceMap) {
+    public String toString(PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap) {
         return "%s: %s at %s".formatted(this.title,
                 this.score,
                 this.evidence.stream()
-                        .map(evidence -> evidence.toString(featureMapper, sourceMap))
+                        .map(evidence -> evidence.toString(presenceConditionMapper, sourceMap))
                         .collect(Collectors.joining(", "))
         );
     }

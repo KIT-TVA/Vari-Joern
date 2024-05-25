@@ -73,7 +73,7 @@ public class JoernAnalyzer implements Analyzer {
         }
         JoernAnalysisResult result = new JoernAnalysisResult(findings,
                 compositionInformation.getEnabledFeatures(),
-                compositionInformation.getFeatureMapper(),
+                compositionInformation.getPresenceConditionMapper(),
                 compositionInformation.getSourceMap());
         this.allAnalysisResults.add(result);
         logger.info("Analysis finished");
@@ -83,7 +83,7 @@ public class JoernAnalyzer implements Analyzer {
     @Override
     public AggregatedAnalysisResult aggregateResults() {
         // Group findings by their evidence and query name, store the analysis result retrieve the enabled features
-        // and the feature mappers later
+        // and the presence condition mappers later
         Map<?, List<Pair<AnnotatedFinding, JoernAnalysisResult>>> groupedFindings =
                 this.allAnalysisResults.stream()
                         .flatMap(result -> result.getFindings().stream()

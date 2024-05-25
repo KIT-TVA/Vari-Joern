@@ -1,7 +1,7 @@
 package edu.kit.varijoern.analyzers;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import edu.kit.varijoern.composers.FeatureMapper;
+import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 
 import java.util.List;
@@ -11,13 +11,13 @@ import java.util.Map;
  * Contains information about the weaknesses an analyzer found in a single variant.
  */
 public abstract class AnalysisResult {
-    private final FeatureMapper featureMapper;
+    private final PresenceConditionMapper presenceConditionMapper;
     private final SourceMap sourceMap;
     private final Map<String, Boolean> enabledFeatures;
 
-    protected AnalysisResult(Map<String, Boolean> enabledFeatures, FeatureMapper featureMapper, SourceMap sourceMap) {
+    protected AnalysisResult(Map<String, Boolean> enabledFeatures, PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap) {
         this.enabledFeatures = Map.copyOf(enabledFeatures);
-        this.featureMapper = featureMapper;
+        this.presenceConditionMapper = presenceConditionMapper;
         this.sourceMap = sourceMap;
     }
 
@@ -31,13 +31,13 @@ public abstract class AnalysisResult {
     }
 
     /**
-     * Returns the feature mapper for the variant that was analyzed.
+     * Returns the presence condition mapper for the variant that was analyzed.
      *
-     * @return the feature mapper
+     * @return the presence condition mapper
      */
     @JsonIgnore
-    public FeatureMapper getFeatureMapper() {
-        return featureMapper;
+    public PresenceConditionMapper getPresenceConditionMapper() {
+        return presenceConditionMapper;
     }
 
     /**

@@ -24,8 +24,8 @@ public class FindingAggregation {
      *
      * @param finding                   the finding
      * @param affectedAnalyzedVariants  the variants in which the finding was found
-     * @param possibleConditions        the presence conditions determined using the feature mappers for the affected
-     *                                  analyzed variants
+     * @param possibleConditions        the presence conditions determined using the presence condition mappers for the
+     *                                  affected analyzed variants
      * @param originalEvidenceLocations the original source locations of the evidence that caused the finding
      */
     public FindingAggregation(Finding finding, Set<Map<String, Boolean>> affectedAnalyzedVariants,
@@ -55,8 +55,9 @@ public class FindingAggregation {
     }
 
     /**
-     * Returns the presence conditions determined using the feature mappers for the affected analyzed variants. If a
-     * condition could not be determined using a feature mapper, it is not included in the result.
+     * Returns the presence conditions determined using the presence condition mappers for the affected analyzed
+     * variants. If a condition could not be determined using a presence condition mapper, it is not included in the
+     * result.
      *
      * @return the presence conditions
      */

@@ -8,7 +8,7 @@ import java.util.Optional;
 /**
  * An interface for determining the presence conditions of individual code lines.
  */
-public interface FeatureMapper {
+public interface PresenceConditionMapper {
     /**
      * Tries to determine the presence condition of the specified code line. The condition
      * may not be met by the feature combination used by the composer. For example, the Antenna composer only comments
