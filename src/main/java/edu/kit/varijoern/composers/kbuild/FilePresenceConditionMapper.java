@@ -21,19 +21,19 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * A class used to create {@link KbuildPresenceConditionMapper}s. Computes the presence conditions of source files using kmax.
+ * A class used to compute the presence conditions of source files using kmax.
  * There are a few cases in which no presence condition can be determined:
  * <ul>
  *     <li>The file is does not include kbuild information (e.g. header files and generated files).</li>
  *     <li>The condition found by kmax includes unknown options.</li>
  * </ul>
  */
-public class KbuildPresenceConditionMapperCreator {
+public class FilePresenceConditionMapper {
     private static final Logger logger = LogManager.getLogger();
     private final Map<Path, Node> filePresenceConditions = new HashMap<>();
 
     /**
-     * Creates a new {@link KbuildPresenceConditionMapperCreator} and tries computes the presence conditions of the files in the
+     * Creates a new {@link FilePresenceConditionMapper} and tries computes the presence conditions of the files in the
      * specified source directory.
      *
      * @param sourcePath     the path to the source directory
@@ -43,7 +43,7 @@ public class KbuildPresenceConditionMapperCreator {
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if kmax fails or the presence conditions cannot be parsed
      */
-    public KbuildPresenceConditionMapperCreator(Path sourcePath, String system, Path composerTmpDir, IFeatureModel featureModel)
+    public FilePresenceConditionMapper(Path sourcePath, String system, Path composerTmpDir, IFeatureModel featureModel)
             throws IOException, ComposerException {
         this.createKmaxallScript(composerTmpDir);
         if (system.equals("busybox")) {
@@ -133,11 +133,13 @@ public class KbuildPresenceConditionMapperCreator {
         }
     }
 
-    public KbuildPresenceConditionMapper createPresenceConditionMapper(
-            Map<Path, GenerationInformation> generationInformationMap,
-            Map<Path, LinePresenceConditionMapper> linePresenceConditionMappers
-    ) {
-        return new KbuildPresenceConditionMapper(this.filePresenceConditions, linePresenceConditionMappers,
-                generationInformationMap);
+    /**
+     * Returns the presence condition of the specified file if it could be determined.
+     *
+     * @param path the path to the (compiled) object file, relative to the source directory
+     * @return the presence condition of the file or an empty optional if the presence condition could not be determined
+     */
+    public Optional<Node> getPresenceCondition(Path path) {
+        return Optional.ofNullable(this.filePresenceConditions.get(path));
     }
 }

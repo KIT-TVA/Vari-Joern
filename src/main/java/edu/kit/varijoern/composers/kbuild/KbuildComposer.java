@@ -33,14 +33,14 @@ import java.util.stream.Stream;
  * defines to Joern.
  * <p>
  * The composer uses kmax to determine the presence conditions of the individual files
- * (see {@link KbuildPresenceConditionMapperCreator}). The presence conditions of individual lines are determined using
+ * (see {@link FilePresenceConditionMapper}). The presence conditions of individual lines are determined using
  * SuperC (see {@link LinePresenceConditionMapper}).
  * <p>
  * Currently, only the Kbuild and Kconfig variants of Linux and Busybox are supported. For Linux, no presence
  * conditions can be determined at the moment.
  * <h2>How it works</h2>
  * <ol>
- *     <li>If not yet done, create a {@link KbuildPresenceConditionMapperCreator} which determines the presence conditions
+ *     <li>If not yet done, create a {@link FilePresenceConditionMapper} which determines the presence conditions
  *     of most C files.</li>
  *     <li>Copy the source directory to a temporary directory.</li>
  *     <li>Generate a .config file based on the specified features:
@@ -74,7 +74,7 @@ import java.util.stream.Stream;
  *         <li>The presence conditions of lines are determined using the include and define arguments to their
  *         respective GCC calls. These can vary depending on the variant analyzed and since the conditions of the
  *         compiler flags can't be determined, the extracted presence conditions can vary as well.</li>
- *         <li>See {@link KbuildPresenceConditionMapperCreator} and {@link LinePresenceConditionMapper} for more information.</li>
+ *         <li>See {@link FilePresenceConditionMapper} and {@link LinePresenceConditionMapper} for more information.</li>
  *     </ul>
  *     </li>
  *     <li>Header files are copied to the output directory without adding define and include directives. This is
@@ -95,7 +95,7 @@ public class KbuildComposer implements Composer {
     private final String system;
     private final Path tmpPath;
     private final Path tmpSourcePath;
-    private KbuildPresenceConditionMapperCreator presenceConditionMapperCreator = null;
+    private FilePresenceConditionMapper filePresenceConditionMapper = null;
 
     /**
      * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
@@ -124,8 +124,8 @@ public class KbuildComposer implements Composer {
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
-        if (this.presenceConditionMapperCreator == null) {
-            this.presenceConditionMapperCreator = new KbuildPresenceConditionMapperCreator(this.tmpSourcePath, this.system,
+        if (this.filePresenceConditionMapper == null) {
+            this.filePresenceConditionMapper = new FilePresenceConditionMapper(this.tmpSourcePath, this.system,
                     this.tmpPath, featureModel);
         }
 
@@ -145,8 +145,8 @@ public class KbuildComposer implements Composer {
         return new CompositionInformation(
                 destination,
                 features,
-                this.presenceConditionMapperCreator.createPresenceConditionMapper(generationInformation,
-                        linePresenceConditionMappers),
+                new KbuildPresenceConditionMapper(this.filePresenceConditionMapper, linePresenceConditionMappers,
+                        generationInformation),
                 new KbuildComposerSourceMap(generationInformation),
                 List.of(new CCPPLanguageInformation(
                         includedFiles.stream()
