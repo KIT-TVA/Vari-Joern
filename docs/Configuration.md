@@ -17,7 +17,7 @@ For example, the `fixed` sampler could be configured as follows:
 ```toml
 [sampler]
 name = "fixed"
-features = ["MyAwesomeFeature", "AnotherFeature"]
+features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
 ```
 
 ## Feature model readers
@@ -64,7 +64,7 @@ path = "model.xml"
 
 [sampler]
 name = "fixed"
-features = ["MyAmazingFeature"]
+features = [["MyAmazingFeature"]]
 
 [composer]
 name = "antenna"

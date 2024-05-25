@@ -6,48 +6,55 @@ import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * This sampler always returns a sampler containing a single configuration. This configuration is specified by the
- * user in the configuration file.
+ * This sampler always returns the same sample. This sample is specified by the user in the configuration
+ * file.
  */
 public class FixedSampler implements Sampler {
     /**
      * The name of this {@link Sampler} implementation
      */
     public static final String NAME = "fixed";
-    private final List<String> enabledFeatures;
+    private final List<List<String>> enabledFeaturesOfConfigurations;
     private final IFeatureModel featureModel;
 
     /**
-     * Creates a new {@link FixedSampler} which always returns the specified configuration.
+     * Creates a new {@link FixedSampler} which always returns the specified configurations.
      *
-     * @param enabledFeatures the features enabled in the configuration
-     * @param featureModel    the feature model
+     * @param enabledFeaturesOfConfigurations the features enabled in the configuration
+     * @param featureModel                    the feature model
      */
-    public FixedSampler(List<String> enabledFeatures, IFeatureModel featureModel) {
-        this.enabledFeatures = List.copyOf(enabledFeatures);
+    public FixedSampler(List<List<String>> enabledFeaturesOfConfigurations, IFeatureModel featureModel) {
+        this.enabledFeaturesOfConfigurations = enabledFeaturesOfConfigurations.stream()
+                .map(List::copyOf)
+                .toList();
         this.featureModel = featureModel;
     }
 
     @Override
     public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
-        Map<String, Boolean> result = this.featureModel.getFeatures().stream()
-                .collect(Collectors.toMap(IFeature::getName, feature -> false));
-        for (String feature : this.enabledFeatures) {
-            if (result.put(feature, true) == null) {
-                throw new SamplerException("Feature %s does not exist in the feature model".formatted(feature));
+        List<Map<String, Boolean>> result = new ArrayList<>();
+        for (List<String> enabledFeaturesOfConfiguration : this.enabledFeaturesOfConfigurations) {
+            Map<String, Boolean> configuration = this.featureModel.getFeatures().stream()
+                    .collect(Collectors.toMap(IFeature::getName, feature -> false));
+            for (String feature : enabledFeaturesOfConfiguration) {
+                if (configuration.put(feature, true) == null) {
+                    throw new SamplerException("Feature %s does not exist in the feature model".formatted(feature));
+                }
             }
-        }
-        for (IConstraint constraint : this.featureModel.getConstraints()) {
-            if (!constraint.getNode().getValue(Collections.unmodifiableMap(result))) {
-                throw new SamplerException("Configuration does not satisfy constraint %s".formatted(constraint));
+            for (IConstraint constraint : this.featureModel.getConstraints()) {
+                if (!constraint.getNode().getValue(Collections.unmodifiableMap(configuration))) {
+                    throw new SamplerException("Configuration does not satisfy constraint %s".formatted(constraint));
+                }
             }
+            result.add(configuration);
         }
-        return List.of(result);
+        return result;
     }
 }

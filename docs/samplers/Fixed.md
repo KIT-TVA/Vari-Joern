@@ -8,7 +8,8 @@ the feature model, the sampler will fail.
 The fixed sampler is configured using the following option:
 
 - `features`
-    - Specifies the set of features the sampler returns.
+    - Specifies the sample the sampler returns. This is an array of configurations. Each configuration is an array of
+      enabled features.
     - Optional: no
 
 For example, the sampler could be configured as follows:
@@ -16,5 +17,5 @@ For example, the sampler could be configured as follows:
 ```toml
 [sampler]
 name = "fixed"
-features = ["MyAwesomeFeature", "AnotherFeature"]
+features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
 ```

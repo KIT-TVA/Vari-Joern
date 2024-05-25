@@ -207,7 +207,7 @@ class KbuildComposerTest {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name, preparer);
         Map<String, Boolean> featureMap;
         try {
-            featureMap = new FixedSampler(testCase.enabledFeatures, testCaseManager.getCorrectFeatureModel())
+            featureMap = new FixedSampler(List.of(testCase.enabledFeatures), testCaseManager.getCorrectFeatureModel())
                     .sample(List.of())
                     .get(0);
         } catch (SamplerException e) {

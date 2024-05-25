@@ -15,7 +15,7 @@ import java.util.Objects;
  */
 public class FixedSamplerConfig extends SamplerConfig {
     private static final String FEATURES_FIELD_NAME = "features";
-    private final List<String> features;
+    private final List<List<String>> sample;
 
     /**
      * Creates a new {@link FixedSamplerConfig} by extracting data from the specified TOML section.
@@ -27,29 +27,44 @@ public class FixedSamplerConfig extends SamplerConfig {
         super(toml);
         if (!toml.isArray(FEATURES_FIELD_NAME))
             throw new InvalidConfigException("Features for fixed sampler are missing or not an array");
-        TomlArray featuresTomlArray = Objects.requireNonNull(toml.getArray(FEATURES_FIELD_NAME));
-        List<String> features = new ArrayList<>();
-        for (int i = 0; i < featuresTomlArray.size(); i++) {
+        TomlArray configurationsTomlArray = Objects.requireNonNull(toml.getArray(FEATURES_FIELD_NAME));
+        List<List<String>> configurations = new ArrayList<>();
+        for (int i = 0; i < configurationsTomlArray.size(); i++) {
+            TomlArray featuresTomlArray;
             try {
-                features.add(featuresTomlArray.getString(i));
+                featuresTomlArray = configurationsTomlArray.getArray(i);
             } catch (TomlInvalidTypeException e) {
-                throw new InvalidConfigException("One of the features for the fixed sampler is not a string", e);
+                throw new InvalidConfigException("One of the configurations for the fixed sampler is not an array", e);
             }
+            List<String> features = new ArrayList<>();
+            for (int j = 0; j < featuresTomlArray.size(); j++) {
+                try {
+                    features.add(featuresTomlArray.getString(j));
+                } catch (TomlInvalidTypeException e) {
+                    throw new InvalidConfigException(
+                            "One of the features of configuration %d for the fixed sampler is not a string."
+                                    .formatted(i),
+                            e
+                    );
+                }
+            }
+            configurations.add(features);
         }
-        this.features = List.copyOf(features);
+        this.sample = List.copyOf(configurations);
     }
 
     @Override
     public Sampler newSampler(IFeatureModel featureModel) {
-        return new FixedSampler(this.features, featureModel);
+        return new FixedSampler(this.sample, featureModel);
     }
 
     /**
-     * Returns the configuration to be returned by the sampler as specified by the configuration file.
+     * Returns the sample to be returned by the sampler as specified by the configuration file.
      *
-     * @return the features enabled in the configuration
+     * @return the features enabled in each of the configurations. One entry of the top-level list corresponds to one
+     * configuration.
      */
-    public List<String> getFeatures() {
-        return features;
+    public List<List<String>> getSample() {
+        return this.sample;
     }
 }
