@@ -228,7 +228,7 @@ class KbuildComposerTest {
                     destinationDirectory,
                     testCaseManager.getCorrectFeatureModel()
             );
-        } catch (IllegalFeatureNameException | ComposerException e) {
+        } catch (ComposerException e) {
             throw new RuntimeException(e);
         }
 

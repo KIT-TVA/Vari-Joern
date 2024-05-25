@@ -2,7 +2,6 @@ package edu.kit.varijoern.analyzers.joern;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.ConditionUtils;
-import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.KconfigTestCaseManager;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.analyzers.AnnotatedFinding;
@@ -37,8 +36,7 @@ class JoernAnalyzerTest {
      * Tests the analysis of the BusyBox sample with two different configurations.
      */
     @Test
-    void analyze() throws IOException, GitAPIException, ComposerException, IllegalFeatureNameException,
-            AnalyzerFailureException {
+    void analyze() throws IOException, GitAPIException, ComposerException, AnalyzerFailureException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("busybox-sample");
 
         List<Map<String, Boolean>> configurations = Stream.of(
@@ -98,7 +96,7 @@ class JoernAnalyzerTest {
 
     private JoernAnalysisResult analyzeVariant(Map<String, Boolean> configuration, IFeatureModel featureModel,
                                                Composer composer, JoernAnalyzer analyzer, Path destinationDirectory)
-            throws IllegalFeatureNameException, ComposerException, IOException, AnalyzerFailureException {
+            throws ComposerException, IOException, AnalyzerFailureException {
         CompositionInformation compositionInformation = composer.compose(configuration, destinationDirectory,
                 featureModel);
         return analyzer.analyze(compositionInformation);

@@ -178,9 +178,6 @@ public class Main {
                 CompositionInformation composedSourceLocation;
                 try {
                     composedSourceLocation = composer.compose(features, composerDestination, featureModel);
-                } catch (IllegalFeatureNameException e) {
-                    logger.atFatal().withThrowable(e).log("Invalid feature name has been found");
-                    return STATUS_INVALID_CONFIG;
                 } catch (IOException e) {
                     logger.atFatal().withThrowable(e).log("An IO error occurred:");
                     return STATUS_IO_ERROR;
