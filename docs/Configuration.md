@@ -59,7 +59,7 @@ A complete configuration file might look like this:
 
 ```toml
 [feature-model-reader]
-name = "featureide-fm-reader"
+name = "featureide"
 path = "model.xml"
 
 [sampler]

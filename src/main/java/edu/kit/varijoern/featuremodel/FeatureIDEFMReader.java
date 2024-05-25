@@ -16,7 +16,7 @@ import java.nio.file.Path;
  * Reads a feature model from a FeatureIDE feature model file.
  */
 public class FeatureIDEFMReader implements FeatureModelReader {
-    public static final String NAME = "featureide-fm-reader";
+    public static final String NAME = "featureide";
     private static boolean featureIDEInitialized = false;
     private static final Logger logger = LogManager.getLogger();
 
