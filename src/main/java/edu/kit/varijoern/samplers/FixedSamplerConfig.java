@@ -45,9 +45,9 @@ public class FixedSamplerConfig extends SamplerConfig {
     }
 
     /**
-     * Returns the feature combination to be returned by the sampler as specified by the configuration file.
+     * Returns the configuration to be returned by the sampler as specified by the configuration file.
      *
-     * @return the feature combination
+     * @return the features enabled in the configuration
      */
     public List<String> getFeatures() {
         return features;

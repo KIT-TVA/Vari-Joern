@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface PresenceConditionMapper {
     /**
      * Tries to determine the presence condition of the specified code line. The condition
-     * may not be met by the feature combination used by the composer. For example, the Antenna composer only comments
+     * may not be met by the configuration used by the composer. For example, the Antenna composer only comments
      * lines out. These lines are still present in the composed file and a (unmet) condition can be determined.
      *
      * @param file       the path to the file, relative to the output directory of the composer

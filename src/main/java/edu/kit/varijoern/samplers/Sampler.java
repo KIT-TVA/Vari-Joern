@@ -7,15 +7,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Samplers return a list of feature combinations to be scanned in each iteration. Each iteration may use the analysis
- * results of previous iterations to optimize the sample for the next iteration.
+ * Samplers return a list of configurations to be scanned in each iteration. Each iteration may use the analysis results
+ * of previous iterations to optimize the sample for the next iteration.
  */
 public interface Sampler {
     /**
-     * Returns a sample of feature combinations.
+     * Returns a sample of configurations.
      *
-     * @param analysisResults the analysis results of the feature combinations of the previous iteration
-     * @return a list of feature combinations
+     * @param analysisResults the analysis results of the configurations of the previous iteration
+     * @return a list of configurations
      */
-    @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException;
+    @NotNull
+    List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException;
 }

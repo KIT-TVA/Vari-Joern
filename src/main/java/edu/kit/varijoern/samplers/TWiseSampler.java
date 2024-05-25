@@ -30,11 +30,11 @@ public class TWiseSampler implements Sampler {
     private final int maxSampleSize;
 
     /**
-     * Creates a new {@link TWiseSampler} which generates sampler for the specified feature model.
+     * Creates a new {@link TWiseSampler} which generates samples for the specified feature model.
      *
      * @param featureModel  the feature model
      * @param t             the parameter t
-     * @param maxSampleSize the maximum number of combinations to be generated
+     * @param maxSampleSize the maximum number of configurations to be generated
      */
     public TWiseSampler(IFeatureModel featureModel, int t, int maxSampleSize) {
         this.featureModel = featureModel;
@@ -59,10 +59,10 @@ public class TWiseSampler implements Sampler {
         Variables variables = cnf.getVariables();
         List<List<String>> enabledFeatures = rawSample.stream().map(variables::convertToString).toList();
         List<Map<String, Boolean>> result = new ArrayList<>();
-        for (List<String> featureCombination : enabledFeatures) {
+        for (List<String> configuration : enabledFeatures) {
             Map<String, Boolean> assignment = this.featureModel.getFeatures().stream()
                 .collect(Collectors.toMap(IFeature::getName, feature -> false));
-            for (String feature : featureCombination) {
+            for (String feature : configuration) {
                 if (assignment.put(feature, true) == null) {
                     throw new SamplerException("Feature %s does not exist in the feature model".formatted(feature));
                 }
