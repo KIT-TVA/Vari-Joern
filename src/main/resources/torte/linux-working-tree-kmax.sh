@@ -4,8 +4,8 @@
 # In that case, make sure to check out the correct revision manually and run ./torte.sh <this-file>.
 TORTE_REVISION=79a4df3; [[ $TOOL != torte ]] && builtin source <(curl -fsSL https://raw.githubusercontent.com/ekuiter/torte/$TORTE_REVISION/torte.sh) "$@"
 
-INPUT_DIRECTORY=$TORTE_INPUT_DIRECTORY
-OUTPUT_DIRECTORY=$TORTE_OUTPUT_DIRECTORY
+export INPUT_DIRECTORY=$TORTE_INPUT_DIRECTORY
+export OUTPUT_DIRECTORY=$TORTE_OUTPUT_DIRECTORY
 
 # This experiment extracts and transforms a single feature model from a recent revision of the Linux kernel.
 
@@ -14,7 +14,7 @@ experiment-subjects() {
 }
 
 experiment-stages() {
-    push $INPUT_DIRECTORY/linux
+    push "$INPUT_DIRECTORY"/linux
     git add .
     if [ -n "$(git status --porcelain)" ]; then
         git commit -m "Automatic commit by Vari-Joern"

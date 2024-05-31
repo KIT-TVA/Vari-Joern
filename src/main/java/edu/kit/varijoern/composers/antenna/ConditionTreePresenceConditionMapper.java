@@ -21,18 +21,16 @@ public class ConditionTreePresenceConditionMapper implements PresenceConditionMa
      *
      * @param path  the path to the file whose content is specified
      * @param lines the lines of the file
-     * @return {@code true} if the condition tree was successfully created, {@code false} otherwise
      */
-    public boolean tryAddFile(Path path, List<String> lines) {
+    public void tryAddFile(Path path, List<String> lines) {
         ConditionTree tree;
         try {
             tree = new ConditionTree(lines);
         } catch (ConditionTreeException e) {
             logger.atWarn().withThrowable(e).log("Failed to create condition tree for file {}", path);
-            return false;
+            return;
         }
         this.trees.put(path, tree);
-        return true;
     }
 
     @Override

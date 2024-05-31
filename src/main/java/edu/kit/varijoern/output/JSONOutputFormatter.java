@@ -3,14 +3,11 @@ package edu.kit.varijoern.output;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import edu.kit.varijoern.analyzers.AggregatedAnalysisResult;
-import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.prop4j.Node;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.util.List;
 
 /**
  * Formats the results of the analysis into a JSON format.

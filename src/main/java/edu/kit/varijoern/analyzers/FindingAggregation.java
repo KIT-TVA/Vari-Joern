@@ -6,8 +6,6 @@ import org.prop4j.Node;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Contains information about a finding and the variants in which it was found. Findings are aggregated into one finding

@@ -4,7 +4,6 @@ import edu.kit.varijoern.analyzers.Analyzer;
 import edu.kit.varijoern.analyzers.AnalyzerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import org.jetbrains.annotations.Nullable;
-import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
 
 import java.io.IOException;
@@ -14,7 +13,6 @@ import java.nio.file.Path;
  * Contains the configuration of the Joern analyzer.
  */
 public class JoernAnalyzerConfig extends AnalyzerConfig {
-    private static final String JOERN_PATH_FIELD_NAME = "joern-path";
     @Nullable
     private final Path joernPath;
 
@@ -22,11 +20,10 @@ public class JoernAnalyzerConfig extends AnalyzerConfig {
      * Creates a new {@link JoernAnalyzerConfig} by extracting data from the specified TOML section.
      *
      * @param toml       the TOML section
-     * @param configPath the path to the configuration file
      * @param args       the command line arguments for the Joern analyzer
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public JoernAnalyzerConfig(TomlTable toml, Path configPath, JoernArgs args) throws InvalidConfigException {
+    public JoernAnalyzerConfig(TomlTable toml, JoernArgs args) throws InvalidConfigException {
         super(toml);
         this.joernPath = args.getJoernPath();
     }
