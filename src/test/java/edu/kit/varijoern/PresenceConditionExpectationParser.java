@@ -72,23 +72,23 @@ public class PresenceConditionExpectationParser {
             currentLineNumber++;
             currentLineOffset = nextLineOffset;
             nextLineOffset = currentLineOffset + line.length() + 1;
-            int startOfComment = line.indexOf("#");
+            String trimmedLine = line.trim();
+            int startOfComment = trimmedLine.indexOf("#");
             if (startOfComment != -1) {
-                line = line.substring(0, startOfComment);
+                trimmedLine = trimmedLine.substring(0, startOfComment);
             }
-            line = line.trim();
-            if (line.isEmpty()) {
+            if (trimmedLine.isEmpty()) {
                 continue;
             }
-            if (line.startsWith("file:")) {
+            if (trimmedLine.startsWith("file:")) {
                 if (currentFile != null) {
                     addFileExpectations(result, currentFile, currentExpectations, nextLineOffset);
                 }
-                int presenceConditionStart = line.lastIndexOf(",");
+                int presenceConditionStart = trimmedLine.lastIndexOf(",");
                 if (presenceConditionStart == -1) {
                     throw new ParseException("Expected presence condition after file path", nextLineOffset - 1);
                 }
-                currentFile = Path.of(line.substring(FILE_PREFIX.length(), presenceConditionStart).trim());
+                currentFile = Path.of(trimmedLine.substring(FILE_PREFIX.length(), presenceConditionStart).trim());
                 if (currentFile.isAbsolute())
                     throw new ParseException("File path must be relative", nextLineOffset - 1);
                 if (result.containsKey(currentFile)) {
@@ -96,7 +96,7 @@ public class PresenceConditionExpectationParser {
                 }
                 currentExpectations = new ArrayList<>();
                 currentFilePresenceCondition = readNode(
-                        line.substring(presenceConditionStart + 1).trim()
+                        trimmedLine.substring(presenceConditionStart + 1).trim()
                 );
                 continue;
             }
