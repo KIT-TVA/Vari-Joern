@@ -27,9 +27,9 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
     public TorteKmaxFMReaderConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
         super(toml);
         String path = TomlUtils.getMandatoryString(
-            PATH_FIELD_NAME,
-            toml,
-            "Path to source directory is missing or not a string"
+                PATH_FIELD_NAME,
+                toml,
+                "Path to source directory is missing or not a string"
         );
         Path sourcePath;
         try {
@@ -43,9 +43,9 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
         this.sourcePath = sourcePath;
 
         String system = TomlUtils.getMandatoryString(
-            SYSTEM_FIELD_NAME,
-            toml,
-            "System is missing or not a string"
+                SYSTEM_FIELD_NAME,
+                toml,
+                "System is missing or not a string"
         );
         if (!TorteKmaxFMReader.supportsSystem(system)) {
             throw new InvalidConfigException("Unknown system: " + system);

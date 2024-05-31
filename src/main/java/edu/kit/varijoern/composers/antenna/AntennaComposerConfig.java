@@ -28,9 +28,9 @@ public class AntennaComposerConfig extends ComposerConfig {
     public AntennaComposerConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
         super(toml);
         String sourceLocation = TomlUtils.getMandatoryString(
-            SOURCE_FIELD_NAME,
-            toml,
-            "Source location for Antenna composer is missing or not a string"
+                SOURCE_FIELD_NAME,
+                toml,
+                "Source location for Antenna composer is missing or not a string"
         );
         Path sourcePath;
         try {

@@ -19,8 +19,8 @@ public class JoernAnalyzerConfig extends AnalyzerConfig {
     /**
      * Creates a new {@link JoernAnalyzerConfig} by extracting data from the specified TOML section.
      *
-     * @param toml       the TOML section
-     * @param args       the command line arguments for the Joern analyzer
+     * @param toml the TOML section
+     * @param args the command line arguments for the Joern analyzer
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
     public JoernAnalyzerConfig(TomlTable toml, JoernArgs args) throws InvalidConfigException {

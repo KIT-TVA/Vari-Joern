@@ -25,9 +25,9 @@ public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
     public FeatureIDEFMReaderConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
         super(toml);
         String path = TomlUtils.getMandatoryString(
-            PATH_FIELD_NAME,
-            toml,
-            "Path to FeatureIDE feature model is missing or not a string"
+                PATH_FIELD_NAME,
+                toml,
+                "Path to FeatureIDE feature model is missing or not a string"
         );
         Path featureModelPath;
         try {

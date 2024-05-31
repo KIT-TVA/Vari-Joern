@@ -18,10 +18,10 @@ public interface Composer {
      * @param destination  a {@link Path} to an existing empty directory into which the resulting code should be saved
      * @param featureModel the feature model of the analyzed system
      * @return a {@link CompositionInformation} instance containing information about this composer pass
-     * @throws ComposerException           if the composer failed due to invalid source code
+     * @throws ComposerException if the composer failed due to invalid source code
      */
     @NotNull
     CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                    @NotNull IFeatureModel featureModel)
-        throws IOException, ComposerException;
+            throws IOException, ComposerException;
 }

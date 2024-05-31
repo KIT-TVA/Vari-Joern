@@ -1,8 +1,8 @@
 package edu.kit.varijoern.analyzers.joern;
 
 import edu.kit.varijoern.analyzers.AnalysisResult;
-import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.AnnotatedFinding;
+import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;

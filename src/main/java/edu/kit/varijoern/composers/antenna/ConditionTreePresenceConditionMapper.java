@@ -6,7 +6,10 @@ import org.apache.logging.log4j.Logger;
 import org.prop4j.Node;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * A presence condition mapper for the Antenna composer. Builds a tree of {@code //#if} conditions for each file.

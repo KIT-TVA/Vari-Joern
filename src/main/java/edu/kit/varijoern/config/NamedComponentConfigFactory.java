@@ -22,9 +22,9 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      */
     public static String getComponentName(TomlTable toml, String componentType) throws InvalidConfigException {
         return TomlUtils.getMandatoryString(
-            NAME_FIELD_NAME,
-            toml,
-            String.format("%s name is missing or not a string", componentType)
+                NAME_FIELD_NAME,
+                toml,
+                String.format("%s name is missing or not a string", componentType)
         );
     }
 
@@ -54,7 +54,7 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      * @throws InvalidConfigException if the TOML section did not represent a valid configuration
      */
     protected abstract C newConfigFromName(String componentName, TomlTable toml, Path configPath)
-        throws InvalidConfigException;
+            throws InvalidConfigException;
 
     /**
      * Returns the name of the type of the component this class parses configurations for. The name is used for

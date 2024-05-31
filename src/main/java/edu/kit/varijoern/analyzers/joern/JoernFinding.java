@@ -103,7 +103,8 @@ public class JoernFinding implements Finding {
      * in the composed code.
      *
      * @param presenceConditionMapper the presence condition mapper to be used
-     * @param sourceMap     the source map to be used to determine the location of the evidences in the original source
+     * @param sourceMap               the source map to be used to determine the location of the evidences in the
+     *                                original source
      * @return a string representing this finding
      */
     public String toString(PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap) {

@@ -13,6 +13,7 @@ import java.nio.file.Path;
 public abstract class AnalyzerConfig extends NamedComponentConfig {
     /**
      * Creates a new {@link AnalyzerConfig} by extracting data from the specified TOML section.
+     *
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
