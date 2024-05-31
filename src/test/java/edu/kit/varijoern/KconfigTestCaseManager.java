@@ -92,7 +92,8 @@ public class KconfigTestCaseManager {
         this.initialCommit = this.git.commit().setMessage("Initial commit").call();
     }
 
-    private Map<Path, List<PresenceConditionExpectation>> readPresenceConditionExpectations(@NotNull String testCaseName)
+    private Map<Path, List<PresenceConditionExpectation>> readPresenceConditionExpectations(
+            @NotNull String testCaseName)
             throws IOException {
         URL presenceConditionExpectationsLocation = this.getClass().getClassLoader().getResource(
                 "kconfigtestcases/%s/presence-conditions.txt".formatted(testCaseName)

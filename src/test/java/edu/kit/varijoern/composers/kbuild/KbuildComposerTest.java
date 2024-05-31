@@ -293,7 +293,8 @@ class KbuildComposerTest {
         public void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
                            Path originalDirectory, Path compositionDirectory) throws IOException {
             try (var stream = Files.walk(compositionDirectory)) {
-                assertNull(stream.filter(path -> regex.matcher(compositionDirectory.relativize(path).toString()).matches())
+                assertNull(stream.filter(path -> regex.matcher(compositionDirectory.relativize(path).toString())
+                                        .matches())
                                 .findAny()
                                 .orElse(null),
                         "File matching " + regex + " should not exist"
@@ -395,14 +396,16 @@ class KbuildComposerTest {
             assertEquals(1,
                     compositionInformation.getSourceMap()
                             .getOriginalLocation(
-                                    new SourceLocation(this.composedRelativePath, this.expectedPrependedLines.size() + 1)
+                                    new SourceLocation(this.composedRelativePath,
+                                            this.expectedPrependedLines.size() + 1)
                             )
                             .map(SourceLocation::line)
                             .orElseThrow()
             );
         }
 
-        private void verifyPresenceConditions(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager) {
+        private void verifyPresenceConditions(CompositionInformation compositionInformation,
+                                              KconfigTestCaseManager testCaseManager) {
             Optional<List<PresenceConditionExpectation>> expectedPresenceConditionsOptional = testCaseManager.
                     getPresenceConditionExpectations(this.originalRelativePath);
             if (expectedPresenceConditionsOptional.isEmpty())
@@ -419,8 +422,8 @@ class KbuildComposerTest {
                     continue;
                 }
                 int originalLineIndex = i - 1 - this.expectedPrependedLines.size();
-                PresenceConditionExpectation presenceConditionExpectation =
-                        expectedPresenceConditions.get(originalLineIndex);
+                PresenceConditionExpectation presenceConditionExpectation
+                        = expectedPresenceConditions.get(originalLineIndex);
                 Optional<Node> determinedPresenceCondition = presenceConditionMapper
                         .getPresenceCondition(this.composedRelativePath, i);
                 if (!presenceConditionExpectation.isOptional()) {

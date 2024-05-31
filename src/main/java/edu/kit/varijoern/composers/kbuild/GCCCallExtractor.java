@@ -13,9 +13,9 @@ import java.util.stream.Stream;
  * Extracts GCC calls from a command string.
  */
 public class GCCCallExtractor {
-    private final static List<String> COMMAND_NAMES = List.of("gcc", "g++");
+    private static final List<String> COMMAND_NAMES = List.of("gcc", "g++");
     // Match common C and C++ file names. Exclude files starting with a hyphen as they are probably actually GCC flags.
-    private final static Pattern SOURCE_FILE_PATTERN = Pattern.compile("^[^-].*\\.(?:c|C|cc|cpp|cxx|c++)$");
+    private static final Pattern SOURCE_FILE_PATTERN = Pattern.compile("^[^-].*\\.(?:c|C|cc|cpp|cxx|c++)$");
     private final CommandParser parser;
 
     /**

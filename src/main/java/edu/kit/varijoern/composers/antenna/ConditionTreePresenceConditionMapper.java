@@ -12,12 +12,13 @@ import java.util.*;
  * A presence condition mapper for the Antenna composer. Builds a tree of {@code //#if} conditions for each file.
  */
 public class ConditionTreePresenceConditionMapper implements PresenceConditionMapper {
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LogManager.getLogger();
     private final Map<Path, ConditionTree> trees = new HashMap<>();
 
     /**
      * Builds a condition tree for the specified file contents and stores them for use by
-     * {@link ConditionTreePresenceConditionMapper#getPresenceCondition(Path, int)}. The specified path is used to identify the tree.
+     * {@link ConditionTreePresenceConditionMapper#getPresenceCondition(Path, int)}. The specified path is used to
+     * identify the tree.
      *
      * @param path  the path to the file whose content is specified
      * @param lines the lines of the file
@@ -27,7 +28,7 @@ public class ConditionTreePresenceConditionMapper implements PresenceConditionMa
         try {
             tree = new ConditionTree(lines);
         } catch (ConditionTreeException e) {
-            logger.atWarn().withThrowable(e).log("Failed to create condition tree for file {}", path);
+            LOGGER.atWarn().withThrowable(e).log("Failed to create condition tree for file {}", path);
             return;
         }
         this.trees.put(path, tree);

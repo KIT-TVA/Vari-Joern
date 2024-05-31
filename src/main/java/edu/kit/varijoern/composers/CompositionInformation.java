@@ -19,14 +19,16 @@ public class CompositionInformation {
     /**
      * Creates a new {@link CompositionInformation} instance.
      *
-     * @param location                the location of the composed code. See {@link CompositionInformation#getLocation()}.
+     * @param location                the location of the composed code.
+     *                                See {@link CompositionInformation#getLocation()}.
      * @param enabledFeatures         a map of feature names to their enabled status at the time of composition
      * @param presenceConditionMapper a {@link PresenceConditionMapper} for this composition result
      * @param sourceMap               a {@link SourceMap} for this composition result
      * @param languageInformation     relevant details about how the languages in the composition should be handled
      */
-    public CompositionInformation(Path location, Map<String, Boolean> enabledFeatures, PresenceConditionMapper presenceConditionMapper,
-                                  SourceMap sourceMap, List<LanguageInformation> languageInformation) {
+    public CompositionInformation(Path location, Map<String, Boolean> enabledFeatures,
+                                  PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap,
+                                  List<LanguageInformation> languageInformation) {
         this.location = location;
         this.enabledFeatures = enabledFeatures;
         this.presenceConditionMapper = presenceConditionMapper;

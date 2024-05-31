@@ -11,8 +11,8 @@ import java.util.List;
  * This class is used for parsing the feature model reader section of a configuration file.
  * It uses its {@code name} field to determine which {@link FeatureModelReaderConfig} subclass to use.
  */
-public class FeatureModelReaderConfigFactory extends NamedComponentConfigFactory<FeatureModelReaderConfig> {
-    private static final FeatureModelReaderConfigFactory instance = new FeatureModelReaderConfigFactory();
+public final class FeatureModelReaderConfigFactory extends NamedComponentConfigFactory<FeatureModelReaderConfig> {
+    private static final FeatureModelReaderConfigFactory INSTANCE = new FeatureModelReaderConfigFactory();
 
     private FeatureModelReaderConfigFactory() {
     }
@@ -23,7 +23,7 @@ public class FeatureModelReaderConfigFactory extends NamedComponentConfigFactory
      * @return the instance
      */
     public static FeatureModelReaderConfigFactory getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     /**
@@ -42,8 +42,7 @@ public class FeatureModelReaderConfigFactory extends NamedComponentConfigFactory
         return switch (componentName) {
             case FeatureIDEFMReader.NAME -> new FeatureIDEFMReaderConfig(toml, configPath);
             case TorteKmaxFMReader.NAME -> new TorteKmaxFMReaderConfig(toml, configPath);
-            default ->
-                    throw new InvalidConfigException(String.format("Unknown feature model reader \"%s\"", componentName));
+            default -> throw new InvalidConfigException("Unknown feature model reader \"%s\"".formatted(componentName));
         };
     }
 

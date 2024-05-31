@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
 public class JoernAnalyzer implements Analyzer {
     public static final String NAME = "joern";
     private static final String JOERN_COMMAND = "joern";
-    private static final Logger logger = LogManager.getLogger();
-    private static final OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
+    private static final Logger LOGGER = LogManager.getLogger();
+    private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
     @Nullable
     private final Path joernPath;
@@ -58,7 +58,7 @@ public class JoernAnalyzer implements Analyzer {
     @Override
     public JoernAnalysisResult analyze(CompositionInformation compositionInformation)
             throws IOException, AnalyzerFailureException {
-        logger.info("Running analysis");
+        LOGGER.info("Running analysis");
         Path sourceLocation = compositionInformation.getLocation();
         Path outFile = this.workspacePath.resolve(
                 String.format("%s-%s.json",
@@ -76,7 +76,7 @@ public class JoernAnalyzer implements Analyzer {
                 compositionInformation.getPresenceConditionMapper(),
                 compositionInformation.getSourceMap());
         this.allAnalysisResults.add(result);
-        logger.info("Analysis finished");
+        LOGGER.info("Analysis finished");
         return result;
     }
 
@@ -84,16 +84,16 @@ public class JoernAnalyzer implements Analyzer {
     public AggregatedAnalysisResult aggregateResults() {
         // Group findings by their evidence and query name, store the analysis result retrieve the enabled features
         // and the presence condition mappers later
-        Map<?, List<Pair<AnnotatedFinding, JoernAnalysisResult>>> groupedFindings =
-                this.allAnalysisResults.stream()
-                        .flatMap(result -> result.getFindings().stream()
-                                .map(finding -> Pair.with(finding, result)))
-                        .collect(Collectors.groupingBy(
-                                findingPair -> Pair.with(
-                                        findingPair.getValue0().originalEvidenceLocations(),
-                                        ((JoernFinding) findingPair.getValue0().finding()).getName()
-                                )
-                        ));
+        Map<?, List<Pair<AnnotatedFinding, JoernAnalysisResult>>> groupedFindings
+                = this.allAnalysisResults.stream()
+                .flatMap(result -> result.getFindings().stream()
+                        .map(finding -> Pair.with(finding, result)))
+                .collect(Collectors.groupingBy(
+                        findingPair -> Pair.with(
+                                findingPair.getValue0().originalEvidenceLocations(),
+                                ((JoernFinding) findingPair.getValue0().finding()).getName()
+                        )
+                ));
         return new AggregatedAnalysisResult(groupedFindings
                 .values().stream()
                 .map(findingPairs -> {
@@ -116,13 +116,13 @@ public class JoernAnalyzer implements Analyzer {
 
     private void analyzeWithLanguageInformation(LanguageInformation languageInformation, Path sourceLocation,
                                                 Path outFile) throws AnalyzerFailureException, IOException {
-        logger.info("Running analysis for language {}", languageInformation.getName());
+        LOGGER.info("Running analysis for language {}", languageInformation.getName());
         Path cpgLocation = this.workspacePath.resolve("cpg.bin");
-        logger.info("Generating CPG");
+        LOGGER.info("Generating CPG");
         languageInformation.accept(
                 new CPGGenerationVisitor(sourceLocation, cpgLocation, this.joernPath)
         );
-        logger.info("Running analysis on CPG");
+        LOGGER.info("Running analysis on CPG");
         runJoern(cpgLocation, outFile);
     }
 
@@ -143,8 +143,8 @@ public class JoernAnalyzer implements Analyzer {
         )
                 .directory(this.workspacePath.toFile())
                 .start();
-        StreamGobbler stdoutGobbler = new StreamGobbler(joernProcess.getInputStream(), streamLogger);
-        StreamGobbler stderrGobbler = new StreamGobbler(joernProcess.getErrorStream(), streamLogger);
+        StreamGobbler stdoutGobbler = new StreamGobbler(joernProcess.getInputStream(), STREAM_LOGGER);
+        StreamGobbler stderrGobbler = new StreamGobbler(joernProcess.getErrorStream(), STREAM_LOGGER);
         stdoutGobbler.start();
         stderrGobbler.start();
         int joernExitCode;

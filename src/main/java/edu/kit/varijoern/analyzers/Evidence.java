@@ -62,7 +62,8 @@ public class Evidence {
      * the composed code. To determine the condition, the specified presence condition mapper is used.
      *
      * @param presenceConditionMapper the presence condition mapper to be used
-     * @param sourceMap               the source map to be used to determine the location of this evidence in the original source
+     * @param sourceMap               the source map to be used to determine the location of this evidence in the
+     *                                original source
      * @return a string representation of this evidence
      */
     public String toString(PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap) {

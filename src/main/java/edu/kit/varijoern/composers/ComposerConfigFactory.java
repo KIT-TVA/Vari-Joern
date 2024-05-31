@@ -15,8 +15,8 @@ import java.util.List;
  * This class is used for parsing the composer section of a configuration file. It uses its {@code name} field to
  * determine which {@link ComposerConfig} subclass to use.
  */
-public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerConfig> {
-    private static final ComposerConfigFactory instance = new ComposerConfigFactory();
+public final class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerConfig> {
+    private static final ComposerConfigFactory INSTANCE = new ComposerConfigFactory();
 
     private ComposerConfigFactory() {
     }
@@ -27,7 +27,7 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
      * @return the instance
      */
     public static ComposerConfigFactory getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     /**

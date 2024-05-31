@@ -44,7 +44,8 @@ class JoernAnalyzerTest {
                         List.of("USE_GETS", "INCLUDE_IO_FILE", "PERFORM_CHMOD", "PERFORM_RENAME")
                 )
                 .map(configuration -> {
-                    Sampler sampler = new FixedSampler(List.of(configuration), testCaseManager.getCorrectFeatureModel());
+                    Sampler sampler = new FixedSampler(List.of(configuration),
+                            testCaseManager.getCorrectFeatureModel());
                     try {
                         return sampler.sample(null).get(0);
                     } catch (SamplerException e) {

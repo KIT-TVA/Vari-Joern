@@ -15,7 +15,8 @@ public abstract class AnalysisResult {
     private final SourceMap sourceMap;
     private final Map<String, Boolean> enabledFeatures;
 
-    protected AnalysisResult(Map<String, Boolean> enabledFeatures, PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap) {
+    protected AnalysisResult(Map<String, Boolean> enabledFeatures, PresenceConditionMapper presenceConditionMapper,
+                             SourceMap sourceMap) {
         this.enabledFeatures = Map.copyOf(enabledFeatures);
         this.presenceConditionMapper = presenceConditionMapper;
         this.sourceMap = sourceMap;

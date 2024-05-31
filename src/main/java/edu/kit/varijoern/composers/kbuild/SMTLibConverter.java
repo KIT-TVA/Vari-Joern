@@ -50,8 +50,8 @@ public class SMTLibConverter {
 
             if (command == null)
                 throw new ParseException("Could not parse SMT-LIB command. Error: %s"
-                    .formatted(parser.lastError() == null ? "(unknown)" : parser.lastError().toString()),
-                    parser.lastError() == null ? 0 : parser.lastError().pos().charStart());
+                        .formatted(parser.lastError() == null ? "(unknown)" : parser.lastError().toString()),
+                        parser.lastError() == null ? 0 : parser.lastError().pos().charStart());
 
             if (command instanceof C_assert) {
                 Node assertion;
@@ -127,7 +127,8 @@ public class SMTLibConverter {
             for (IExpr.IBinding binding : e.bindings()) {
                 this.letBindings.remove(binding.parameter().value());
                 if (shadowedBindings.containsKey(binding.parameter().value())) {
-                    this.letBindings.put(binding.parameter().value(), shadowedBindings.get(binding.parameter().value()));
+                    this.letBindings.put(binding.parameter().value(),
+                            shadowedBindings.get(binding.parameter().value()));
                 }
             }
             return convertedBody;

@@ -48,7 +48,8 @@ public class JoernAnalysisResult extends AnalysisResult {
                             : null;
                     Node condition = evidenceForConditionCalculation == null
                             ? null
-                            : evidenceForConditionCalculation.getCondition(this.getPresenceConditionMapper()).orElse(null);
+                            : evidenceForConditionCalculation.getCondition(this.getPresenceConditionMapper())
+                            .orElse(null);
                     Set<SourceLocation> originalLocations = finding.getEvidence().stream()
                             .map(currentEvidence -> currentEvidence.getLocation()
                                     .flatMap(location -> this.getSourceMap().getOriginalLocation(location))

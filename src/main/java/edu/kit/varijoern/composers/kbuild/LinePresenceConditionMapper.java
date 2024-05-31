@@ -33,9 +33,9 @@ import java.util.regex.Pattern;
 public class LinePresenceConditionMapper {
     private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)|([A-Za-z0-9_]+)");
     // In busybox, enabled (non-module) tristate features are defined as CONFIG_<feature> as well as ENABLE_<feature>
-    private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN =
-            Pattern.compile("(?:CONFIG_|ENABLE_)([A-Za-z0-9_]+)");
-    private static final Logger logger = LogManager.getLogger();
+    private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN
+            = Pattern.compile("(?:CONFIG_|ENABLE_)([A-Za-z0-9_]+)");
+    private static final Logger LOGGER = LogManager.getLogger();
 
     private final Map<Integer, Node> linePresenceConditions = new HashMap<>();
     private final int addedLines;
@@ -72,7 +72,7 @@ public class LinePresenceConditionMapper {
     private void determinePresenceConditions(InclusionInformation inclusionInformation, Path sourcePath,
                                              Set<String> knownFeatures, String system)
             throws FileNotFoundException {
-        logger.debug("Determining line presence conditions for {}", inclusionInformation.filePath());
+        LOGGER.debug("Determining line presence conditions for {}", inclusionInformation.filePath());
         Path filePath = sourcePath.resolve(inclusionInformation.filePath());
 
         // Create preprocessor
@@ -111,7 +111,7 @@ public class LinePresenceConditionMapper {
                     // `Error` is caught, it was not thrown by the preprocessor and something is seriously wrong.
                     if (e instanceof Error && e.getClass() != Error.class)
                         throw (Error) e;
-                    logger.atWarn().withThrowable(e).log("Preprocessor encountered an internal error at {}",
+                    LOGGER.atWarn().withThrowable(e).log("Preprocessor encountered an internal error at {}",
                             headerFileManager.include.getLocation());
                     break;
                 }
@@ -122,7 +122,7 @@ public class LinePresenceConditionMapper {
                 Optional<PresenceConditionManager.PresenceCondition> conditionOptional
                         = headerFileManager.getCondition(line);
                 if (conditionOptional.isEmpty()) {
-                    logger.debug("No presence condition found for line {} in {}", line, filePath);
+                    LOGGER.debug("No presence condition found for line {} in {}", line, filePath);
                     continue;
                 }
 
@@ -130,7 +130,7 @@ public class LinePresenceConditionMapper {
 
                 Optional<Node> nodeOptional = this.convertBDD(condition.getBDD(), presenceConditionManager);
                 if (nodeOptional.isEmpty()) {
-                    logger.warn("Could not convert presence condition to node at {}:{}: {}", filePath,
+                    LOGGER.warn("Could not convert presence condition to node at {}:{}: {}", filePath,
                             line, condition);
                     continue;
                 }
@@ -146,7 +146,7 @@ public class LinePresenceConditionMapper {
                         .toList();
 
                 if (!unknownFeatures.isEmpty()) {
-                    logger.warn("Unknown features {} in presence condition at {}:{}", unknownFeatures, filePath,
+                    LOGGER.warn("Unknown features {} in presence condition at {}:{}", unknownFeatures, filePath,
                             line);
                     node = Node.replaceLiterals(node, unknownFeatures, true);
                 }
@@ -156,7 +156,7 @@ public class LinePresenceConditionMapper {
         }
 
         if (this.linePresenceConditions.isEmpty()) {
-            logger.debug("No presence conditions found for {}", inclusionInformation.filePath());
+            LOGGER.debug("No presence conditions found for {}", inclusionInformation.filePath());
         }
     }
 
@@ -164,7 +164,8 @@ public class LinePresenceConditionMapper {
      * Prepares the macro table and presence condition manager for preprocessing by adding the specified defines and
      * included files.
      *
-     * @param inclusionInformation     the information about how the file is compiled (i.e. the defines and included files)
+     * @param inclusionInformation     the information about how the file is compiled (i.e. the defines and included
+     *                                 files)
      * @param macroTable               the macro table
      * @param presenceConditionManager the presence condition manager
      * @param conditionEvaluator       the condition evaluator
@@ -174,8 +175,8 @@ public class LinePresenceConditionMapper {
                                      PresenceConditionManager presenceConditionManager,
                                      ConditionEvaluator conditionEvaluator, LexerCreator lexerCreator,
                                      TokenCreator tokenCreator, Path sourceRoot) {
-        injectSource(Builtins.builtin, macroTable, presenceConditionManager, conditionEvaluator, lexerCreator, tokenCreator, inclusionInformation,
-                sourceRoot);
+        injectSource(Builtins.builtin, macroTable, presenceConditionManager, conditionEvaluator, lexerCreator,
+                tokenCreator, inclusionInformation, sourceRoot);
 
         StringBuilder commandLineDirectives = new StringBuilder();
 
@@ -188,11 +189,14 @@ public class LinePresenceConditionMapper {
             commandLineDirectives.append("#include \"").append(includedFile).append("\"\n");
         }
 
-        injectSource(commandLineDirectives.toString(), macroTable, presenceConditionManager, conditionEvaluator, lexerCreator, tokenCreator, inclusionInformation,
-                sourceRoot);
+        injectSource(commandLineDirectives.toString(), macroTable, presenceConditionManager, conditionEvaluator,
+                lexerCreator, tokenCreator, inclusionInformation, sourceRoot);
     }
 
-    private static void injectSource(String source, MacroTable macroTable, PresenceConditionManager presenceConditionManager, ConditionEvaluator conditionEvaluator, LexerCreator lexerCreator, TokenCreator tokenCreator, InclusionInformation inclusionInformation,
+    private static void injectSource(String source, MacroTable macroTable,
+                                     PresenceConditionManager presenceConditionManager,
+                                     ConditionEvaluator conditionEvaluator, LexerCreator lexerCreator,
+                                     TokenCreator tokenCreator, InclusionInformation inclusionInformation,
                                      Path sourceRoot) {
         HeaderFileManager headerFileManager = new HeaderFileManager(
                 new StringReader(source),
@@ -252,7 +256,7 @@ public class LinePresenceConditionMapper {
             String variableName = definedMatcher.group(1) == null ? definedMatcher.group(2) : definedMatcher.group(1);
             return Optional.of(new Literal(variableName));
         }
-        logger.debug("Could not parse condition: {}", rawCondition);
+        LOGGER.debug("Could not parse condition: {}", rawCondition);
         return Optional.empty();
     }
 
@@ -313,21 +317,21 @@ public class LinePresenceConditionMapper {
         private Location lastMainLocation;
 
         public ConditionCapturingHeaderFileManager(Reader in, File file, List<String> iquote,
-                                                   List<String> I, List<String> sysdirs,
+                                                   List<String> includePaths, List<String> sysdirs,
                                                    LexerCreator lexerCreator, TokenCreator tokenCreator,
                                                    StopWatch lexerTimer, String encoding,
                                                    PresenceConditionManager presenceConditionManager) {
-            super(in, file, iquote, I, sysdirs, lexerCreator, tokenCreator, lexerTimer, encoding);
+            super(in, file, iquote, includePaths, sysdirs, lexerCreator, tokenCreator, lexerTimer, encoding);
             this.mainInclude = this.include;
             this.presenceConditionManager = presenceConditionManager;
         }
 
         public ConditionCapturingHeaderFileManager(Reader in, File file, List<String> iquote,
-                                                   List<String> I, List<String> sysdirs,
+                                                   List<String> includePaths, List<String> sysdirs,
                                                    LexerCreator lexerCreator, TokenCreator tokenCreator,
                                                    StopWatch lexerTimer,
                                                    PresenceConditionManager presenceConditionManager) {
-            super(in, file, iquote, I, sysdirs, lexerCreator, tokenCreator, lexerTimer);
+            super(in, file, iquote, includePaths, sysdirs, lexerCreator, tokenCreator, lexerTimer);
             this.mainInclude = this.include;
             this.presenceConditionManager = presenceConditionManager;
         }

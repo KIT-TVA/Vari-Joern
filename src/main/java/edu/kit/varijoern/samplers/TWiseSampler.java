@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  */
 public class TWiseSampler implements Sampler {
     public static final String NAME = "t-wise";
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LogManager.getLogger();
 
     private final IFeatureModel featureModel;
     private final int t;
@@ -44,10 +44,13 @@ public class TWiseSampler implements Sampler {
 
     @Override
     public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
-        logger.info("Calculating {}-wise sample", this.t);
+        LOGGER.info("Calculating {}-wise sample", this.t);
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
         TWiseConfigurationGenerator generator = new TWiseConfigurationGenerator(cnf, this.t, this.maxSampleSize);
         List<LiteralSet> rawSample;
+        // CHECKSTYLE:OFF: IllegalCatch
+        // We would like to wrap all exceptions in a SamplerException, except for RuntimeExceptions.
+        // Since TWiseConfigurationGenerator#analyze declares to throw Exception, we have to catch Exception.
         try {
             rawSample = generator.analyze(new ConsoleMonitor<>());
         } catch (RuntimeException e) {
@@ -55,13 +58,14 @@ public class TWiseSampler implements Sampler {
         } catch (Exception e) {
             throw new SamplerException("TWiseConfigurationGenerator threw an exception", e);
         }
+        // CHECKSTYLE:ON: IllegalCatch
 
         Variables variables = cnf.getVariables();
         List<List<String>> enabledFeatures = rawSample.stream().map(variables::convertToString).toList();
         List<Map<String, Boolean>> result = new ArrayList<>();
         for (List<String> configuration : enabledFeatures) {
             Map<String, Boolean> assignment = this.featureModel.getFeatures().stream()
-                .collect(Collectors.toMap(IFeature::getName, feature -> false));
+                    .collect(Collectors.toMap(IFeature::getName, feature -> false));
             for (String feature : configuration) {
                 if (assignment.put(feature, true) == null) {
                     throw new SamplerException("Feature %s does not exist in the feature model".formatted(feature));
@@ -69,7 +73,7 @@ public class TWiseSampler implements Sampler {
             }
             result.add(assignment);
         }
-        logger.info("Generated {} configurations", result.size());
+        LOGGER.info("Generated {} configurations", result.size());
         return result;
     }
 }

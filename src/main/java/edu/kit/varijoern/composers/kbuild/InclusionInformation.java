@@ -18,7 +18,8 @@ import java.util.Set;
  */
 public record InclusionInformation(Path filePath, Set<String> includedFiles, Map<String, String> defines,
                                    List<String> includePaths) {
-    public InclusionInformation(Path filePath, Set<String> includedFiles, Map<String, String> defines, List<String> includePaths) {
+    public InclusionInformation(Path filePath, Set<String> includedFiles, Map<String, String> defines,
+                                List<String> includePaths) {
         this.filePath = filePath.normalize();
         this.includedFiles = includedFiles;
         this.defines = defines;
@@ -45,7 +46,9 @@ public record InclusionInformation(Path filePath, Set<String> includedFiles, Map
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         InclusionInformation that = (InclusionInformation) o;
-        return Objects.equals(filePath, that.filePath) && Objects.equals(includedFiles, that.includedFiles) && Objects.equals(defines, that.defines);
+        return Objects.equals(filePath, that.filePath)
+                && Objects.equals(includedFiles, that.includedFiles)
+                && Objects.equals(defines, that.defines);
     }
 
     @Override

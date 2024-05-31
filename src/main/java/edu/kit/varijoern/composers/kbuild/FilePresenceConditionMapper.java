@@ -29,7 +29,7 @@ import java.util.stream.Stream;
  * </ul>
  */
 public class FilePresenceConditionMapper {
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LogManager.getLogger();
     private final Map<Path, Node> filePresenceConditions = new HashMap<>();
 
     /**
@@ -37,8 +37,8 @@ public class FilePresenceConditionMapper {
      * specified source directory.
      *
      * @param sourcePath     the path to the source directory
-     * @param system         the name of the system. Only busybox is supported at the moment. For any other system, no presence
-     *                       conditions will be determined.
+     * @param system         the name of the system. Only busybox is supported at the moment. For any other system, no
+     *                       presence conditions will be determined.
      * @param composerTmpDir the temporary directory of the composer
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if kmax fails or the presence conditions cannot be parsed
@@ -101,7 +101,7 @@ public class FilePresenceConditionMapper {
                 Node presenceCondition = smtLibConverter.convert(entry.getValue());
                 presenceCondition.modifyFeatureNames(name -> {
                     if (!name.startsWith("CONFIG_")) {
-                        logger.warn("Option in presence condition does not start with CONFIG_: {}; file: {}",
+                        LOGGER.warn("Option in presence condition does not start with CONFIG_: {}; file: {}",
                                 name, entry.getKey());
                         return name;
                     }
@@ -120,7 +120,7 @@ public class FilePresenceConditionMapper {
                             .append("Changed from %s".formatted(presenceCondition));
                     presenceCondition = Node.replaceLiterals(presenceCondition, unknownFeatures, true);
                     warning.append(" to %s".formatted(presenceCondition));
-                    logger.warn(warning);
+                    LOGGER.warn(warning);
                 }
                 filePresenceConditions.put(path, presenceCondition);
             } catch (ParseException e) {

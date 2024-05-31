@@ -43,15 +43,15 @@ public class Config {
      *                                or does not match the expected configuration format
      */
     public Config(Path configLocation) throws IOException, InvalidConfigException {
-        if (!configLocation.isAbsolute()) {
-            configLocation = Path.of(System.getProperty("user.dir")).resolve(configLocation);
-        }
+        Path absoluteConfigLocation = configLocation.isAbsolute()
+                ? configLocation
+                : Path.of(System.getProperty("user.dir")).resolve(configLocation);
 
-        TomlParseResult parsedConfig = Toml.parse(configLocation);
+        TomlParseResult parsedConfig = Toml.parse(absoluteConfigLocation);
         if (parsedConfig.hasErrors()) {
             String message = parsedConfig.errors().stream()
-                .map(TomlParseError::toString)
-                .collect(Collectors.joining("\n"));
+                    .map(TomlParseError::toString)
+                    .collect(Collectors.joining("\n"));
             throw new InvalidConfigException(message);
         }
 
@@ -64,22 +64,22 @@ public class Config {
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
         this.samplerConfig = SamplerConfigFactory.getInstance()
-            .readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME), configLocation);
+                .readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME), absoluteConfigLocation);
 
         if (!parsedConfig.isTable(COMPOSER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, COMPOSER_FIELD_NAME));
         this.composerConfig = ComposerConfigFactory.getInstance()
-            .readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME), configLocation);
+                .readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME), absoluteConfigLocation);
 
         if (!parsedConfig.isTable(ANALYZER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
         this.analyzerConfig = AnalyzerConfigFactory.getInstance()
-            .readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME), configLocation);
+                .readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME), absoluteConfigLocation);
 
         if (!parsedConfig.isTable(FEATURE_MODEL_READER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FEATURE_MODEL_READER_FIELD_NAME));
         this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
-            .readConfig(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME), configLocation);
+                .readConfig(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME), absoluteConfigLocation);
     }
 
     /**

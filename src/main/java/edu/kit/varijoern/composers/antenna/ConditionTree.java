@@ -91,8 +91,9 @@ public class ConditionTree {
             if (!parsedLine.getType().equals(PPLine.TYPE_COMMAND)) continue;
             PPLineAST ast = getAST(parsedLine);
             switch (ast.getType()) {
-                case APPLexer.IFDEF, APPLexer.IFNDEF, APPLexer.IF ->
-                        lineIndex = handleIf(ast, lines, lineIndex, children);
+                case APPLexer.IFDEF, APPLexer.IFNDEF, APPLexer.IF -> {
+                    lineIndex = handleIf(ast, lines, lineIndex, children);
+                }
                 case APPLexer.ELSE, APPLexer.ELIF, APPLexer.ELIFDEF, APPLexer.ELIFNDEF, APPLexer.ENDIF -> {
                     if (waitingForEndif)
                         return new ParsingResult(lineIndex - offset, children, ownCondition);
@@ -107,6 +108,8 @@ public class ConditionTree {
                                     .substring(getFirstCharPositionInLine(getNextSibling(ast)))
                     );
                 }
+                default -> throw new ConditionTreeException("Unsupported preprocessor command in line %d"
+                        .formatted(lineIndex + 1));
             }
         }
         if (waitingForEndif)
@@ -197,10 +200,11 @@ public class ConditionTree {
      * @return the leaf's character position in its line
      */
     private static int getFirstCharPositionInLine(Tree tokenTree) {
-        while (tokenTree.getChildCount() > 0) {
-            tokenTree = tokenTree.getChild(0);
+        Tree parent = tokenTree;
+        while (parent.getChildCount() > 0) {
+            parent = parent.getChild(0);
         }
-        return tokenTree.getCharPositionInLine();
+        return parent.getCharPositionInLine();
     }
 
     /**
@@ -333,8 +337,7 @@ public class ConditionTree {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("%d: if %s%n".formatted(this.firstLine - 1, this.condition));
-        for (ConditionTree child :
-                this.children) {
+        for (ConditionTree child : this.children) {
             sb.append(child);
             sb.append(System.lineSeparator());
         }

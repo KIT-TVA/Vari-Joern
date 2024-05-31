@@ -18,7 +18,7 @@ import java.nio.file.Path;
 public class FeatureIDEFMReader implements FeatureModelReader {
     public static final String NAME = "featureide";
     private static boolean featureIDEInitialized = false;
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LogManager.getLogger();
 
     private final Path path;
 
@@ -39,7 +39,7 @@ public class FeatureIDEFMReader implements FeatureModelReader {
 
     @Override
     public IFeatureModel read(Path tmpPath) {
-        logger.info("Reading feature model from {}", this.path);
+        LOGGER.info("Reading feature model from {}", this.path);
         FMFormatManager.getInstance().addExtension(new XmlFeatureModelFormat());
         return FeatureModelManager.load(this.path);
     }

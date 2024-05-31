@@ -12,6 +12,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+// CHECKSTYLE:OFF: LineLength
+// There is a long link in the Javadoc that cannot be broken up
+
 /**
  * A parser for strings containing presence condition expectations for multiple files.
  * <h1>Format</h1>
@@ -42,9 +45,11 @@ import java.util.stream.Stream;
  * condition between two specified presence conditions is also not allowed.
  * </p>
  */
+// CHECKSTYLE:ON: LineLength
 public class PresenceConditionExpectationParser {
     public static final String FILE_PREFIX = "file:";
-    private static final Pattern LINE_CONDITION_PATTERN = Pattern.compile("([0-9]+)(?:-([0-9]+))?\\s*([?!])\\s*((?:[a-zA-Z0-9_\\-&|]*\\s*)*)$");
+    private static final Pattern LINE_CONDITION_PATTERN
+            = Pattern.compile("([0-9]+)(?:-([0-9]+))?\\s*([?!])\\s*((?:[a-zA-Z0-9_\\-&|]*\\s*)*)$");
 
     /**
      * Parses a string containing presence condition expectations for multiple files.

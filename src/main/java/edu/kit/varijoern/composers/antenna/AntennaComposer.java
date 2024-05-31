@@ -27,7 +27,7 @@ import java.util.stream.Stream;
  */
 public class AntennaComposer implements Composer {
     public static final String NAME = "antenna";
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LogManager.getLogger();
 
     private final Path sourceLocation;
 
@@ -44,7 +44,7 @@ public class AntennaComposer implements Composer {
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
-        logger.info("Running Antenna composer");
+        LOGGER.info("Running Antenna composer");
         List<String> enabledFeatures = features.entrySet().stream()
                 .filter(Map.Entry::getValue)
                 .map(Map.Entry::getKey)
@@ -84,7 +84,7 @@ public class AntennaComposer implements Composer {
                 presenceConditionMapper.tryAddFile(relativePath, lineVector.stream().toList());
             }
         }
-        logger.info("Composer finished successfully");
+        LOGGER.info("Composer finished successfully");
         return new CompositionInformation(
                 destination,
                 features,

@@ -20,7 +20,8 @@ public class NodeSerializer extends StdSerializer<Node> {
     }
 
     @Override
-    public void serialize(Node node, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+    public void serialize(Node node, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+            throws IOException {
         jsonGenerator.writeString(node.toString());
     }
 }

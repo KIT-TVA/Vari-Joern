@@ -27,8 +27,8 @@ import java.util.stream.Stream;
  * This visitor generates code property graphs using {@code joern-parse} for each language information it visits.
  */
 public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFailureException> {
-    private final static Logger logger = LogManager.getLogger();
-    private final static OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
+    private static final Logger LOGGER = LogManager.getLogger();
+    private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
     private final Path inputDirectory;
     private final Path outputFile;
     @Nullable
@@ -53,7 +53,7 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
 
     @Override
     protected void visitUnimplemented(LanguageInformation languageInformation) {
-        logger.warn("Language {} is not supported by the analyzer.", languageInformation.getName());
+        LOGGER.warn("Language {} is not supported by the analyzer.", languageInformation.getName());
     }
 
     @Override
@@ -93,8 +93,8 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
         } catch (IOException e) {
             throw new AnalyzerFailureException("Failed to parse source code", e);
         }
-        StreamGobbler stdoutGobbler = new StreamGobbler(parserProcess.getInputStream(), streamLogger);
-        StreamGobbler stderrGobbler = new StreamGobbler(parserProcess.getErrorStream(), streamLogger);
+        StreamGobbler stdoutGobbler = new StreamGobbler(parserProcess.getInputStream(), STREAM_LOGGER);
+        StreamGobbler stderrGobbler = new StreamGobbler(parserProcess.getErrorStream(), STREAM_LOGGER);
         stdoutGobbler.start();
         stderrGobbler.start();
         int exitCode;
