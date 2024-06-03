@@ -5,13 +5,17 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.composers.ComposerException;
+import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.io.IoBuilder;
 import org.prop4j.Node;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -30,6 +34,8 @@ import java.util.stream.Stream;
  */
 public class FilePresenceConditionMapper {
     private static final Logger LOGGER = LogManager.getLogger();
+    private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
+
     private final Map<Path, Node> filePresenceConditions = new HashMap<>();
 
     /**
@@ -75,6 +81,8 @@ public class FilePresenceConditionMapper {
         int exitCode;
         try {
             Process process = processBuilder.start();
+            StreamGobbler stderrGobbler = new StreamGobbler(process.getErrorStream(), STREAM_LOGGER);
+            stderrGobbler.start();
             output = IOUtils.toString(process.getInputStream(), Charset.defaultCharset());
             exitCode = process.waitFor();
         } catch (InterruptedException e) {

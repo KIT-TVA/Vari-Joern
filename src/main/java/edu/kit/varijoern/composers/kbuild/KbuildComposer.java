@@ -128,6 +128,7 @@ public class KbuildComposer implements Composer {
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
         if (this.filePresenceConditionMapper == null) {
+            LOGGER.info("Creating file presence condition mapper");
             this.filePresenceConditionMapper = new FilePresenceConditionMapper(this.tmpSourcePath, this.system,
                     this.tmpPath, featureModel);
         }
@@ -534,18 +535,18 @@ public class KbuildComposer implements Composer {
      * @throws IOException       if an I/O error occurs
      */
     private void runMake(String... args) throws ComposerException, IOException {
-        Process makeProcessBuilder = new ProcessBuilder(
+        Process makeProcess = new ProcessBuilder(
                 Stream.concat(Stream.of("make"), Arrays.stream(args))
                         .toList())
                 .directory(this.tmpSourcePath.toFile())
                 .start();
-        StreamGobbler stdoutGobbler = new StreamGobbler(makeProcessBuilder.getInputStream(), STREAM_LOGGER);
-        StreamGobbler stderrGobbler = new StreamGobbler(makeProcessBuilder.getErrorStream(), STREAM_LOGGER);
+        StreamGobbler stdoutGobbler = new StreamGobbler(makeProcess.getInputStream(), STREAM_LOGGER);
+        StreamGobbler stderrGobbler = new StreamGobbler(makeProcess.getErrorStream(), STREAM_LOGGER);
         stdoutGobbler.start();
         stderrGobbler.start();
         int makeExitCode;
         try {
-            makeExitCode = makeProcessBuilder.waitFor();
+            makeExitCode = makeProcess.waitFor();
         } catch (InterruptedException e) {
             throw new RuntimeException("Unexpected interruption of make process", e);
         }
