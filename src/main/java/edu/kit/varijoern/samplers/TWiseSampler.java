@@ -7,7 +7,7 @@ import de.ovgu.featureide.fm.core.analysis.cnf.Variables;
 import de.ovgu.featureide.fm.core.analysis.cnf.generator.configuration.twise.TWiseConfigurationGenerator;
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import de.ovgu.featureide.fm.core.job.monitor.ConsoleMonitor;
+import de.ovgu.featureide.fm.core.job.monitor.NullMonitor;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,7 +52,7 @@ public class TWiseSampler implements Sampler {
         // We would like to wrap all exceptions in a SamplerException, except for RuntimeExceptions.
         // Since TWiseConfigurationGenerator#analyze declares to throw Exception, we have to catch Exception.
         try {
-            rawSample = generator.analyze(new ConsoleMonitor<>());
+            rawSample = generator.analyze(new NullMonitor<>());
         } catch (RuntimeException e) {
             throw new RuntimeException(e);
         } catch (Exception e) {
