@@ -29,7 +29,7 @@ public record InclusionInformation(Path filePath, Set<String> includedFiles, Map
     /**
      * Returns the relative path to the file that the {@link KbuildComposer} would use for the composed file.
      *
-     * @return the relative path
+     * @return the path, relative to the composer's output directory
      */
     @NotNull
     public Path getComposedFilePath() {

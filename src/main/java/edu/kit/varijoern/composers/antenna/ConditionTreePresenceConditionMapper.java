@@ -23,7 +23,8 @@ public class ConditionTreePresenceConditionMapper implements PresenceConditionMa
      * {@link ConditionTreePresenceConditionMapper#getPresenceCondition(Path, int)}. The specified path is used to
      * identify the tree.
      *
-     * @param path  the path to the file whose content is specified
+     * @param path  the path to the file whose content is specified. This path must be relative to the output directory
+     *              of the composer.
      * @param lines the lines of the file
      */
     public void tryAddFile(Path path, List<String> lines) {
@@ -34,11 +35,11 @@ public class ConditionTreePresenceConditionMapper implements PresenceConditionMa
             LOGGER.atWarn().withThrowable(e).log("Failed to create condition tree for file {}", path);
             return;
         }
-        this.trees.put(path, tree);
+        this.trees.put(path.normalize(), tree);
     }
 
     @Override
     public Optional<Node> getPresenceCondition(Path file, int lineNumber) {
-        return Optional.ofNullable(this.trees.get(file)).map(tree -> tree.getConditionOfLine(lineNumber));
+        return Optional.ofNullable(this.trees.get(file.normalize())).map(tree -> tree.getConditionOfLine(lineNumber));
     }
 }

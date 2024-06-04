@@ -42,10 +42,10 @@ public class FilePresenceConditionMapper {
      * Creates a new {@link FilePresenceConditionMapper} and tries computes the presence conditions of the files in the
      * specified source directory.
      *
-     * @param sourcePath     the path to the source directory
+     * @param sourcePath     the path to the source directory. Must be an absolute path.
      * @param system         the name of the system. Only busybox is supported at the moment. For any other system, no
      *                       presence conditions will be determined.
-     * @param composerTmpDir the temporary directory of the composer
+     * @param composerTmpDir the temporary directory of the composer. Must be an absolute path.
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if kmax fails or the presence conditions cannot be parsed
      */
@@ -130,7 +130,7 @@ public class FilePresenceConditionMapper {
                     warning.append(" to %s".formatted(presenceCondition));
                     LOGGER.warn(warning);
                 }
-                filePresenceConditions.put(path, presenceCondition);
+                filePresenceConditions.put(path.normalize(), presenceCondition);
             } catch (ParseException e) {
                 throw new ComposerException(
                         "Could not parse presence condition (%s at %d). Text was:%n%s"
@@ -148,6 +148,6 @@ public class FilePresenceConditionMapper {
      * @return the presence condition of the file or an empty optional if the presence condition could not be determined
      */
     public Optional<Node> getPresenceCondition(Path path) {
-        return Optional.ofNullable(this.filePresenceConditions.get(path));
+        return Optional.ofNullable(this.filePresenceConditions.get(path.normalize()));
     }
 }

@@ -19,7 +19,7 @@ public class CompositionInformation {
     /**
      * Creates a new {@link CompositionInformation} instance.
      *
-     * @param location                the location of the composed code.
+     * @param location                the location of the composed code. Must be an absolute path.
      *                                See {@link CompositionInformation#getLocation()}.
      * @param enabledFeatures         a map of feature names to their enabled status at the time of composition
      * @param presenceConditionMapper a {@link PresenceConditionMapper} for this composition result
@@ -37,8 +37,8 @@ public class CompositionInformation {
     }
 
     /**
-     * Returns the location of the directory containing the composed code. Only source files should be present in this
-     * directory and its subdirectories.
+     * Returns the location of the directory containing the composed code as an absolute path. Only source files should
+     * be present in this directory and its subdirectories.
      *
      * @return the location of the directory containing the composed code
      */

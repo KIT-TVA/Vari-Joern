@@ -19,7 +19,7 @@ public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
      * Creates a new {@link FeatureIDEFMReaderConfig} by extracting data from the specified TOML section.
      *
      * @param toml       the TOML section
-     * @param configPath the path to the configuration file
+     * @param configPath the path to the configuration file. Must be absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
     public FeatureIDEFMReaderConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
@@ -47,9 +47,9 @@ public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
     }
 
     /**
-     * Returns the path to the FeatureIDE feature model.
+     * Returns the absolute path to the FeatureIDE feature model.
      *
-     * @return the path to the FeatureIDE feature model
+     * @return the absolute path to the FeatureIDE feature model
      */
     public Path getFeatureModelPath() {
         return this.featureModelPath;

@@ -41,9 +41,10 @@ public class KbuildPresenceConditionMapper implements PresenceConditionMapper {
 
     @Override
     public Optional<Node> getPresenceCondition(Path file, int lineNumber) {
-        GenerationInformation fileGenerationInformation = this.generationInformation.get(file.normalize());
+        Path normalizedFilePath = file.normalize();
+        GenerationInformation fileGenerationInformation = this.generationInformation.get(normalizedFilePath);
         if (fileGenerationInformation == null) {
-            LOGGER.warn("Could not find generation information for file {}", file.normalize());
+            LOGGER.warn("Could not find generation information for file {}", normalizedFilePath);
             return Optional.empty();
         }
         Path originalPath = fileGenerationInformation.originalPath();
@@ -55,7 +56,7 @@ public class KbuildPresenceConditionMapper implements PresenceConditionMapper {
         if (filePresenceCondition.isEmpty())
             return Optional.empty();
         LinePresenceConditionMapper linePresenceConditionMapper = this.linePresenceConditionMappers
-                .get(file.normalize());
+                .get(normalizedFilePath);
         if (linePresenceConditionMapper == null)
             return Optional.empty();
 

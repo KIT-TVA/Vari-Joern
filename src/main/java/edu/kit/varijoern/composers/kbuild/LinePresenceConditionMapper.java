@@ -48,7 +48,7 @@ public class LinePresenceConditionMapper {
      * there is currently no way to determine their conditions.
      *
      * @param inclusionInformation the information about how the file is compiled
-     * @param sourcePath           the path to the root of the source directory
+     * @param sourcePath           the path to the root of the source directory. Must be an absolute path.
      * @param addedLines           the number of lines (#include and #define directives) added to the file by the
      *                             composer
      * @param knownFeatures        the features recorded in the feature model
@@ -169,7 +169,9 @@ public class LinePresenceConditionMapper {
      * @param macroTable               the macro table
      * @param presenceConditionManager the presence condition manager
      * @param conditionEvaluator       the condition evaluator
+     * @param lexerCreator             the lexer creator
      * @param tokenCreator             the token creator
+     * @param sourceRoot               the root of the source directory. Must be an absolute path.
      */
     private void preparePreprocessor(InclusionInformation inclusionInformation, MacroTable macroTable,
                                      PresenceConditionManager presenceConditionManager,

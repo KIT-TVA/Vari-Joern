@@ -34,7 +34,7 @@ public class AntennaComposer implements Composer {
     /**
      * Creates a new {@link AntennaComposer} which preprocesses all files in the specified root directory.
      *
-     * @param sourceLocation the root directory
+     * @param sourceLocation the root directory. Must be an absolute path.
      */
     public AntennaComposer(Path sourceLocation) {
         this.sourceLocation = sourceLocation;

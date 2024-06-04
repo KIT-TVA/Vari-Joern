@@ -29,7 +29,7 @@ public abstract class AnalyzerConfig extends NamedComponentConfig {
     /**
      * Instantiates a new {@link Analyzer} which uses the specified path for temporary data.
      *
-     * @param tempPath the directory to use for temporary data
+     * @param tempPath the directory to use for temporary data. Must be an absolute path.
      * @return the new {@link Analyzer}
      */
     public abstract Analyzer newAnalyzer(Path tempPath) throws IOException;

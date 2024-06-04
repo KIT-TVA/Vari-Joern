@@ -37,9 +37,10 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
     /**
      * Creates a new {@link CPGGenerationVisitor} instance.
      *
-     * @param inputDirectory the path containing the source code
-     * @param outputFile     the file to write the CPG to
-     * @param joernPath      the directory in which the Joern executables are stored
+     * @param inputDirectory the path containing the source code. Must be absolute.
+     * @param outputFile     the file to write the CPG to. Must be absolute.
+     * @param joernPath      the directory in which the Joern executables are stored. May be null to use the system
+     *                       PATH.
      */
     public CPGGenerationVisitor(@NotNull Path inputDirectory, @NotNull Path outputFile, @Nullable Path joernPath) {
         this.inputDirectory = inputDirectory;

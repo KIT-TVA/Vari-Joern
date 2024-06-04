@@ -27,7 +27,7 @@ public class KbuildComposerConfig extends ComposerConfig {
      * Relative paths are assumed to be relative to the specified path of the configuration file.
      *
      * @param toml       the TOML section
-     * @param configPath the path to the configuration file
+     * @param configPath the path to the configuration file. Must be absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
     public KbuildComposerConfig(TomlTable toml, Path configPath) throws InvalidConfigException {

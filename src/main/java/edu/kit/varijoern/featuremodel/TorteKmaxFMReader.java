@@ -46,7 +46,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
      * specified source directory. Because different code bases require different methods to extract the feature model,
      * the system parameter is used to determine which method to use.
      *
-     * @param sourcePath the path to the source directory
+     * @param sourcePath the path to the source directory. Must be absolute.
      * @param system     the system to extract the feature model from
      */
     public TorteKmaxFMReader(Path sourcePath, String system) {
@@ -129,7 +129,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
      * 2. Removes features that are not tristate or boolean
      *
      * @param featureModel the feature model to postprocess
-     * @param tmpPath      the temporary path of the feature model reader
+     * @param tmpPath      the absolute path to the temporary directory of the feature model reader
      * @throws FeatureModelReaderException if the feature model could not be postprocessed
      */
     private void postprocessFeatureModel(IFeatureModel featureModel, Path tmpPath) throws FeatureModelReaderException {

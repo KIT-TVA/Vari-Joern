@@ -19,7 +19,8 @@ public abstract class ComposerConfig extends NamedComponentConfig {
     /**
      * Instantiates a new composer using this configuration.
      *
-     * @param tmpPath a {@link Path} to a temporary directory that can be used by the composer
+     * @param tmpPath a {@link Path} to a temporary directory that can be used by the composer. This path must be
+     *                absolute.
      * @return the new composer
      */
     public abstract Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException;

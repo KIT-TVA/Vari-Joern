@@ -44,7 +44,7 @@ public class JoernAnalyzer implements Analyzer {
      *
      * @param joernPath     the path to the directory containing the joern executables. May be null to use the system
      *                      PATH.
-     * @param workspacePath the directory to use for Joern's workspace folder
+     * @param workspacePath the directory to use for Joern's workspace folder. Must be an absolute path.
      */
     public JoernAnalyzer(@Nullable Path joernPath, @NotNull Path workspacePath) throws IOException {
         this.joernPath = joernPath;
@@ -129,8 +129,8 @@ public class JoernAnalyzer implements Analyzer {
     /**
      * Runs Joern on the specified source code. The results are saved in the JSON format in the specified file.
      *
-     * @param cpgLocation the location of the code property graph
-     * @param outFile     the path of the file to save the findings in
+     * @param cpgLocation the location of the code property graph. Must be an absolute path.
+     * @param outFile     the path of the file to save the findings in. Must be an absolute path.
      * @throws IOException              if an I/O error occurred
      * @throws AnalyzerFailureException if Joern exited with a non-zero exit code
      */

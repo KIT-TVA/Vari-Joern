@@ -33,7 +33,7 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      * Relative paths are resolved against the parent directory of the specified configuration file path.
      *
      * @param toml       the component section
-     * @param configPath the path to the configuration file
+     * @param configPath the path to the configuration file. Must be absolute.
      * @return the parsed configuration
      * @throws InvalidConfigException if the TOML section did not represent a valid configuration
      */
@@ -49,7 +49,7 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      *
      * @param componentName the name of the implementation of the component
      * @param toml          the component section
-     * @param configPath    the path to the configuration file
+     * @param configPath    the path to the configuration file. Must be absolute.
      * @return the parsed configuration
      * @throws InvalidConfigException if the TOML section did not represent a valid configuration
      */

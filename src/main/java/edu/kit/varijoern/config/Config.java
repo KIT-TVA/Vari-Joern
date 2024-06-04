@@ -37,7 +37,7 @@ public class Config {
     /**
      * Parses the configuration file at the specified location. The file format is assumed to be TOML.
      *
-     * @param configLocation the path to the configuration file
+     * @param configLocation the path to the configuration file. May be relative to the current working directory.
      * @throws IOException            if an IO error occurs
      * @throws InvalidConfigException if the file does not contain valid TOML
      *                                or does not match the expected configuration format

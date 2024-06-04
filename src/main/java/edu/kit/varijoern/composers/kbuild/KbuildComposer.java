@@ -103,10 +103,10 @@ public class KbuildComposer implements Composer {
     /**
      * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
      *
-     * @param sourcePath the path to the source directory
+     * @param sourcePath the path to the source directory. Must be an absolute path.
      * @param system     the variant of the Kbuild/Kconfig system. Use {@link KbuildComposer#isSupportedSystem(String)}
      *                   to determine if a given system is supported.
-     * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer
+     * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer. Must be absolute.
      */
     public KbuildComposer(Path sourcePath, String system, Path tmpPath) throws IOException, ComposerException {
         this.system = system;
@@ -167,7 +167,7 @@ public class KbuildComposer implements Composer {
      * exists and is up-to-date.
      *
      * @param features      the enabled and disabled features
-     * @param tmpSourcePath the path to the temporary source directory
+     * @param tmpSourcePath the absolute path to the temporary source directory
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if the .config file could not be generated
      */
@@ -225,7 +225,7 @@ public class KbuildComposer implements Composer {
     /**
      * Determines the files that are included in the variant and the compiler flags they are compiled with.
      *
-     * @param tmpSourcePath the path to the temporary source directory
+     * @param tmpSourcePath the absolute path to the temporary source directory
      * @return the files that are included in the variant
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if the files could not be determined
@@ -273,7 +273,7 @@ public class KbuildComposer implements Composer {
      * Determines the dependencies of the specified files.
      *
      * @param compiledFiles the files to determine the dependencies of
-     * @param tmpSourcePath the path to the temporary source directory
+     * @param tmpSourcePath the absolute path to the temporary source directory
      * @return the dependencies of the specified files
      * @throws ComposerException if the dependencies could not be determined
      * @throws IOException       if an I/O error occurs
@@ -295,7 +295,7 @@ public class KbuildComposer implements Composer {
      * the specified file are included.
      *
      * @param inclusionInformation the file to determine the dependencies of
-     * @param tmpSourcePath        the path to the temporary source directory
+     * @param tmpSourcePath        the absolute path to the temporary source directory
      * @return the dependencies of the specified file
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if the dependencies could not be determined
@@ -341,7 +341,7 @@ public class KbuildComposer implements Composer {
      * using the syntax of a make rule. Dependencies of files generated during a full build may be missed.
      *
      * @param inclusionInformation the file to determine the dependencies of
-     * @param tmpSourcePath        the path to the temporary source directory
+     * @param tmpSourcePath        the absolute path to the temporary source directory
      * @return the make rule describing the dependencies of the specified file
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if GCC fails
@@ -389,8 +389,8 @@ public class KbuildComposer implements Composer {
      * Generates the files required by the specified variant using {@code generateFile}.
      *
      * @param dependencies  the files required by the variant
-     * @param destination   the path to the output directory
-     * @param tmpSourcePath the path to the temporary source directory
+     * @param destination   the absolute path to the output directory
+     * @param tmpSourcePath the absolute path to the temporary source directory
      * @return a map from the paths of the generated files to information about the generation process
      * @throws IOException if an I/O error occurs
      */
@@ -418,9 +418,9 @@ public class KbuildComposer implements Composer {
      * @param filePath       the path to the file to generate, relative to the temporary and output source directories
      * @param configurations information about which variants of the file to generate (e.g. with which preprocessor
      *                       directives)
-     * @param destination    the path to the output directory
-     * @param tmpSourcePath  the path to the temporary source directory
-     * @return a map from the paths of the generated files to information about the generation process
+     * @param destination    the absolute path to the output directory
+     * @param tmpSourcePath  the absolute path to the temporary source directory
+     * @return a map from the relative paths of the generated files to information about the generation process
      * @throws IOException if an I/O error occurs
      */
     private Map<Path, GenerationInformation> generateFile(Path filePath, List<Dependency> configurations,

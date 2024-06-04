@@ -22,7 +22,7 @@ public class JoernArgs {
     /**
      * Creates a new {@link JoernArgs} instance with the specified values.
      *
-     * @param joernPath the path to the Joern executables
+     * @param joernPath the path to the Joern executables. May be {@code null} to use the system PATH.
      */
     public JoernArgs(@Nullable Path joernPath) {
         this.joernPath = joernPath;

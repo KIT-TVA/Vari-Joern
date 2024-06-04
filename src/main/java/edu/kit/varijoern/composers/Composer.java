@@ -15,7 +15,8 @@ public interface Composer {
      * Runs the composer on the source files given to the {@link Composer} instance.
      *
      * @param features     a map of feature names to their enabled status
-     * @param destination  a {@link Path} to an existing empty directory into which the resulting code should be saved
+     * @param destination  a {@link Path} to an existing empty directory into which the resulting code should be saved.
+     *                     This path must be absolute.
      * @param featureModel the feature model of the analyzed system
      * @return a {@link CompositionInformation} instance containing information about this composer pass
      * @throws ComposerException if the composer failed due to invalid source code

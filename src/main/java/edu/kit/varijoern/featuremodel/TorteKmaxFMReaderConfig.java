@@ -21,7 +21,7 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
      * Creates a new {@link TorteKmaxFMReaderConfig} by extracting data from the specified TOML section.
      *
      * @param toml       the TOML section
-     * @param configPath the path to the configuration file
+     * @param configPath the path to the configuration file. Must be absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
     public TorteKmaxFMReaderConfig(TomlTable toml, Path configPath) throws InvalidConfigException {

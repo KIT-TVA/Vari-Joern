@@ -25,7 +25,7 @@ public class FeatureIDEFMReader implements FeatureModelReader {
     /**
      * Creates a new {@link FeatureIDEFMReader} that reads the feature model from the specified path.
      *
-     * @param path the path to the feature model file
+     * @param path the path to the feature model file. Must be absolute.
      */
     public FeatureIDEFMReader(Path path) {
         if (!featureIDEInitialized) {
