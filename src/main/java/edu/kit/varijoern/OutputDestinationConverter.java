@@ -2,6 +2,7 @@ package edu.kit.varijoern;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.ParameterException;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.InvalidPathException;
 
@@ -11,7 +12,7 @@ import java.nio.file.InvalidPathException;
  */
 public class OutputDestinationConverter implements IStringConverter<OutputDestination> {
     @Override
-    public OutputDestination convert(String s) {
+    public @NotNull OutputDestination convert(@NotNull String s) {
         try {
             return new OutputDestination(s);
         } catch (InvalidPathException e) {

@@ -1,5 +1,6 @@
 package edu.kit.varijoern.composers;
 
+import org.jetbrains.annotations.NotNull;
 import org.prop4j.Node;
 
 import java.nio.file.Path;
@@ -19,5 +20,5 @@ public interface PresenceConditionMapper {
      * @return the condition under which the line is included in the output or an empty optional if the condition could
      * not be determined
      */
-    Optional<Node> getPresenceCondition(Path file, int lineNumber);
+    Optional<Node> getPresenceCondition(@NotNull Path file, int lineNumber);
 }

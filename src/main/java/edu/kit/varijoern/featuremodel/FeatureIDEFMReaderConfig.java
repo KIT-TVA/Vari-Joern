@@ -2,6 +2,7 @@ package edu.kit.varijoern.featuremodel;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.InvalidPathException;
@@ -13,7 +14,7 @@ import java.nio.file.Path;
 public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
     private static final String PATH_FIELD_NAME = "path";
 
-    private final Path featureModelPath;
+    private final @NotNull Path featureModelPath;
 
     /**
      * Creates a new {@link FeatureIDEFMReaderConfig} by extracting data from the specified TOML section.
@@ -22,7 +23,7 @@ public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
      * @param configPath the path to the configuration file. Must be absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public FeatureIDEFMReaderConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
+    public FeatureIDEFMReaderConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
         super(toml);
         String path = TomlUtils.getMandatoryString(
                 PATH_FIELD_NAME,
@@ -42,7 +43,7 @@ public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
     }
 
     @Override
-    public FeatureModelReader newFeatureModelReader() {
+    public @NotNull FeatureModelReader newFeatureModelReader() {
         return new FeatureIDEFMReader(this.featureModelPath);
     }
 
@@ -51,7 +52,7 @@ public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
      *
      * @return the absolute path to the FeatureIDE feature model
      */
-    public Path getFeatureModelPath() {
+    public @NotNull Path getFeatureModelPath() {
         return this.featureModelPath;
     }
 }

@@ -19,8 +19,8 @@ public class KbuildComposerConfig extends ComposerConfig {
     private static final String SOURCE_FIELD_NAME = "source";
     private static final String SYSTEM_FIELD_NAME = "system";
 
-    private final Path sourceLocation;
-    private final String system;
+    private final @NotNull Path sourceLocation;
+    private final @NotNull String system;
 
     /**
      * Creates a new {@link KbuildComposerConfig} by extracting data from the specified TOML section.
@@ -30,7 +30,7 @@ public class KbuildComposerConfig extends ComposerConfig {
      * @param configPath the path to the configuration file. Must be absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public KbuildComposerConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
+    public KbuildComposerConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
         super(toml);
         String sourceLocation = TomlUtils.getMandatoryString(
                 SOURCE_FIELD_NAME,
@@ -59,7 +59,7 @@ public class KbuildComposerConfig extends ComposerConfig {
     }
 
     @Override
-    public Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException {
+    public @NotNull Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException {
         return new KbuildComposer(this.sourceLocation, this.system, tmpPath);
     }
 }

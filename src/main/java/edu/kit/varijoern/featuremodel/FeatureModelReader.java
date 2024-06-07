@@ -1,6 +1,7 @@
 package edu.kit.varijoern.featuremodel;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -17,5 +18,6 @@ public interface FeatureModelReader {
      * @return the feature model
      * @throws IOException if an I/O error occurs
      */
-    IFeatureModel read(Path tmpPath) throws IOException, FeatureModelReaderException;
+    @NotNull
+    IFeatureModel read(@NotNull Path tmpPath) throws IOException, FeatureModelReaderException;
 }

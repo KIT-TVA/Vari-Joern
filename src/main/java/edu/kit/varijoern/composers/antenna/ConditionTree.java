@@ -26,8 +26,8 @@ import java.util.stream.Stream;
 public class ConditionTree {
     private final int firstLine;
     private final int length;
-    private final Node condition;
-    private final List<ConditionTree> children;
+    private final @NotNull Node condition;
+    private final @NotNull List<ConditionTree> children;
 
     /**
      * Creates a new {@link ConditionTree} for the specified file content.
@@ -35,7 +35,7 @@ public class ConditionTree {
      * @param lines the lines of the file
      * @throws ConditionTreeException if the tree could not be generated
      */
-    public ConditionTree(List<String> lines) throws ConditionTreeException {
+    public ConditionTree(@NotNull List<String> lines) throws ConditionTreeException {
         this.firstLine = 1;
         this.length = lines.size();
         ParsingResult parsingResult = parse(lines, 0, false);
@@ -53,9 +53,9 @@ public class ConditionTree {
      * @param condition the condition for all lines of the subtree
      * @throws ConditionTreeException if the subtree could not be created
      */
-    private ConditionTree(List<String> lines,
+    private ConditionTree(@NotNull List<String> lines,
                           int offset,
-                          Node condition) throws ConditionTreeException {
+                          @NotNull Node condition) throws ConditionTreeException {
         this.firstLine = offset + 1;
         ParsingResult parsingResult = parse(lines, offset, true);
         if (parsingResult.condition != null) {
@@ -78,8 +78,8 @@ public class ConditionTree {
      * @return the subtrees of this tree and its specified condition
      * @throws ConditionTreeException if the tree could not be created
      */
-    private static ParsingResult parse(
-            List<String> lines,
+    private static @NotNull ParsingResult parse(
+            @NotNull List<String> lines,
             int offset,
             boolean waitingForEndif
     ) throws ConditionTreeException {
@@ -129,7 +129,8 @@ public class ConditionTree {
      * @throws ConditionTreeException if the if-elif-else construct could not be parsed or a subtree could not be
      *                                created
      */
-    private static int handleIf(PPLineAST ifLine, List<String> lines, int ifLineOffset, List<ConditionTree> children)
+    private static int handleIf(@NotNull PPLineAST ifLine, @NotNull List<String> lines, int ifLineOffset,
+                                @NotNull List<ConditionTree> children)
             throws ConditionTreeException {
         List<Node> previousConditions = new ArrayList<>();
         ConditionTree lastChild = createNewIfChild(ifLine, lines, ifLineOffset, previousConditions);
@@ -168,8 +169,8 @@ public class ConditionTree {
      * @throws ConditionTreeException if the subtree could not be created
      */
     @NotNull
-    private static ConditionTree createNewIfChild(PPLineAST ifLine, List<String> lines, int ifLineOffset,
-                                                  @NotNull List<Node> previousConditions)
+    private static ConditionTree createNewIfChild(@NotNull PPLineAST ifLine, @NotNull List<String> lines,
+                                                  int ifLineOffset, @NotNull List<Node> previousConditions)
             throws ConditionTreeException {
         Stream<Not> negatedPreviousConditions = previousConditions.stream().map(Not::new);
         Node fullCondition;
@@ -199,7 +200,7 @@ public class ConditionTree {
      * @param tokenTree the root to start iterating from
      * @return the leaf's character position in its line
      */
-    private static int getFirstCharPositionInLine(Tree tokenTree) {
+    private static int getFirstCharPositionInLine(@NotNull Tree tokenTree) {
         Tree parent = tokenTree;
         while (parent.getChildCount() > 0) {
             parent = parent.getChild(0);
@@ -213,7 +214,7 @@ public class ConditionTree {
      * @param condition the condition excluding the initial {@code //#if} and {@code //#elif} part
      * @return the parsed condition
      */
-    private static Node createIfCondition(String condition) {
+    private static @NotNull Node createIfCondition(@NotNull String condition) {
         NodeReader nodeReader = new NodeReader();
         String preparedCondition = condition.trim()
                 .replace("&&", "&")
@@ -229,8 +230,7 @@ public class ConditionTree {
         );
     }
 
-    @NotNull
-    private static PPLineAST getNextSibling(PPLineAST ast) {
+    private static @NotNull PPLineAST getNextSibling(@NotNull PPLineAST ast) {
         return (PPLineAST) ast.getParent().getChild(ast.getIndex() + 1);
     }
 
@@ -242,11 +242,11 @@ public class ConditionTree {
      *               used
      * @return the condition
      */
-    private static Node definedCondition(String symbol, boolean negate) {
+    private static @NotNull Node definedCondition(@NotNull String symbol, boolean negate) {
         return new Literal(symbol, !negate);
     }
 
-    private static PPLineAST getAST(PPLine line) throws ConditionTreeException {
+    private static @NotNull PPLineAST getAST(@NotNull PPLine line) throws ConditionTreeException {
         APPParser parser = getParser(line);
         PPLineAST ast;
         try {
@@ -261,8 +261,7 @@ public class ConditionTree {
         return ast;
     }
 
-    @NotNull
-    private static APPParser getParser(PPLine line) throws ConditionTreeException {
+    private static @NotNull APPParser getParser(@NotNull PPLine line) throws ConditionTreeException {
         String raw = line.getText();
         if (raw.startsWith("expand") || raw.startsWith("include"))
             throw new ConditionTreeException("\"expand\" and \"include\" are not supported");
@@ -300,7 +299,7 @@ public class ConditionTree {
      *
      * @return all subtrees
      */
-    public List<ConditionTree> getChildren() {
+    public @NotNull List<ConditionTree> getChildren() {
         return children;
     }
 
@@ -310,7 +309,7 @@ public class ConditionTree {
      *
      * @return the condition of this tree
      */
-    public Node getCondition() {
+    public @NotNull Node getCondition() {
         return condition;
     }
 
@@ -320,7 +319,7 @@ public class ConditionTree {
      * @param lineNumber the line number. Line 1 is the first line.
      * @return the condition of the line
      */
-    public Node getConditionOfLine(int lineNumber) {
+    public @NotNull Node getConditionOfLine(int lineNumber) {
         if (lineNumber < 1 || lineNumber >= this.firstLine + this.length)
             throw new IndexOutOfBoundsException(
                     "Cannot get condition for line %d because it is out of range.".formatted(lineNumber)
@@ -334,7 +333,7 @@ public class ConditionTree {
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("%d: if %s%n".formatted(this.firstLine - 1, this.condition));
         for (ConditionTree child : this.children) {

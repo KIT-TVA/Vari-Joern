@@ -9,6 +9,7 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 
@@ -20,14 +21,14 @@ public class FeatureIDEFMReader implements FeatureModelReader {
     private static boolean featureIDEInitialized = false;
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private final Path path;
+    private final @NotNull Path path;
 
     /**
      * Creates a new {@link FeatureIDEFMReader} that reads the feature model from the specified path.
      *
      * @param path the path to the feature model file. Must be absolute.
      */
-    public FeatureIDEFMReader(Path path) {
+    public FeatureIDEFMReader(@NotNull Path path) {
         if (!featureIDEInitialized) {
             FMFormatManager.getInstance().addExtension(new XmlFeatureModelFormat());
             FMFactoryManager.getInstance().addExtension(new DefaultFeatureModelFactory());
@@ -38,7 +39,7 @@ public class FeatureIDEFMReader implements FeatureModelReader {
     }
 
     @Override
-    public IFeatureModel read(Path tmpPath) {
+    public @NotNull IFeatureModel read(@NotNull Path tmpPath) {
         LOGGER.info("Reading feature model from {}", this.path);
         FMFormatManager.getInstance().addExtension(new XmlFeatureModelFormat());
         return FeatureModelManager.load(this.path);

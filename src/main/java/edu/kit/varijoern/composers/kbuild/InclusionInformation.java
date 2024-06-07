@@ -1,6 +1,7 @@
 package edu.kit.varijoern.composers.kbuild;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.Set;
  */
 public record InclusionInformation(Path filePath, Set<String> includedFiles, Map<String, String> defines,
                                    List<String> includePaths) {
-    public InclusionInformation(Path filePath, Set<String> includedFiles, Map<String, String> defines,
+    public InclusionInformation(@NotNull Path filePath, Set<String> includedFiles, Map<String, String> defines,
                                 List<String> includePaths) {
         this.filePath = filePath.normalize();
         this.includedFiles = includedFiles;
@@ -42,7 +43,7 @@ public record InclusionInformation(Path filePath, Set<String> includedFiles, Map
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         InclusionInformation that = (InclusionInformation) o;

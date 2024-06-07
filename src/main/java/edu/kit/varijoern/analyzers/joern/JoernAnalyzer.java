@@ -33,11 +33,10 @@ public class JoernAnalyzer implements Analyzer {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
-    @Nullable
-    private final Path joernPath;
-    private final Path workspacePath;
-    private final Path scanScriptPath;
-    private final List<JoernAnalysisResult> allAnalysisResults = new ArrayList<>();
+    private final @Nullable Path joernPath;
+    private final @NotNull Path workspacePath;
+    private final @NotNull Path scanScriptPath;
+    private final @NotNull List<JoernAnalysisResult> allAnalysisResults = new ArrayList<>();
 
     /**
      * Creates a new {@link JoernAnalyzer} instance which uses the specified command name to run joern-scan.
@@ -56,7 +55,7 @@ public class JoernAnalyzer implements Analyzer {
     }
 
     @Override
-    public JoernAnalysisResult analyze(CompositionInformation compositionInformation)
+    public @NotNull JoernAnalysisResult analyze(@NotNull CompositionInformation compositionInformation)
             throws IOException, AnalyzerFailureException {
         LOGGER.info("Running analysis");
         Path sourceLocation = compositionInformation.getLocation();
@@ -81,7 +80,7 @@ public class JoernAnalyzer implements Analyzer {
     }
 
     @Override
-    public AggregatedAnalysisResult aggregateResults() {
+    public @NotNull AggregatedAnalysisResult aggregateResults() {
         // Group findings by their evidence and query name, store the analysis result retrieve the enabled features
         // and the presence condition mappers later
         Map<?, List<Pair<AnnotatedFinding, JoernAnalysisResult>>> groupedFindings
@@ -114,8 +113,9 @@ public class JoernAnalyzer implements Analyzer {
                 .collect(Collectors.toSet()));
     }
 
-    private void analyzeWithLanguageInformation(LanguageInformation languageInformation, Path sourceLocation,
-                                                Path outFile) throws AnalyzerFailureException, IOException {
+    private void analyzeWithLanguageInformation(@NotNull LanguageInformation languageInformation,
+                                                @NotNull Path sourceLocation, @NotNull Path outFile)
+            throws AnalyzerFailureException, IOException {
         LOGGER.info("Running analysis for language {}", languageInformation.getName());
         Path cpgLocation = this.workspacePath.resolve("cpg.bin");
         LOGGER.info("Generating CPG");
@@ -134,7 +134,8 @@ public class JoernAnalyzer implements Analyzer {
      * @throws IOException              if an I/O error occurred
      * @throws AnalyzerFailureException if Joern exited with a non-zero exit code
      */
-    private void runJoern(Path cpgLocation, Path outFile) throws IOException, AnalyzerFailureException {
+    private void runJoern(@NotNull Path cpgLocation, @NotNull Path outFile)
+            throws IOException, AnalyzerFailureException {
         Process joernProcess = new ProcessBuilder(
                 this.joernPath == null ? JOERN_COMMAND : this.joernPath.resolve(JOERN_COMMAND).toString(),
                 "--script", this.scanScriptPath.toString(),
@@ -159,10 +160,10 @@ public class JoernAnalyzer implements Analyzer {
             throw new AnalyzerFailureException(String.format("joern exited with %d", joernExitCode));
     }
 
-    private List<JoernFinding> parseFindings(Path findingsFile) throws IOException {
+    private @NotNull List<JoernFinding> parseFindings(@NotNull Path findingsFile) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
-        });
+        return Objects.requireNonNull(objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
+        }));
     }
 }

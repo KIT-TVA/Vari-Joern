@@ -2,6 +2,7 @@ package edu.kit.varijoern.samplers;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlArray;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
@@ -15,7 +16,7 @@ import java.util.Objects;
  */
 public class FixedSamplerConfig extends SamplerConfig {
     private static final String FEATURES_FIELD_NAME = "features";
-    private final List<List<String>> sample;
+    private final @NotNull List<List<String>> sample;
 
     /**
      * Creates a new {@link FixedSamplerConfig} by extracting data from the specified TOML section.
@@ -23,7 +24,7 @@ public class FixedSamplerConfig extends SamplerConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public FixedSamplerConfig(TomlTable toml) throws InvalidConfigException {
+    public FixedSamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
         if (!toml.isArray(FEATURES_FIELD_NAME))
             throw new InvalidConfigException("Features for fixed sampler are missing or not an array");
@@ -54,7 +55,7 @@ public class FixedSamplerConfig extends SamplerConfig {
     }
 
     @Override
-    public Sampler newSampler(IFeatureModel featureModel) {
+    public @NotNull Sampler newSampler(@NotNull IFeatureModel featureModel) {
         return new FixedSampler(this.sample, featureModel);
     }
 
@@ -64,7 +65,7 @@ public class FixedSamplerConfig extends SamplerConfig {
      * @return the features enabled in each of the configurations. One entry of the top-level list corresponds to one
      * configuration.
      */
-    public List<List<String>> getSample() {
+    public @NotNull List<List<String>> getSample() {
         return this.sample;
     }
 }

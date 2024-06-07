@@ -21,8 +21,8 @@ public class FixedSampler implements Sampler {
      * The name of this {@link Sampler} implementation
      */
     public static final String NAME = "fixed";
-    private final List<List<String>> enabledFeaturesOfConfigurations;
-    private final IFeatureModel featureModel;
+    private final @NotNull List<List<String>> enabledFeaturesOfConfigurations;
+    private final @NotNull IFeatureModel featureModel;
 
     /**
      * Creates a new {@link FixedSampler} which always returns the specified configurations.
@@ -30,7 +30,8 @@ public class FixedSampler implements Sampler {
      * @param enabledFeaturesOfConfigurations the features enabled in the configuration
      * @param featureModel                    the feature model
      */
-    public FixedSampler(List<List<String>> enabledFeaturesOfConfigurations, IFeatureModel featureModel) {
+    public FixedSampler(@NotNull List<List<String>> enabledFeaturesOfConfigurations,
+                        @NotNull IFeatureModel featureModel) {
         this.enabledFeaturesOfConfigurations = enabledFeaturesOfConfigurations.stream()
                 .map(List::copyOf)
                 .toList();
@@ -38,7 +39,8 @@ public class FixedSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
+    public @NotNull List<Map<String, Boolean>> sample(@NotNull List<AnalysisResult> analysisResults)
+            throws SamplerException {
         List<Map<String, Boolean>> result = new ArrayList<>();
         for (List<String> enabledFeaturesOfConfiguration : this.enabledFeaturesOfConfigurations) {
             Map<String, Boolean> configuration = this.featureModel.getFeatures().stream()

@@ -1,5 +1,7 @@
 package edu.kit.varijoern.composers;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Visits {@link LanguageInformation} instances.
  *
@@ -11,14 +13,14 @@ public abstract class LanguageInformationVisitor<T extends Throwable> {
      *
      * @param languageInformation the instance to visit whose subclass has no specific implementation
      */
-    protected abstract void visitUnimplemented(LanguageInformation languageInformation) throws T;
+    protected abstract void visitUnimplemented(@NotNull LanguageInformation languageInformation) throws T;
 
     /**
      * Visits a {@link CCPPLanguageInformation} instance.
      *
      * @param languageInformation the instance to visit
      */
-    public void visit(CCPPLanguageInformation languageInformation) throws T {
+    public void visit(@NotNull CCPPLanguageInformation languageInformation) throws T {
         visitUnimplemented(languageInformation);
     }
 
@@ -27,7 +29,7 @@ public abstract class LanguageInformationVisitor<T extends Throwable> {
      *
      * @param languageInformation the instance to visit
      */
-    public void visit(GenericLanguageInformation languageInformation) throws T {
+    public void visit(@NotNull GenericLanguageInformation languageInformation) throws T {
         visitUnimplemented(languageInformation);
     }
 }

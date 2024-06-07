@@ -3,6 +3,7 @@ package edu.kit.varijoern.analyzers;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
@@ -11,12 +12,13 @@ import java.util.Map;
  * Contains information about the weaknesses an analyzer found in a single variant.
  */
 public abstract class AnalysisResult {
-    private final PresenceConditionMapper presenceConditionMapper;
-    private final SourceMap sourceMap;
-    private final Map<String, Boolean> enabledFeatures;
+    private final @NotNull PresenceConditionMapper presenceConditionMapper;
+    private final @NotNull SourceMap sourceMap;
+    private final @NotNull Map<String, Boolean> enabledFeatures;
 
-    protected AnalysisResult(Map<String, Boolean> enabledFeatures, PresenceConditionMapper presenceConditionMapper,
-                             SourceMap sourceMap) {
+    protected AnalysisResult(@NotNull Map<String, Boolean> enabledFeatures,
+                             @NotNull PresenceConditionMapper presenceConditionMapper,
+                             @NotNull SourceMap sourceMap) {
         this.enabledFeatures = Map.copyOf(enabledFeatures);
         this.presenceConditionMapper = presenceConditionMapper;
         this.sourceMap = sourceMap;
@@ -27,7 +29,7 @@ public abstract class AnalysisResult {
      *
      * @return a map of feature names to their enabled status at the time of analysis
      */
-    public Map<String, Boolean> getEnabledFeatures() {
+    public @NotNull Map<String, Boolean> getEnabledFeatures() {
         return enabledFeatures;
     }
 
@@ -37,7 +39,7 @@ public abstract class AnalysisResult {
      * @return the presence condition mapper
      */
     @JsonIgnore
-    public PresenceConditionMapper getPresenceConditionMapper() {
+    public @NotNull PresenceConditionMapper getPresenceConditionMapper() {
         return presenceConditionMapper;
     }
 
@@ -47,7 +49,7 @@ public abstract class AnalysisResult {
      * @return the source map
      */
     @JsonIgnore
-    public SourceMap getSourceMap() {
+    public @NotNull SourceMap getSourceMap() {
         return sourceMap;
     }
 
@@ -56,7 +58,7 @@ public abstract class AnalysisResult {
      *
      * @return a list of all findings
      */
-    public abstract List<AnnotatedFinding> getFindings();
+    public abstract @NotNull List<AnnotatedFinding> getFindings();
 
     @Override
     public String toString() {

@@ -38,8 +38,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
 
-    private final Path sourcePath;
-    private final String system;
+    private final @NotNull Path sourcePath;
+    private final @NotNull String system;
 
     /**
      * Creates a new {@link TorteKmaxFMReader} that reads the feature model from the Kconfig files located in the
@@ -49,7 +49,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
      * @param sourcePath the path to the source directory. Must be absolute.
      * @param system     the system to extract the feature model from
      */
-    public TorteKmaxFMReader(Path sourcePath, String system) {
+    public TorteKmaxFMReader(@NotNull Path sourcePath, @NotNull String system) {
         this.sourcePath = sourcePath;
         if (!EXPERIMENT_SCRIPT_FILES.containsKey(system)) {
             throw new IllegalArgumentException("Unknown system: " + system);
@@ -58,7 +58,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     }
 
     @Override
-    public IFeatureModel read(Path tmpPath) throws IOException, FeatureModelReaderException {
+    public @NotNull IFeatureModel read(@NotNull Path tmpPath) throws IOException, FeatureModelReaderException {
         LOGGER.info("Reading feature model from Kconfig files in {}", this.sourcePath);
         String readerScript = ResourcesUtil.getResourceAsString("torte/" + getExperimentScriptName());
         Path readerScriptPath = tmpPath.resolve(getExperimentScriptName());
@@ -88,7 +88,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         }
     }
 
-    private void runReader(Path tmpPath) throws IOException, FeatureModelReaderException {
+    private void runReader(@NotNull Path tmpPath) throws IOException, FeatureModelReaderException {
         ProcessBuilder readerProcessBuilder = new ProcessBuilder("bash", getExperimentScriptName())
                 .directory(tmpPath.toFile());
         readerProcessBuilder.environment().put("TORTE_INPUT_DIRECTORY", tmpPath.resolve("input").toString());
@@ -110,7 +110,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         }
     }
 
-    private Path findGeneratedFeatureModel(Path tmpPath) throws IOException, FeatureModelReaderException {
+    private @NotNull Path findGeneratedFeatureModel(@NotNull Path tmpPath)
+            throws IOException, FeatureModelReaderException {
         try (Stream<Path> files = Files.walk(tmpPath.resolve("output/model_to_xml_featureide/" + this.system))) {
             List<Path> featureModelPaths = files.filter(Files::isRegularFile)
                     .filter(path -> path.getFileName().toString().endsWith(".xml"))
@@ -132,7 +133,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
      * @param tmpPath      the absolute path to the temporary directory of the feature model reader
      * @throws FeatureModelReaderException if the feature model could not be postprocessed
      */
-    private void postprocessFeatureModel(IFeatureModel featureModel, Path tmpPath) throws FeatureModelReaderException {
+    private void postprocessFeatureModel(@NotNull IFeatureModel featureModel, @NotNull Path tmpPath)
+            throws FeatureModelReaderException {
         try (Stream<Path> files = Files.walk(tmpPath.resolve("output/kconfig/" + this.system))) {
             List<Path> kextractorFiles = files.filter(Files::isRegularFile)
                     .filter(path -> path.getFileName().toString().endsWith(".kextractor"))
@@ -170,7 +172,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         }
     }
 
-    private static void deleteFeatures(IFeatureModel featureModel, List<String> nonTristateFeatures) {
+    private static void deleteFeatures(@NotNull IFeatureModel featureModel, @NotNull List<String> nonTristateFeatures) {
         for (String feature : nonTristateFeatures) {
             LOGGER.debug("Feature {} does not appear to be tristate.", feature);
             featureModel.deleteFeature(featureModel.getFeature(feature));
@@ -198,7 +200,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
      * @param system the system to check
      * @return whether this reader supports the specified system
      */
-    public static boolean supportsSystem(String system) {
+    public static boolean supportsSystem(@NotNull String system) {
         return EXPERIMENT_SCRIPT_FILES.containsKey(system);
     }
 }

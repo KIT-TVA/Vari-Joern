@@ -2,6 +2,7 @@ package edu.kit.varijoern.featuremodel;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
@@ -22,7 +23,7 @@ public final class FeatureModelReaderConfigFactory extends NamedComponentConfigF
      *
      * @return the instance
      */
-    public static FeatureModelReaderConfigFactory getInstance() {
+    public static @NotNull FeatureModelReaderConfigFactory getInstance() {
         return INSTANCE;
     }
 
@@ -32,12 +33,13 @@ public final class FeatureModelReaderConfigFactory extends NamedComponentConfigF
      *
      * @return the objects into which the command line arguments for the feature model readers should be parsed
      */
-    public static List<Object> getComponentArgs() {
+    public static @NotNull List<Object> getComponentArgs() {
         return List.of(); // Currently, no feature model reader has command line arguments
     }
 
     @Override
-    protected FeatureModelReaderConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
+    protected @NotNull FeatureModelReaderConfig newConfigFromName(@NotNull String componentName,
+                                                                  @NotNull TomlTable toml, @NotNull Path configPath)
             throws InvalidConfigException {
         return switch (componentName) {
             case FeatureIDEFMReader.NAME -> new FeatureIDEFMReaderConfig(toml, configPath);
@@ -47,7 +49,7 @@ public final class FeatureModelReaderConfigFactory extends NamedComponentConfigF
     }
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "feature model reader";
     }
 }

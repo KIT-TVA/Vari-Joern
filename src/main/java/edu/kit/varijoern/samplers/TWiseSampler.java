@@ -25,7 +25,7 @@ public class TWiseSampler implements Sampler {
     public static final String NAME = "t-wise";
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private final IFeatureModel featureModel;
+    private final @NotNull IFeatureModel featureModel;
     private final int t;
     private final int maxSampleSize;
 
@@ -36,14 +36,15 @@ public class TWiseSampler implements Sampler {
      * @param t             the parameter t
      * @param maxSampleSize the maximum number of configurations to be generated
      */
-    public TWiseSampler(IFeatureModel featureModel, int t, int maxSampleSize) {
+    public TWiseSampler(@NotNull IFeatureModel featureModel, int t, int maxSampleSize) {
         this.featureModel = featureModel;
         this.t = t;
         this.maxSampleSize = maxSampleSize;
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(List<AnalysisResult> analysisResults) throws SamplerException {
+    public @NotNull List<Map<String, Boolean>> sample(@NotNull List<AnalysisResult> analysisResults)
+            throws SamplerException {
         LOGGER.info("Calculating {}-wise sample", this.t);
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
         TWiseConfigurationGenerator generator = new TWiseConfigurationGenerator(cnf, this.t, this.maxSampleSize);

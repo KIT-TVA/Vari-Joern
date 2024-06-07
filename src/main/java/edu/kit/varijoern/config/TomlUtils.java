@@ -22,8 +22,8 @@ public final class TomlUtils {
      * @return the string value
      * @throws InvalidConfigException if the value is not present or not a string
      */
-    @NotNull
-    public static String getMandatoryString(String dottedName, TomlTable toml, String exceptionMessage)
+    public static @NotNull String getMandatoryString(@NotNull String dottedName, @NotNull TomlTable toml,
+                                                     @NotNull String exceptionMessage)
             throws InvalidConfigException {
         if (!toml.isString(dottedName)) {
             throw new InvalidConfigException(exceptionMessage);
@@ -40,7 +40,8 @@ public final class TomlUtils {
      * @return the string value
      * @throws InvalidConfigException if the value is not present, not an integer or out of range for the int type
      */
-    public static int getMandatoryInt(String dottedName, TomlTable toml, String exceptionMessage)
+    public static int getMandatoryInt(@NotNull String dottedName, @NotNull TomlTable toml,
+                                      @NotNull String exceptionMessage)
             throws InvalidConfigException {
         if (!toml.isLong(dottedName)) {
             throw new InvalidConfigException(exceptionMessage);

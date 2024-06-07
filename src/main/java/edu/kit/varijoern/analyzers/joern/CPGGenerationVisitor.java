@@ -29,10 +29,9 @@ import java.util.stream.Stream;
 public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFailureException> {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
-    private final Path inputDirectory;
-    private final Path outputFile;
-    @Nullable
-    private final Path joernPath;
+    private final @NotNull Path inputDirectory;
+    private final @NotNull Path outputFile;
+    private final @Nullable Path joernPath;
 
     /**
      * Creates a new {@link CPGGenerationVisitor} instance.
@@ -53,17 +52,17 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
     }
 
     @Override
-    protected void visitUnimplemented(LanguageInformation languageInformation) {
+    protected void visitUnimplemented(@NotNull LanguageInformation languageInformation) {
         LOGGER.warn("Language {} is not supported by the analyzer.", languageInformation.getName());
     }
 
     @Override
-    public void visit(GenericLanguageInformation languageInformation) throws AnalyzerFailureException {
+    public void visit(@NotNull GenericLanguageInformation languageInformation) throws AnalyzerFailureException {
         generateCPG(List.of());
     }
 
     @Override
-    public void visit(CCPPLanguageInformation languageInformation) throws AnalyzerFailureException {
+    public void visit(@NotNull CCPPLanguageInformation languageInformation) throws AnalyzerFailureException {
         List<String> extraArguments = new ArrayList<>();
         extraArguments.add("--language");
         extraArguments.add("newc");
@@ -78,7 +77,7 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
         generateCPG(extraArguments);
     }
 
-    private void generateCPG(List<String> joernParseExtraArguments) throws AnalyzerFailureException {
+    private void generateCPG(@NotNull List<String> joernParseExtraArguments) throws AnalyzerFailureException {
         List<String> command = Stream.concat(
                 Stream.of(this.joernPath == null
                                 ? "joern-parse"

@@ -3,6 +3,7 @@ package edu.kit.varijoern.samplers;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
 
@@ -21,7 +22,7 @@ public class TWiseSamplerConfig extends SamplerConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public TWiseSamplerConfig(TomlTable toml) throws InvalidConfigException {
+    public TWiseSamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
         this.t = TomlUtils.getMandatoryInt(T_FIELD_NAME, toml, "Parameter t is missing or invalid");
         if (this.t <= 0) {
@@ -40,7 +41,7 @@ public class TWiseSamplerConfig extends SamplerConfig {
     }
 
     @Override
-    public Sampler newSampler(IFeatureModel featureModel) {
+    public @NotNull Sampler newSampler(@NotNull IFeatureModel featureModel) {
         return new TWiseSampler(featureModel, this.t, this.maxSampleSize);
     }
 }

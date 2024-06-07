@@ -3,6 +3,7 @@ package edu.kit.varijoern.samplers;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfig;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 /**
@@ -15,7 +16,7 @@ public abstract class SamplerConfig extends NamedComponentConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
-    protected SamplerConfig(TomlTable toml) throws InvalidConfigException {
+    protected SamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
     }
 
@@ -25,10 +26,10 @@ public abstract class SamplerConfig extends NamedComponentConfig {
      * @param featureModel the feature model of the source code to generate samples for
      * @return the new {@link Sampler}
      */
-    public abstract Sampler newSampler(IFeatureModel featureModel);
+    public abstract @NotNull Sampler newSampler(@NotNull IFeatureModel featureModel);
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "sampler";
     }
 }

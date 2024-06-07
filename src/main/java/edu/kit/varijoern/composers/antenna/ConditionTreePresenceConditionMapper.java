@@ -3,6 +3,7 @@ package edu.kit.varijoern.composers.antenna;
 import edu.kit.varijoern.composers.PresenceConditionMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.prop4j.Node;
 
 import java.nio.file.Path;
@@ -27,7 +28,7 @@ public class ConditionTreePresenceConditionMapper implements PresenceConditionMa
      *              of the composer.
      * @param lines the lines of the file
      */
-    public void tryAddFile(Path path, List<String> lines) {
+    public void tryAddFile(@NotNull Path path, @NotNull List<String> lines) {
         ConditionTree tree;
         try {
             tree = new ConditionTree(lines);
@@ -39,7 +40,7 @@ public class ConditionTreePresenceConditionMapper implements PresenceConditionMa
     }
 
     @Override
-    public Optional<Node> getPresenceCondition(Path file, int lineNumber) {
+    public @NotNull Optional<Node> getPresenceCondition(@NotNull Path file, int lineNumber) {
         return Optional.ofNullable(this.trees.get(file.normalize())).map(tree -> tree.getConditionOfLine(lineNumber));
     }
 }

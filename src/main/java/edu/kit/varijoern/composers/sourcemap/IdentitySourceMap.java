@@ -1,5 +1,7 @@
 package edu.kit.varijoern.composers.sourcemap;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Optional;
 
 /**
@@ -7,7 +9,7 @@ import java.util.Optional;
  */
 public class IdentitySourceMap implements SourceMap {
     @Override
-    public Optional<SourceLocation> getOriginalLocation(SourceLocation location) {
+    public @NotNull Optional<SourceLocation> getOriginalLocation(@NotNull SourceLocation location) {
         return Optional.of(location);
     }
 }

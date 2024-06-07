@@ -2,6 +2,7 @@ package edu.kit.varijoern.samplers;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
@@ -22,7 +23,7 @@ public final class SamplerConfigFactory extends NamedComponentConfigFactory<Samp
      *
      * @return the instance
      */
-    public static SamplerConfigFactory getInstance() {
+    public static @NotNull SamplerConfigFactory getInstance() {
         return INSTANCE;
     }
 
@@ -32,12 +33,13 @@ public final class SamplerConfigFactory extends NamedComponentConfigFactory<Samp
      *
      * @return the objects into which the command line arguments for the samplers should be parsed
      */
-    public static List<Object> getComponentArgs() {
+    public static @NotNull List<Object> getComponentArgs() {
         return List.of(); // Currently, no sampler has command line arguments
     }
 
     @Override
-    protected SamplerConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
+    protected @NotNull SamplerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
+                                                       @NotNull Path configPath)
             throws InvalidConfigException {
         return switch (componentName) {
             case FixedSampler.NAME -> new FixedSamplerConfig(toml);
@@ -47,7 +49,7 @@ public final class SamplerConfigFactory extends NamedComponentConfigFactory<Samp
     }
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "sampler";
     }
 }

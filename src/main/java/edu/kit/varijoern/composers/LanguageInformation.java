@@ -1,5 +1,7 @@
 package edu.kit.varijoern.composers;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Derived classes contain information about how to handle a specific language in a composition.
  */
@@ -9,7 +11,7 @@ public abstract class LanguageInformation {
      *
      * @return the name of the language
      */
-    public abstract String getName();
+    public abstract @NotNull String getName();
 
     /**
      * Accepts a {@link LanguageInformationVisitor}.
@@ -17,5 +19,5 @@ public abstract class LanguageInformation {
      * @param visitor the visitor to accept
      * @param <T>     the type of exception that can be thrown by the visitor
      */
-    public abstract <T extends Throwable> void accept(LanguageInformationVisitor<T> visitor) throws T;
+    public abstract <T extends Throwable> void accept(@NotNull LanguageInformationVisitor<T> visitor) throws T;
 }

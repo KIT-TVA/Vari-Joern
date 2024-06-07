@@ -1,6 +1,7 @@
 package edu.kit.varijoern.output;
 
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.PrintStream;
 
@@ -9,7 +10,7 @@ import java.io.PrintStream;
  */
 public class TextOutputFormatter implements OutputFormatter {
     @Override
-    public void printResults(OutputData results, PrintStream outStream) {
+    public void printResults(@NotNull OutputData results, @NotNull PrintStream outStream) {
         outStream.println("Summary:");
 
         for (int i = 0; i < results.individualResults().size(); i++) {

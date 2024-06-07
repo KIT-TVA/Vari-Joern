@@ -29,14 +29,14 @@ public class AntennaComposer implements Composer {
     public static final String NAME = "antenna";
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private final Path sourceLocation;
+    private final @NotNull Path sourceLocation;
 
     /**
      * Creates a new {@link AntennaComposer} which preprocesses all files in the specified root directory.
      *
      * @param sourceLocation the root directory. Must be an absolute path.
      */
-    public AntennaComposer(Path sourceLocation) {
+    public AntennaComposer(@NotNull Path sourceLocation) {
         this.sourceLocation = sourceLocation;
     }
 

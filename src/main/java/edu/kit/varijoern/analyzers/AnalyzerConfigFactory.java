@@ -5,6 +5,7 @@ import edu.kit.varijoern.analyzers.joern.JoernAnalyzerConfig;
 import edu.kit.varijoern.analyzers.joern.JoernArgs;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
@@ -26,7 +27,7 @@ public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<Ana
      *
      * @return the instance
      */
-    public static NamedComponentConfigFactory<AnalyzerConfig> getInstance() {
+    public static @NotNull NamedComponentConfigFactory<AnalyzerConfig> getInstance() {
         return INSTANCE;
     }
 
@@ -36,12 +37,13 @@ public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<Ana
      *
      * @return the objects into which the command line arguments for the analyzers should be parsed
      */
-    public static List<Object> getComponentArgs() {
+    public static @NotNull List<Object> getComponentArgs() {
         return List.of(JOERN_ARGS);
     }
 
     @Override
-    protected AnalyzerConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
+    protected @NotNull AnalyzerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
+                                                        @NotNull Path configPath)
             throws InvalidConfigException {
         return switch (componentName) {
             case JoernAnalyzer.NAME -> new JoernAnalyzerConfig(toml, JOERN_ARGS);
@@ -50,7 +52,7 @@ public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<Ana
     }
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "analyzer";
     }
 }

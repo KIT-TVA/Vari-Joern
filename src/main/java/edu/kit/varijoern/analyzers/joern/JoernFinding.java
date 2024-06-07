@@ -6,6 +6,7 @@ import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.Finding;
 import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,7 +59,7 @@ public class JoernFinding implements Finding {
      * @return the title of the finding
      */
     @Override
-    public String getTitle() {
+    public @NotNull String getTitle() {
         return this.title;
     }
 
@@ -86,7 +87,7 @@ public class JoernFinding implements Finding {
      * @return information about the source that caused this finding
      */
     @Override
-    public Set<Evidence> getEvidence() {
+    public @NotNull Set<Evidence> getEvidence() {
         return evidence;
     }
 
@@ -107,7 +108,7 @@ public class JoernFinding implements Finding {
      *                                original source
      * @return a string representing this finding
      */
-    public String toString(PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap) {
+    public String toString(@NotNull PresenceConditionMapper presenceConditionMapper, @NotNull SourceMap sourceMap) {
         return "%s: %s at %s".formatted(this.title,
                 this.score,
                 this.evidence.stream()

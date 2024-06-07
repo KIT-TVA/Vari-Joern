@@ -3,6 +3,7 @@ package edu.kit.varijoern.composers.kbuild;
 import net.sf.javabdd.BDD;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.prop4j.*;
 import superc.Builtins;
 import superc.core.*;
@@ -54,8 +55,8 @@ public class LinePresenceConditionMapper {
      * @param knownFeatures        the features recorded in the feature model
      * @param system               the system the file belongs to. Currently, only {@code busybox} is supported.
      */
-    public LinePresenceConditionMapper(InclusionInformation inclusionInformation, Path sourcePath, int addedLines,
-                                       Set<String> knownFeatures, String system)
+    public LinePresenceConditionMapper(@NotNull InclusionInformation inclusionInformation, @NotNull Path sourcePath,
+                                       int addedLines, @NotNull Set<String> knownFeatures, @NotNull String system)
             throws IOException {
         if (!isSupportedSystem(system)) throw new UnsupportedOperationException("Only busybox is supported");
 
@@ -69,8 +70,9 @@ public class LinePresenceConditionMapper {
         System.setProperty("bdd", "__this_bdd_package_does_not_exist__");
     }
 
-    private void determinePresenceConditions(InclusionInformation inclusionInformation, Path sourcePath,
-                                             Set<String> knownFeatures, String system)
+    private void determinePresenceConditions(@NotNull InclusionInformation inclusionInformation,
+                                             @NotNull Path sourcePath, @NotNull Set<String> knownFeatures,
+                                             @NotNull String system)
             throws FileNotFoundException {
         LOGGER.debug("Determining line presence conditions for {}", inclusionInformation.filePath());
         Path filePath = sourcePath.resolve(inclusionInformation.filePath());
@@ -173,10 +175,10 @@ public class LinePresenceConditionMapper {
      * @param tokenCreator             the token creator
      * @param sourceRoot               the root of the source directory. Must be an absolute path.
      */
-    private void preparePreprocessor(InclusionInformation inclusionInformation, MacroTable macroTable,
-                                     PresenceConditionManager presenceConditionManager,
-                                     ConditionEvaluator conditionEvaluator, LexerCreator lexerCreator,
-                                     TokenCreator tokenCreator, Path sourceRoot) {
+    private void preparePreprocessor(@NotNull InclusionInformation inclusionInformation, MacroTable macroTable,
+                                     @NotNull PresenceConditionManager presenceConditionManager,
+                                     @NotNull ConditionEvaluator conditionEvaluator, @NotNull LexerCreator lexerCreator,
+                                     @NotNull TokenCreator tokenCreator, @NotNull Path sourceRoot) {
         injectSource(Builtins.builtin, macroTable, presenceConditionManager, conditionEvaluator, lexerCreator,
                 tokenCreator, inclusionInformation, sourceRoot);
 
@@ -195,11 +197,12 @@ public class LinePresenceConditionMapper {
                 lexerCreator, tokenCreator, inclusionInformation, sourceRoot);
     }
 
-    private static void injectSource(String source, MacroTable macroTable,
-                                     PresenceConditionManager presenceConditionManager,
-                                     ConditionEvaluator conditionEvaluator, LexerCreator lexerCreator,
-                                     TokenCreator tokenCreator, InclusionInformation inclusionInformation,
-                                     Path sourceRoot) {
+    private static void injectSource(@NotNull String source, MacroTable macroTable,
+                                     @NotNull PresenceConditionManager presenceConditionManager,
+                                     @NotNull ConditionEvaluator conditionEvaluator, @NotNull LexerCreator lexerCreator,
+                                     @NotNull TokenCreator tokenCreator,
+                                     @NotNull InclusionInformation inclusionInformation,
+                                     @NotNull Path sourceRoot) {
         HeaderFileManager headerFileManager = new HeaderFileManager(
                 new StringReader(source),
                 new File("<injected-source>"),
@@ -229,7 +232,8 @@ public class LinePresenceConditionMapper {
      * @param presenceConditionManager the presence condition manager. Used to get the names of the variables.
      * @return a {@link Node} representing the specified BDD
      */
-    private Optional<Node> convertBDD(BDD bdd, PresenceConditionManager presenceConditionManager) {
+    private @NotNull Optional<Node> convertBDD(@NotNull BDD bdd,
+                                               @NotNull PresenceConditionManager presenceConditionManager) {
         if (bdd.isOne()) return Optional.of(new True());
         if (bdd.isZero()) return Optional.of(new False());
 
@@ -252,7 +256,7 @@ public class LinePresenceConditionMapper {
      * @param rawCondition the variable name
      * @return a {@link Node} representing the specified variable name
      */
-    private Optional<Node> parseCondition(String rawCondition) {
+    private @NotNull Optional<Node> parseCondition(@NotNull String rawCondition) {
         Matcher definedMatcher = DEFINED_PATTERN.matcher(rawCondition);
         if (definedMatcher.matches()) {
             String variableName = definedMatcher.group(1) == null ? definedMatcher.group(2) : definedMatcher.group(1);
@@ -262,7 +266,7 @@ public class LinePresenceConditionMapper {
         return Optional.empty();
     }
 
-    private void convertMacrosToFeatures(Node node, String system) {
+    private void convertMacrosToFeatures(@NotNull Node node, @NotNull String system) {
         if (system.equals("busybox")) {
             node.modifyFeatureNames(macro -> {
                 Matcher matcher = BUSYBOX_FEATURE_MACRO_PATTERN.matcher(macro);
@@ -281,7 +285,7 @@ public class LinePresenceConditionMapper {
      * @param line the line number
      * @return the presence condition for the specified line
      */
-    public Optional<Node> getPresenceCondition(int line) {
+    public @NotNull Optional<Node> getPresenceCondition(int line) {
         return Optional.ofNullable(this.linePresenceConditions.get(line - this.addedLines));
     }
 
@@ -291,12 +295,12 @@ public class LinePresenceConditionMapper {
      * @param system the system
      * @return whether the specified system is supported
      */
-    public static boolean isSupportedSystem(String system) {
+    public static boolean isSupportedSystem(@NotNull String system) {
         return system.equals("busybox");
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         StringBuilder sb = new StringBuilder("LinePresenceConditionMapper{");
         int indent = 4 + (int) (Math.floor(Math.log10(this.totalLines))) + 1;
         for (int line = 0; line < this.totalLines; line++) {
@@ -315,24 +319,25 @@ public class LinePresenceConditionMapper {
     private static class ConditionCapturingHeaderFileManager extends HeaderFileManager implements AutoCloseable {
         private final Include mainInclude;
         private final Map<Integer, PresenceConditionManager.PresenceCondition> conditions = new HashMap<>();
-        private final PresenceConditionManager presenceConditionManager;
+        private final @NotNull PresenceConditionManager presenceConditionManager;
         private Location lastMainLocation;
 
-        public ConditionCapturingHeaderFileManager(Reader in, File file, List<String> iquote,
-                                                   List<String> includePaths, List<String> sysdirs,
-                                                   LexerCreator lexerCreator, TokenCreator tokenCreator,
-                                                   StopWatch lexerTimer, String encoding,
-                                                   PresenceConditionManager presenceConditionManager) {
+        public ConditionCapturingHeaderFileManager(@NotNull Reader in, @NotNull File file, @NotNull List<String> iquote,
+                                                   @NotNull List<String> includePaths, @NotNull List<String> sysdirs,
+                                                   @NotNull LexerCreator lexerCreator,
+                                                   @NotNull TokenCreator tokenCreator, @NotNull StopWatch lexerTimer,
+                                                   @NotNull String encoding,
+                                                   @NotNull PresenceConditionManager presenceConditionManager) {
             super(in, file, iquote, includePaths, sysdirs, lexerCreator, tokenCreator, lexerTimer, encoding);
             this.mainInclude = this.include;
             this.presenceConditionManager = presenceConditionManager;
         }
 
-        public ConditionCapturingHeaderFileManager(Reader in, File file, List<String> iquote,
-                                                   List<String> includePaths, List<String> sysdirs,
-                                                   LexerCreator lexerCreator, TokenCreator tokenCreator,
-                                                   StopWatch lexerTimer,
-                                                   PresenceConditionManager presenceConditionManager) {
+        public ConditionCapturingHeaderFileManager(@NotNull Reader in, @NotNull File file, @NotNull List<String> iquote,
+                                                   @NotNull List<String> includePaths, @NotNull List<String> sysdirs,
+                                                   @NotNull LexerCreator lexerCreator,
+                                                   @NotNull TokenCreator tokenCreator, @NotNull StopWatch lexerTimer,
+                                                   @NotNull PresenceConditionManager presenceConditionManager) {
             super(in, file, iquote, includePaths, sysdirs, lexerCreator, tokenCreator, lexerTimer);
             this.mainInclude = this.include;
             this.presenceConditionManager = presenceConditionManager;
@@ -374,7 +379,7 @@ public class LinePresenceConditionMapper {
             return this.lastMainLocation.line;
         }
 
-        public Optional<PresenceConditionManager.PresenceCondition> getCondition(int line) {
+        public @NotNull Optional<PresenceConditionManager.PresenceCondition> getCondition(int line) {
             return Optional.ofNullable(this.conditions.get(line))
                     .map(PresenceConditionManager.PresenceCondition::addRef);
         }

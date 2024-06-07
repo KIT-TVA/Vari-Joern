@@ -1,5 +1,6 @@
 package edu.kit.varijoern.composers.kbuild;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.prop4j.*;
 import org.smtlib.*;
@@ -25,7 +26,7 @@ public class SMTLibConverter {
      * @return the converted {@link Node}
      * @throws ParseException if the SMT-LIB string could not be parsed
      */
-    public Node convert(String smtLib) throws ParseException {
+    public @NotNull Node convert(@NotNull String smtLib) throws ParseException {
         SMT smt = new SMT();
         ISource source = smt.smtConfig.smtFactory.createSource(new CharSequenceReader(new StringReader(smtLib)), null);
         IParser parser = smt.smtConfig.smtFactory.createParser(smt.smtConfig, source);
@@ -72,7 +73,7 @@ public class SMTLibConverter {
         private final Map<String, Node> letBindings = new HashMap<>();
 
         @Override
-        public Node visit(IExpr.IFcnExpr e) throws VisitorException {
+        public @Nullable Node visit(@NotNull IExpr.IFcnExpr e) throws VisitorException {
             return switch (e.head().toString()) {
                 case "or" -> {
                     List<Node> arguments = getArgumentNodes(e);
@@ -95,7 +96,7 @@ public class SMTLibConverter {
         }
 
         @Nullable
-        private List<Node> getArgumentNodes(IExpr.IFcnExpr e) throws VisitorException {
+        private List<Node> getArgumentNodes(@NotNull IExpr.IFcnExpr e) throws VisitorException {
             List<Node> arguments = new ArrayList<>();
             for (IExpr argument : e.args()) {
                 Node convertedArgument = argument.accept(this);
@@ -106,7 +107,7 @@ public class SMTLibConverter {
         }
 
         @Override
-        public Node visit(IExpr.ISymbol e) {
+        public Node visit(@NotNull IExpr.ISymbol e) {
             if (this.letBindings.containsKey(e.toString())) {
                 return this.letBindings.get(e.toString()).clone();
             }
@@ -114,7 +115,7 @@ public class SMTLibConverter {
         }
 
         @Override
-        public Node visit(IExpr.ILet e) throws VisitorException {
+        public @Nullable Node visit(@NotNull IExpr.ILet e) throws VisitorException {
             Map<String, Node> shadowedBindings = new HashMap<>();
             for (IExpr.IBinding binding : e.bindings()) {
                 Node convertedBinding = binding.expr().accept(this);

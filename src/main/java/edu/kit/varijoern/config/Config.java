@@ -8,6 +8,7 @@ import edu.kit.varijoern.featuremodel.FeatureModelReaderConfig;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfigFactory;
 import edu.kit.varijoern.samplers.SamplerConfig;
 import edu.kit.varijoern.samplers.SamplerConfigFactory;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.Toml;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlParseError;
@@ -15,6 +16,7 @@ import org.tomlj.TomlParseResult;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -29,10 +31,10 @@ public class Config {
     private static final String ANALYZER_FIELD_NAME = "analyzer";
 
     private final long iterations;
-    private final FeatureModelReaderConfig featureModelReaderConfig;
-    private final SamplerConfig samplerConfig;
-    private final ComposerConfig composerConfig;
-    private final AnalyzerConfig analyzerConfig;
+    private final @NotNull FeatureModelReaderConfig featureModelReaderConfig;
+    private final @NotNull SamplerConfig samplerConfig;
+    private final @NotNull ComposerConfig composerConfig;
+    private final @NotNull AnalyzerConfig analyzerConfig;
 
     /**
      * Parses the configuration file at the specified location. The file format is assumed to be TOML.
@@ -42,7 +44,7 @@ public class Config {
      * @throws InvalidConfigException if the file does not contain valid TOML
      *                                or does not match the expected configuration format
      */
-    public Config(Path configLocation) throws IOException, InvalidConfigException {
+    public Config(@NotNull Path configLocation) throws IOException, InvalidConfigException {
         Path absoluteConfigLocation = configLocation.isAbsolute()
                 ? configLocation
                 : Path.of(System.getProperty("user.dir")).resolve(configLocation);
@@ -64,22 +66,23 @@ public class Config {
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
         this.samplerConfig = SamplerConfigFactory.getInstance()
-                .readConfig(parsedConfig.getTable(SAMPLER_FIELD_NAME), absoluteConfigLocation);
+                .readConfig(Objects.requireNonNull(parsedConfig.getTable(SAMPLER_FIELD_NAME)), absoluteConfigLocation);
 
         if (!parsedConfig.isTable(COMPOSER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, COMPOSER_FIELD_NAME));
         this.composerConfig = ComposerConfigFactory.getInstance()
-                .readConfig(parsedConfig.getTable(COMPOSER_FIELD_NAME), absoluteConfigLocation);
+                .readConfig(Objects.requireNonNull(parsedConfig.getTable(COMPOSER_FIELD_NAME)), absoluteConfigLocation);
 
         if (!parsedConfig.isTable(ANALYZER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
         this.analyzerConfig = AnalyzerConfigFactory.getInstance()
-                .readConfig(parsedConfig.getTable(ANALYZER_FIELD_NAME), absoluteConfigLocation);
+                .readConfig(Objects.requireNonNull(parsedConfig.getTable(ANALYZER_FIELD_NAME)), absoluteConfigLocation);
 
         if (!parsedConfig.isTable(FEATURE_MODEL_READER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FEATURE_MODEL_READER_FIELD_NAME));
         this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
-                .readConfig(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME), absoluteConfigLocation);
+                .readConfig(Objects.requireNonNull(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
+                        absoluteConfigLocation);
     }
 
     /**
@@ -96,7 +99,7 @@ public class Config {
      *
      * @return the feature model reader configuration
      */
-    public FeatureModelReaderConfig getFeatureModelReaderConfig() {
+    public @NotNull FeatureModelReaderConfig getFeatureModelReaderConfig() {
         return featureModelReaderConfig;
     }
 
@@ -105,7 +108,7 @@ public class Config {
      *
      * @return the sampler configuration
      */
-    public SamplerConfig getSamplerConfig() {
+    public @NotNull SamplerConfig getSamplerConfig() {
         return samplerConfig;
     }
 
@@ -114,7 +117,7 @@ public class Config {
      *
      * @return the composer configuration
      */
-    public ComposerConfig getComposerConfig() {
+    public @NotNull ComposerConfig getComposerConfig() {
         return composerConfig;
     }
 
@@ -123,7 +126,7 @@ public class Config {
      *
      * @return the analyzer configuration
      */
-    public AnalyzerConfig getAnalyzerConfig() {
+    public @NotNull AnalyzerConfig getAnalyzerConfig() {
         return analyzerConfig;
     }
 }

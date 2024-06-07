@@ -1,5 +1,8 @@
 package edu.kit.varijoern.composers.kbuild;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,9 +12,9 @@ import java.util.Optional;
  * Parses a command string into a list of commands.
  */
 public class CommandParser {
-    private final String commandString;
+    private final @NotNull String commandString;
     private int cursor = 0;
-    private List<List<String>> result;
+    private @Nullable List<List<String>> result;
 
     /**
      * Creates a new CommandParser which will parse the given command string.
@@ -19,7 +22,7 @@ public class CommandParser {
      * @param commandString the command string to parse. The command string is expected to be a list of commands
      *                      separated by newlines, semicolons or pipes.
      */
-    public CommandParser(String commandString) {
+    public CommandParser(@NotNull String commandString) {
         this.commandString = commandString;
     }
 
@@ -30,7 +33,7 @@ public class CommandParser {
      * entry.
      * @throws ParseException if the command string could not be parsed.
      */
-    public List<List<String>> parse() throws ParseException {
+    public @NotNull List<List<String>> parse() throws ParseException {
         if (this.result == null) {
             List<List<String>> commands = new ArrayList<>();
             while (this.cursor < this.commandString.length()) {
@@ -41,7 +44,7 @@ public class CommandParser {
         return this.result;
     }
 
-    private Optional<List<String>> readSingleCommand() throws ParseException {
+    private @NotNull Optional<List<String>> readSingleCommand() throws ParseException {
         List<String> command = new ArrayList<>();
         while (this.cursor < this.commandString.length()) {
             char nextChar = this.commandString.charAt(this.cursor);
@@ -60,7 +63,7 @@ public class CommandParser {
         return character == '\n' || character == ';' || character == '|';
     }
 
-    private Optional<String> readArgument() throws ParseException {
+    private @NotNull Optional<String> readArgument() throws ParseException {
         while (this.cursor < this.commandString.length()) {
             char nextChar = this.commandString.charAt(this.cursor);
             if (nextChar != ' ' && nextChar != '\t') break;

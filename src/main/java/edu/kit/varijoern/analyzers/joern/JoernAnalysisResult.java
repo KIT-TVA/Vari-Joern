@@ -6,6 +6,7 @@ import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import org.jetbrains.annotations.NotNull;
 import org.prop4j.Node;
 
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
  * Contains information about the result of running a Joern scan.
  */
 public class JoernAnalysisResult extends AnalysisResult {
-    private final List<JoernFinding> findings;
+    private final @NotNull List<JoernFinding> findings;
 
     /**
      * Creates a new {@link JoernAnalysisResult} from a list of findings.
@@ -28,8 +29,8 @@ public class JoernAnalysisResult extends AnalysisResult {
      * @param presenceConditionMapper a presence condition mapper for the analyzed code
      * @param sourceMap               a source map for the analyzed code
      */
-    public JoernAnalysisResult(List<JoernFinding> findings, Map<String, Boolean> enabledFeatures,
-                               PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap) {
+    public JoernAnalysisResult(@NotNull List<JoernFinding> findings, @NotNull Map<String, Boolean> enabledFeatures,
+                               @NotNull PresenceConditionMapper presenceConditionMapper, @NotNull SourceMap sourceMap) {
         super(enabledFeatures, presenceConditionMapper, sourceMap);
         this.findings = List.copyOf(findings);
     }
@@ -40,7 +41,7 @@ public class JoernAnalysisResult extends AnalysisResult {
      * @return a list of all findings
      */
     @Override
-    public List<AnnotatedFinding> getFindings() {
+    public @NotNull List<AnnotatedFinding> getFindings() {
         return findings.stream()
                 .map(finding -> {
                     Evidence evidenceForConditionCalculation = finding.getEvidence().size() == 1
@@ -63,7 +64,7 @@ public class JoernAnalysisResult extends AnalysisResult {
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         StringBuilder sb = new StringBuilder(super.toString());
         for (JoernFinding finding : this.findings) {
             sb.append(System.lineSeparator());

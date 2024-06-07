@@ -27,6 +27,7 @@ import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -88,7 +89,7 @@ public class Main {
         System.exit(runUsingConfig(config, parsedArgs));
     }
 
-    private static void addComponentArgs(JCommander.Builder jcommanderBuilder) {
+    private static void addComponentArgs(@NotNull JCommander.Builder jcommanderBuilder) {
         for (List<Object> componentArgs : List.of(
                 FeatureModelReaderConfigFactory.getComponentArgs(),
                 SamplerConfigFactory.getComponentArgs(),
@@ -101,7 +102,7 @@ public class Main {
         }
     }
 
-    private static int runUsingConfig(Config config, Args args) {
+    private static int runUsingConfig(@NotNull Config config, @NotNull Args args) {
         Path tmpDir;
         Path analyzerTmpDirectory;
         Path composerTmpDirectory;

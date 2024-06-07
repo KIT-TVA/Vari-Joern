@@ -2,6 +2,7 @@ package edu.kit.varijoern.composers.kbuild;
 
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -12,7 +13,7 @@ import java.util.Optional;
  * information provided by a {@link KbuildComposer}.
  */
 public class KbuildComposerSourceMap implements SourceMap {
-    private final Map<Path, GenerationInformation> generationInformation;
+    private final @NotNull Map<Path, GenerationInformation> generationInformation;
 
     /**
      * Creates a new {@link KbuildComposerSourceMap} instance.
@@ -20,12 +21,12 @@ public class KbuildComposerSourceMap implements SourceMap {
      * @param generationInformation a map of paths to generation information. The paths are relative to the directory
      *                              containing the composed code.
      */
-    public KbuildComposerSourceMap(Map<Path, GenerationInformation> generationInformation) {
+    public KbuildComposerSourceMap(@NotNull Map<Path, GenerationInformation> generationInformation) {
         this.generationInformation = generationInformation;
     }
 
     @Override
-    public Optional<SourceLocation> getOriginalLocation(SourceLocation location) {
+    public @NotNull Optional<SourceLocation> getOriginalLocation(@NotNull SourceLocation location) {
         GenerationInformation generationInformation = this.generationInformation.get(location.file());
         if (generationInformation == null) {
             return Optional.empty();

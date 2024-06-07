@@ -6,6 +6,7 @@ import edu.kit.varijoern.composers.kbuild.KbuildComposer;
 import edu.kit.varijoern.composers.kbuild.KbuildComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
@@ -26,7 +27,7 @@ public final class ComposerConfigFactory extends NamedComponentConfigFactory<Com
      *
      * @return the instance
      */
-    public static ComposerConfigFactory getInstance() {
+    public static @NotNull ComposerConfigFactory getInstance() {
         return INSTANCE;
     }
 
@@ -36,12 +37,13 @@ public final class ComposerConfigFactory extends NamedComponentConfigFactory<Com
      *
      * @return the objects into which the command line arguments for the composers should be parsed
      */
-    public static List<Object> getComponentArgs() {
+    public static @NotNull List<Object> getComponentArgs() {
         return List.of(); // Currently, no composer has command line arguments
     }
 
     @Override
-    protected ComposerConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
+    protected @NotNull ComposerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
+                                                        @NotNull Path configPath)
             throws InvalidConfigException {
         return switch (componentName) {
             case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath);
@@ -51,7 +53,7 @@ public final class ComposerConfigFactory extends NamedComponentConfigFactory<Com
     }
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "composer";
     }
 }

@@ -1,5 +1,6 @@
 package edu.kit.varijoern.config;
 
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 /**
@@ -7,7 +8,7 @@ import org.tomlj.TomlTable;
  * file, the implementations of these components are identified by the {@code name} field in the component's section.
  */
 public abstract class NamedComponentConfig {
-    private final String name;
+    private final @NotNull String name;
 
     /**
      * Creates a new {@link NamedComponentConfig} by extracting data from the specified TOML section.
@@ -15,7 +16,7 @@ public abstract class NamedComponentConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
-    protected NamedComponentConfig(TomlTable toml) throws InvalidConfigException {
+    protected NamedComponentConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         this.name = NamedComponentConfigFactory.getComponentName(toml, getComponentType());
     }
 
@@ -24,14 +25,14 @@ public abstract class NamedComponentConfig {
      *
      * @return the type of the component
      */
-    public abstract String getComponentType();
+    public abstract @NotNull String getComponentType();
 
     /**
      * Returns the name of the implementation chosen for the component.
      *
      * @return the name of the implementation
      */
-    public String getName() {
+    public @NotNull String getName() {
         return this.name;
     }
 }

@@ -2,6 +2,7 @@ package edu.kit.varijoern.featuremodel;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.InvalidPathException;
@@ -14,8 +15,8 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
     private static final String PATH_FIELD_NAME = "path";
     private static final String SYSTEM_FIELD_NAME = "system";
 
-    private final Path sourcePath;
-    private final String system;
+    private final @NotNull Path sourcePath;
+    private final @NotNull String system;
 
     /**
      * Creates a new {@link TorteKmaxFMReaderConfig} by extracting data from the specified TOML section.
@@ -24,7 +25,7 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
      * @param configPath the path to the configuration file. Must be absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
-    public TorteKmaxFMReaderConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
+    public TorteKmaxFMReaderConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
         super(toml);
         String path = TomlUtils.getMandatoryString(
                 PATH_FIELD_NAME,
@@ -54,7 +55,7 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
     }
 
     @Override
-    public FeatureModelReader newFeatureModelReader() {
+    public @NotNull FeatureModelReader newFeatureModelReader() {
         return new TorteKmaxFMReader(this.sourcePath, this.system);
     }
 }

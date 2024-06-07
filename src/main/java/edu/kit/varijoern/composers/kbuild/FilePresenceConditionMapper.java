@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.io.IoBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.prop4j.Node;
 
 import java.io.IOException;
@@ -36,7 +37,7 @@ public class FilePresenceConditionMapper {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
-    private final Map<Path, Node> filePresenceConditions = new HashMap<>();
+    private final @NotNull Map<Path, Node> filePresenceConditions = new HashMap<>();
 
     /**
      * Creates a new {@link FilePresenceConditionMapper} and tries computes the presence conditions of the files in the
@@ -49,7 +50,8 @@ public class FilePresenceConditionMapper {
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if kmax fails or the presence conditions cannot be parsed
      */
-    public FilePresenceConditionMapper(Path sourcePath, String system, Path composerTmpDir, IFeatureModel featureModel)
+    public FilePresenceConditionMapper(@NotNull Path sourcePath, @NotNull String system, @NotNull Path composerTmpDir,
+                                       @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
         this.createKmaxallScript(composerTmpDir);
         if (system.equals("busybox")) {
@@ -57,14 +59,15 @@ public class FilePresenceConditionMapper {
         }
     }
 
-    private void createKmaxallScript(Path tmpDir) throws IOException {
+    private void createKmaxallScript(@NotNull Path tmpDir) throws IOException {
         if (tmpDir.resolve("run-kmaxall.py").toFile().exists()) return;
         String script = ResourcesUtil.getResourceAsString("kmax/run-kmaxall.py");
         Path scriptPath = tmpDir.resolve("run-kmaxall.py");
         Files.writeString(scriptPath, script, StandardCharsets.UTF_8);
     }
 
-    private static String runKmax(Path sourcePath, Path composerTmpDir) throws IOException, ComposerException {
+    private static @NotNull String runKmax(@NotNull Path sourcePath, @NotNull Path composerTmpDir)
+            throws IOException, ComposerException {
         List<String> kmaxallArgs = new ArrayList<>(List.of(
                 "python3",
                 composerTmpDir.resolve("run-kmaxall.py").toString()
@@ -94,7 +97,8 @@ public class FilePresenceConditionMapper {
         return output;
     }
 
-    private void processKmaxOutput(String output, Path sourcePath, IFeatureModel featureModel)
+    private void processKmaxOutput(@NotNull String output, @NotNull Path sourcePath,
+                                   @NotNull IFeatureModel featureModel)
             throws JsonProcessingException, ComposerException {
         TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {
         };
@@ -147,7 +151,7 @@ public class FilePresenceConditionMapper {
      * @param path the path to the (compiled) object file, relative to the source directory
      * @return the presence condition of the file or an empty optional if the presence condition could not be determined
      */
-    public Optional<Node> getPresenceCondition(Path path) {
+    public @NotNull Optional<Node> getPresenceCondition(@NotNull Path path) {
         return Optional.ofNullable(this.filePresenceConditions.get(path.normalize()));
     }
 }

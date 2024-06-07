@@ -2,6 +2,7 @@ package edu.kit.varijoern.analyzers;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfig;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.io.IOException;
@@ -17,12 +18,12 @@ public abstract class AnalyzerConfig extends NamedComponentConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
-    protected AnalyzerConfig(TomlTable toml) throws InvalidConfigException {
+    protected AnalyzerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
     }
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "analyzer";
     }
 
@@ -32,5 +33,5 @@ public abstract class AnalyzerConfig extends NamedComponentConfig {
      * @param tempPath the directory to use for temporary data. Must be an absolute path.
      * @return the new {@link Analyzer}
      */
-    public abstract Analyzer newAnalyzer(Path tempPath) throws IOException;
+    public abstract @NotNull Analyzer newAnalyzer(@NotNull Path tempPath) throws IOException;
 }

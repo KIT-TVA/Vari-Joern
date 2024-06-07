@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.prop4j.Node;
 
@@ -16,8 +17,7 @@ import java.util.Optional;
  * Contains information about a piece of code that caused a finding.
  */
 public class Evidence {
-    @Nullable
-    private final SourceLocation location;
+    private final @Nullable SourceLocation location;
 
     /**
      * Creates a new {@link Evidence} containing the specified information.
@@ -27,7 +27,7 @@ public class Evidence {
      */
     @JsonCreator
     public Evidence(
-            @JsonProperty("filename") String filename, @JsonProperty("lineNumber") int lineNumber) {
+            @JsonProperty("filename") @NotNull String filename, @JsonProperty("lineNumber") int lineNumber) {
         this.location = new SourceLocation(Path.of(filename), lineNumber);
     }
 
@@ -36,7 +36,7 @@ public class Evidence {
      *
      * @return the location of the evidence
      */
-    public Optional<SourceLocation> getLocation() {
+    public @NotNull Optional<SourceLocation> getLocation() {
         return Optional.ofNullable(location);
     }
 
@@ -47,13 +47,13 @@ public class Evidence {
      * @param presenceConditionMapper the presence condition mapper to be used
      * @return the condition if it could be determined, an empty {@link Optional} otherwise
      */
-    public Optional<Node> getCondition(PresenceConditionMapper presenceConditionMapper) {
+    public @NotNull Optional<Node> getCondition(@NotNull PresenceConditionMapper presenceConditionMapper) {
         return Optional.ofNullable(this.location)
                 .flatMap(location -> presenceConditionMapper.getPresenceCondition(location.file(), location.line()));
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         return this.location == null ? "unknown" : this.location.toString();
     }
 
@@ -66,7 +66,8 @@ public class Evidence {
      *                                original source
      * @return a string representation of this evidence
      */
-    public String toString(PresenceConditionMapper presenceConditionMapper, SourceMap sourceMap) {
+    public @NotNull String toString(@NotNull PresenceConditionMapper presenceConditionMapper,
+                                    @NotNull SourceMap sourceMap) {
         Optional<Node> condition = getCondition(presenceConditionMapper);
         String conditionMessage = condition.map(Node::toString).orElse("unknown");
         return "%s; condition: %s".formatted(
@@ -80,12 +81,12 @@ public class Evidence {
      *
      * @param sourceMap the source map to be used
      */
-    public Optional<SourceLocation> resolveLocation(SourceMap sourceMap) {
+    public @NotNull Optional<SourceLocation> resolveLocation(@NotNull SourceMap sourceMap) {
         return Optional.ofNullable(this.location).flatMap(sourceMap::getOriginalLocation);
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Evidence that = (Evidence) o;
