@@ -160,10 +160,40 @@ public class JoernAnalyzer implements Analyzer {
             throw new AnalyzerFailureException(String.format("joern exited with %d", joernExitCode));
     }
 
-    private @NotNull List<JoernFinding> parseFindings(@NotNull Path findingsFile) throws IOException {
+    private @NotNull List<JoernFinding> parseFindings(@NotNull Path findingsFile)
+            throws IOException, AnalyzerFailureException {
         ObjectMapper objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return Objects.requireNonNull(objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
-        }));
+        List<ParsedFinding> finding = objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
+        });
+        List<JoernFinding> list = new ArrayList<>();
+        for (ParsedFinding parsedFinding : finding) {
+            JoernFinding joernFinding = parsedFinding.toJoernFinding();
+            list.add(joernFinding);
+        }
+        return list;
+    }
+
+    protected record ParsedFinding(@Nullable String name, @Nullable String title, @Nullable String description,
+                                   double score, @Nullable List<ParsedEvidence> evidence) {
+        public @NotNull JoernFinding toJoernFinding() throws AnalyzerFailureException {
+            if (this.name == null || this.title == null || this.description == null || this.evidence == null)
+                throw new AnalyzerFailureException("Joern output is missing required fields");
+            Set<Evidence> set = new HashSet<>();
+            for (ParsedEvidence parsedEvidence : this.evidence) {
+                Evidence parsedEvidenceEvidence = parsedEvidence.toEvidence();
+                set.add(parsedEvidenceEvidence);
+            }
+            return new JoernFinding(this.name, this.title, this.description, this.score,
+                    set);
+        }
+    }
+
+    protected record ParsedEvidence(@Nullable String filename, int lineNumber) {
+        public @NotNull Evidence toEvidence() throws AnalyzerFailureException {
+            if (this.filename == null)
+                throw new AnalyzerFailureException("File name missing in evidence");
+            return new Evidence(this.filename, this.lineNumber);
+        }
     }
 }

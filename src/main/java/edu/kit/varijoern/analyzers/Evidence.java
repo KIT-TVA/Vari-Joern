@@ -1,7 +1,5 @@
 package edu.kit.varijoern.analyzers;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
@@ -25,9 +23,7 @@ public class Evidence {
      * @param filename   the name of the file in the composed source in which this evidence was found
      * @param lineNumber the line number of the location of the evidence
      */
-    @JsonCreator
-    public Evidence(
-            @JsonProperty("filename") @NotNull String filename, @JsonProperty("lineNumber") int lineNumber) {
+    public Evidence(@NotNull String filename, int lineNumber) {
         this.location = new SourceLocation(Path.of(filename), lineNumber);
     }
 

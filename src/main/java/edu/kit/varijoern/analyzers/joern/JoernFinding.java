@@ -1,7 +1,5 @@
 package edu.kit.varijoern.analyzers.joern;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.Finding;
 import edu.kit.varijoern.composers.PresenceConditionMapper;
@@ -15,11 +13,11 @@ import java.util.stream.Collectors;
  * Contains information about a finding Joern found.
  */
 public class JoernFinding implements Finding {
-    private final String name;
-    private final String title;
-    private final String description;
+    private final @NotNull String name;
+    private final @NotNull String title;
+    private final @NotNull String description;
     private final double score;
-    private final Set<Evidence> evidence;
+    private final @NotNull Set<Evidence> evidence;
 
     /**
      * Creates a new {@link JoernFinding} containing the specified information.
@@ -30,13 +28,12 @@ public class JoernFinding implements Finding {
      * @param score       the score of the finding
      * @param evidence    information about the source that caused this finding
      */
-    @JsonCreator
     public JoernFinding(
-            @JsonProperty("name") String name,
-            @JsonProperty("title") String title,
-            @JsonProperty("description") String description,
-            @JsonProperty("score") double score,
-            @JsonProperty("evidence") Set<Evidence> evidence) {
+            @NotNull String name,
+            @NotNull String title,
+            @NotNull String description,
+            double score,
+            @NotNull Set<Evidence> evidence) {
         this.name = name;
         this.title = title;
         this.description = description;
@@ -49,7 +46,7 @@ public class JoernFinding implements Finding {
      *
      * @return the name of the query
      */
-    public String getName() {
+    public @NotNull String getName() {
         return name;
     }
 
@@ -68,7 +65,7 @@ public class JoernFinding implements Finding {
      *
      * @return a description
      */
-    public String getDescription() {
+    public @NotNull String getDescription() {
         return description;
     }
 
@@ -108,7 +105,8 @@ public class JoernFinding implements Finding {
      *                                original source
      * @return a string representing this finding
      */
-    public String toString(@NotNull PresenceConditionMapper presenceConditionMapper, @NotNull SourceMap sourceMap) {
+    public @NotNull String toString(@NotNull PresenceConditionMapper presenceConditionMapper,
+                                    @NotNull SourceMap sourceMap) {
         return "%s: %s at %s".formatted(this.title,
                 this.score,
                 this.evidence.stream()
