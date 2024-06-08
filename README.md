@@ -1,9 +1,7 @@
 # Vari-Joern
 
 Vari-Joern is a tool for analyzing software product lines.
-Its goal is to find weaknesses by running [Joern](https://joern.io) on a subset of all valid feature
-combinations. This subset is chosen by sampling algorithms based on the results of the analyses of previously chosen
-feature combinations.
+Its goal is to find weaknesses by running [Joern](https://joern.io) on a subset of all valid configurations of a software system.
 
 ## Usage
 In the simplest case, Vari-Joern can be run with the following command:

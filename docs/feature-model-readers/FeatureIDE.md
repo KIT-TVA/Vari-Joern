@@ -16,6 +16,6 @@ For example, the reader could be configured as follows:
 
 ```toml
 [feature-model-reader]
-name = "featureide-fm-reader"
+name = "featureide"
 path = "path/to/feature-model.xml"
 ```

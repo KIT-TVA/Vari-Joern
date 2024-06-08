@@ -2,6 +2,7 @@ package edu.kit.varijoern.featuremodel;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfig;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 /**
@@ -14,7 +15,7 @@ public abstract class FeatureModelReaderConfig extends NamedComponentConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
-    protected FeatureModelReaderConfig(TomlTable toml) throws InvalidConfigException {
+    protected FeatureModelReaderConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
     }
 
@@ -23,10 +24,10 @@ public abstract class FeatureModelReaderConfig extends NamedComponentConfig {
      *
      * @return the new {@link FeatureModelReader}
      */
-    public abstract FeatureModelReader newFeatureModelReader();
+    public abstract @NotNull FeatureModelReader newFeatureModelReader();
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "feature model reader";
     }
 }

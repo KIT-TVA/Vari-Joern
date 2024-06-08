@@ -3,6 +3,7 @@ package edu.kit.varijoern;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.PathConverter;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 
@@ -17,10 +18,10 @@ public class Args {
     private boolean help;
 
     @Parameter(description = "<path to configuration file>", required = true, converter = PathConverter.class)
-    private Path config;
+    private @NotNull Path config;
 
     @ParametersDelegate
-    private ResultOutputArgs resultOutputArgs = new ResultOutputArgs();
+    private @NotNull ResultOutputArgs resultOutputArgs = new ResultOutputArgs();
 
     /**
      * Returns whether verbose logging is enabled. This corresponds to logging level DEBUG.
@@ -45,7 +46,7 @@ public class Args {
      *
      * @return the path to the configuration file
      */
-    public Path getConfig() {
+    public @NotNull Path getConfig() {
         return config;
     }
 
@@ -63,7 +64,7 @@ public class Args {
      *
      * @return information about the format of the output and its destination
      */
-    public ResultOutputArgs getResultOutputArgs() {
+    public @NotNull ResultOutputArgs getResultOutputArgs() {
         return resultOutputArgs;
     }
 }

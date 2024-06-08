@@ -1,6 +1,7 @@
 package edu.kit.varijoern.composers;
 
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -10,37 +11,40 @@ import java.util.Map;
  * Contains information about a composer pass, such as the location of the resulting code.
  */
 public class CompositionInformation {
-    private final Path location;
-    private final Map<String, Boolean> enabledFeatures;
-    private final FeatureMapper featureMapper;
-    private final SourceMap sourceMap;
-    private final List<LanguageInformation> languageInformation;
+    private final @NotNull Path location;
+    private final @NotNull Map<String, Boolean> enabledFeatures;
+    private final @NotNull PresenceConditionMapper presenceConditionMapper;
+    private final @NotNull SourceMap sourceMap;
+    private final @NotNull List<LanguageInformation> languageInformation;
 
     /**
      * Creates a new {@link CompositionInformation} instance.
      *
-     * @param location            the location of the composed code. See {@link CompositionInformation#getLocation()}.
-     * @param enabledFeatures     a map of feature names to their enabled status at the time of composition
-     * @param featureMapper       a {@link FeatureMapper} for this composition result
-     * @param sourceMap           a {@link SourceMap} for this composition result
-     * @param languageInformation relevant details about how the languages in the composition should be handled
+     * @param location                the location of the composed code. Must be an absolute path.
+     *                                See {@link CompositionInformation#getLocation()}.
+     * @param enabledFeatures         a map of feature names to their enabled status at the time of composition
+     * @param presenceConditionMapper a {@link PresenceConditionMapper} for this composition result
+     * @param sourceMap               a {@link SourceMap} for this composition result
+     * @param languageInformation     relevant details about how the languages in the composition should be handled
      */
-    public CompositionInformation(Path location, Map<String, Boolean> enabledFeatures, FeatureMapper featureMapper,
-                                  SourceMap sourceMap, List<LanguageInformation> languageInformation) {
+    public CompositionInformation(@NotNull Path location, @NotNull Map<String, Boolean> enabledFeatures,
+                                  @NotNull PresenceConditionMapper presenceConditionMapper,
+                                  @NotNull SourceMap sourceMap,
+                                  @NotNull List<LanguageInformation> languageInformation) {
         this.location = location;
         this.enabledFeatures = enabledFeatures;
-        this.featureMapper = featureMapper;
+        this.presenceConditionMapper = presenceConditionMapper;
         this.sourceMap = sourceMap;
         this.languageInformation = languageInformation;
     }
 
     /**
-     * Returns the location of the directory containing the composed code. Only source files should be present in this
-     * directory and its subdirectories.
+     * Returns the location of the directory containing the composed code as an absolute path. Only source files should
+     * be present in this directory and its subdirectories.
      *
      * @return the location of the directory containing the composed code
      */
-    public Path getLocation() {
+    public @NotNull Path getLocation() {
         return location;
     }
 
@@ -49,17 +53,17 @@ public class CompositionInformation {
      *
      * @return a map of feature names to their enabled status at the time of composition
      */
-    public Map<String, Boolean> getEnabledFeatures() {
+    public @NotNull Map<String, Boolean> getEnabledFeatures() {
         return this.enabledFeatures;
     }
 
     /**
-     * Returns the feature mapper for the composition result.
+     * Returns the presence condition mapper for the composition result.
      *
-     * @return a feature mapper
+     * @return a presence condition mapper
      */
-    public FeatureMapper getFeatureMapper() {
-        return featureMapper;
+    public @NotNull PresenceConditionMapper getPresenceConditionMapper() {
+        return presenceConditionMapper;
     }
 
     /**
@@ -67,7 +71,7 @@ public class CompositionInformation {
      *
      * @return a source map
      */
-    public SourceMap getSourceMap() {
+    public @NotNull SourceMap getSourceMap() {
         return sourceMap;
     }
 
@@ -76,7 +80,7 @@ public class CompositionInformation {
      *
      * @return a list of language information
      */
-    public List<LanguageInformation> getLanguageInformation() {
+    public @NotNull List<LanguageInformation> getLanguageInformation() {
         return languageInformation;
     }
 }

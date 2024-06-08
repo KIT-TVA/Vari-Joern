@@ -1,6 +1,7 @@
 package edu.kit.varijoern.analyzers;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
@@ -9,11 +10,12 @@ import java.util.Set;
  */
 public interface Finding {
     /**
-     * Returns a short description of the kind of finding.
+     * Returns the name of the kind of this finding.
      *
-     * @return the title of the finding
+     * @return the name
      */
-    String getTitle();
+    @NotNull
+    String getName();
 
     /**
      * Returns the evidence that caused this finding.
@@ -21,5 +23,6 @@ public interface Finding {
      * @return the evidence
      */
     @JsonIgnore
+    @NotNull
     Set<Evidence> getEvidence();
 }

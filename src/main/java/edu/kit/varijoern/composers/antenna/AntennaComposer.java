@@ -3,7 +3,6 @@ package edu.kit.varijoern.composers.antenna;
 import antenna.preprocessor.v3.PPException;
 import antenna.preprocessor.v3.Preprocessor;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
@@ -28,24 +27,24 @@ import java.util.stream.Stream;
  */
 public class AntennaComposer implements Composer {
     public static final String NAME = "antenna";
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LogManager.getLogger();
 
-    private final Path sourceLocation;
+    private final @NotNull Path sourceLocation;
 
     /**
      * Creates a new {@link AntennaComposer} which preprocesses all files in the specified root directory.
      *
-     * @param sourceLocation the root directory
+     * @param sourceLocation the root directory. Must be an absolute path.
      */
-    public AntennaComposer(Path sourceLocation) {
+    public AntennaComposer(@NotNull Path sourceLocation) {
         this.sourceLocation = sourceLocation;
     }
 
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
-            throws IllegalFeatureNameException, IOException, ComposerException {
-        logger.info("Running Antenna composer");
+            throws IOException, ComposerException {
+        LOGGER.info("Running Antenna composer");
         List<String> enabledFeatures = features.entrySet().stream()
                 .filter(Map.Entry::getValue)
                 .map(Map.Entry::getKey)
@@ -54,9 +53,9 @@ public class AntennaComposer implements Composer {
         try {
             preprocessor.addDefines(String.join(",", enabledFeatures));
         } catch (PPException e) {
-            throw new IllegalFeatureNameException(e);
+            throw new ComposerException(e);
         }
-        ConditionTreeFeatureMapper featureMapper = new ConditionTreeFeatureMapper();
+        ConditionTreePresenceConditionMapper presenceConditionMapper = new ConditionTreePresenceConditionMapper();
 
         try (Stream<Path> sourceFiles = Files.walk(this.sourceLocation)) {
             for (Path sourcePath : (Iterable<Path>) sourceFiles::iterator) {
@@ -82,14 +81,14 @@ public class AntennaComposer implements Composer {
                         lineVector.stream().collect(Collectors.joining(System.lineSeparator()))
                 );
 
-                featureMapper.tryAddFile(relativePath, lineVector.stream().toList());
+                presenceConditionMapper.tryAddFile(relativePath, lineVector.stream().toList());
             }
         }
-        logger.info("Composer finished successfully");
+        LOGGER.info("Composer finished successfully");
         return new CompositionInformation(
                 destination,
                 features,
-                featureMapper,
+                presenceConditionMapper,
                 new IdentitySourceMap(),
                 List.of(new GenericLanguageInformation())
         );

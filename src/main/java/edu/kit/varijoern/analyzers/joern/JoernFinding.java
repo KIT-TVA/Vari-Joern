@@ -1,11 +1,10 @@
 package edu.kit.varijoern.analyzers.joern;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.Finding;
-import edu.kit.varijoern.composers.FeatureMapper;
+import edu.kit.varijoern.composers.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -14,11 +13,11 @@ import java.util.stream.Collectors;
  * Contains information about a finding Joern found.
  */
 public class JoernFinding implements Finding {
-    private final String name;
-    private final String title;
-    private final String description;
+    private final @NotNull String name;
+    private final @NotNull String title;
+    private final @NotNull String description;
     private final double score;
-    private final Set<Evidence> evidence;
+    private final @NotNull Set<Evidence> evidence;
 
     /**
      * Creates a new {@link JoernFinding} containing the specified information.
@@ -29,13 +28,12 @@ public class JoernFinding implements Finding {
      * @param score       the score of the finding
      * @param evidence    information about the source that caused this finding
      */
-    @JsonCreator
     public JoernFinding(
-            @JsonProperty("name") String name,
-            @JsonProperty("title") String title,
-            @JsonProperty("description") String description,
-            @JsonProperty("score") double score,
-            @JsonProperty("evidence") Set<Evidence> evidence) {
+            @NotNull String name,
+            @NotNull String title,
+            @NotNull String description,
+            double score,
+            @NotNull Set<Evidence> evidence) {
         this.name = name;
         this.title = title;
         this.description = description;
@@ -48,7 +46,8 @@ public class JoernFinding implements Finding {
      *
      * @return the name of the query
      */
-    public String getName() {
+    @Override
+    public @NotNull String getName() {
         return name;
     }
 
@@ -57,8 +56,7 @@ public class JoernFinding implements Finding {
      *
      * @return the title of the finding
      */
-    @Override
-    public String getTitle() {
+    public @NotNull String getTitle() {
         return this.title;
     }
 
@@ -67,7 +65,7 @@ public class JoernFinding implements Finding {
      *
      * @return a description
      */
-    public String getDescription() {
+    public @NotNull String getDescription() {
         return description;
     }
 
@@ -86,7 +84,7 @@ public class JoernFinding implements Finding {
      * @return information about the source that caused this finding
      */
     @Override
-    public Set<Evidence> getEvidence() {
+    public @NotNull Set<Evidence> getEvidence() {
         return evidence;
     }
 
@@ -102,15 +100,17 @@ public class JoernFinding implements Finding {
      * Converts this finding to a string containing information about conditions under which evidence lines are included
      * in the composed code.
      *
-     * @param featureMapper the feature mapper to be used
-     * @param sourceMap     the source map to be used to determine the location of the evidences in the original source
+     * @param presenceConditionMapper the presence condition mapper to be used
+     * @param sourceMap               the source map to be used to determine the location of the evidences in the
+     *                                original source
      * @return a string representing this finding
      */
-    public String toString(FeatureMapper featureMapper, SourceMap sourceMap) {
+    public @NotNull String toString(@NotNull PresenceConditionMapper presenceConditionMapper,
+                                    @NotNull SourceMap sourceMap) {
         return "%s: %s at %s".formatted(this.title,
                 this.score,
                 this.evidence.stream()
-                        .map(evidence -> evidence.toString(featureMapper, sourceMap))
+                        .map(evidence -> evidence.toString(presenceConditionMapper, sourceMap))
                         .collect(Collectors.joining(", "))
         );
     }

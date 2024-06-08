@@ -1,7 +1,7 @@
 package edu.kit.varijoern;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import edu.kit.varijoern.featuremodel.FeatureIDEFMReader;
+import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReader;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -92,7 +92,8 @@ public class KconfigTestCaseManager {
         this.initialCommit = this.git.commit().setMessage("Initial commit").call();
     }
 
-    private Map<Path, List<PresenceConditionExpectation>> readPresenceConditionExpectations(@NotNull String testCaseName)
+    private Map<Path, List<PresenceConditionExpectation>> readPresenceConditionExpectations(
+            @NotNull String testCaseName)
             throws IOException {
         URL presenceConditionExpectationsLocation = this.getClass().getClassLoader().getResource(
                 "kconfigtestcases/%s/presence-conditions.txt".formatted(testCaseName)

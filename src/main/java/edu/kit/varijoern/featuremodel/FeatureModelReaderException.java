@@ -5,7 +5,6 @@ package edu.kit.varijoern.featuremodel;
  */
 public class FeatureModelReaderException extends Exception {
     public FeatureModelReaderException() {
-        super();
     }
 
     public FeatureModelReaderException(String message) {

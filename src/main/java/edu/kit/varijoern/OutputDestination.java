@@ -13,8 +13,7 @@ import java.util.Optional;
  * Describes the destination of the output of the program. This is either a file or the standard output.
  */
 public class OutputDestination {
-    @Nullable
-    final Path path;
+    final @Nullable Path path;
 
     /**
      * Creates a new output destination that represents the standard output.
@@ -51,7 +50,7 @@ public class OutputDestination {
      *
      * @return the path to the file
      */
-    public Optional<Path> getPath() {
+    public @NotNull Optional<Path> getPath() {
         return Optional.ofNullable(path);
     }
 
@@ -64,7 +63,7 @@ public class OutputDestination {
      * @throws SecurityException if a security manager exists, and it denies the permission to create the file or
      *                           one of the parent directories
      */
-    public PrintStream getStream() throws IOException {
+    public @NotNull PrintStream getStream() throws IOException {
         if (path == null) {
             return System.out;
         }

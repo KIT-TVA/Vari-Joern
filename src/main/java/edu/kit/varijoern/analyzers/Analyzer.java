@@ -1,6 +1,7 @@
 package edu.kit.varijoern.analyzers;
 
 import edu.kit.varijoern.composers.CompositionInformation;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
@@ -17,12 +18,15 @@ public interface Analyzer {
      * @throws IOException              if an I/O exception occurred
      * @throws AnalyzerFailureException if the analysis failed for another reason
      */
-    AnalysisResult analyze(CompositionInformation compositionInformation) throws IOException, AnalyzerFailureException;
+    @NotNull
+    AnalysisResult analyze(@NotNull CompositionInformation compositionInformation)
+            throws IOException, AnalyzerFailureException;
 
     /**
      * Aggregates the results of multiple analysis runs, grouping them by their evidence.
      *
      * @return the aggregated results
      */
+    @NotNull
     AggregatedAnalysisResult aggregateResults();
 }

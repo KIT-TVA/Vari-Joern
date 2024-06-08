@@ -12,20 +12,21 @@ import java.nio.file.Path;
  * The base class for all composer configurations.
  */
 public abstract class ComposerConfig extends NamedComponentConfig {
-    protected ComposerConfig(TomlTable toml) throws InvalidConfigException {
+    protected ComposerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
     }
 
     /**
      * Instantiates a new composer using this configuration.
      *
-     * @param tmpPath a {@link Path} to a temporary directory that can be used by the composer
+     * @param tmpPath a {@link Path} to a temporary directory that can be used by the composer. This path must be
+     *                absolute.
      * @return the new composer
      */
-    public abstract Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException;
+    public abstract @NotNull Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException;
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "composer";
     }
 }

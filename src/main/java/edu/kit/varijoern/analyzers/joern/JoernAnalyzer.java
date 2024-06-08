@@ -30,21 +30,20 @@ import java.util.stream.Collectors;
 public class JoernAnalyzer implements Analyzer {
     public static final String NAME = "joern";
     private static final String JOERN_COMMAND = "joern";
-    private static final Logger logger = LogManager.getLogger();
-    private static final OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
+    private static final Logger LOGGER = LogManager.getLogger();
+    private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
-    @Nullable
-    private final Path joernPath;
-    private final Path workspacePath;
-    private final Path scanScriptPath;
-    private final List<JoernAnalysisResult> allAnalysisResults = new ArrayList<>();
+    private final @Nullable Path joernPath;
+    private final @NotNull Path workspacePath;
+    private final @NotNull Path scanScriptPath;
+    private final @NotNull List<JoernAnalysisResult> allAnalysisResults = new ArrayList<>();
 
     /**
      * Creates a new {@link JoernAnalyzer} instance which uses the specified command name to run joern-scan.
      *
      * @param joernPath     the path to the directory containing the joern executables. May be null to use the system
      *                      PATH.
-     * @param workspacePath the directory to use for Joern's workspace folder
+     * @param workspacePath the directory to use for Joern's workspace folder. Must be an absolute path.
      */
     public JoernAnalyzer(@Nullable Path joernPath, @NotNull Path workspacePath) throws IOException {
         this.joernPath = joernPath;
@@ -56,9 +55,9 @@ public class JoernAnalyzer implements Analyzer {
     }
 
     @Override
-    public JoernAnalysisResult analyze(CompositionInformation compositionInformation)
+    public @NotNull JoernAnalysisResult analyze(@NotNull CompositionInformation compositionInformation)
             throws IOException, AnalyzerFailureException {
-        logger.info("Running analysis");
+        LOGGER.info("Running analysis");
         Path sourceLocation = compositionInformation.getLocation();
         Path outFile = this.workspacePath.resolve(
                 String.format("%s-%s.json",
@@ -73,27 +72,27 @@ public class JoernAnalyzer implements Analyzer {
         }
         JoernAnalysisResult result = new JoernAnalysisResult(findings,
                 compositionInformation.getEnabledFeatures(),
-                compositionInformation.getFeatureMapper(),
+                compositionInformation.getPresenceConditionMapper(),
                 compositionInformation.getSourceMap());
         this.allAnalysisResults.add(result);
-        logger.info("Analysis finished");
+        LOGGER.info("Analysis finished");
         return result;
     }
 
     @Override
-    public AggregatedAnalysisResult aggregateResults() {
+    public @NotNull AggregatedAnalysisResult aggregateResults() {
         // Group findings by their evidence and query name, store the analysis result retrieve the enabled features
-        // and the feature mappers later
-        Map<?, List<Pair<AnnotatedFinding, JoernAnalysisResult>>> groupedFindings =
-                this.allAnalysisResults.stream()
-                        .flatMap(result -> result.getFindings().stream()
-                                .map(finding -> Pair.with(finding, result)))
-                        .collect(Collectors.groupingBy(
-                                findingPair -> Pair.with(
-                                        findingPair.getValue0().originalEvidenceLocations(),
-                                        ((JoernFinding) findingPair.getValue0().finding()).getName()
-                                )
-                        ));
+        // and the presence condition mappers later
+        Map<?, List<Pair<AnnotatedFinding, JoernAnalysisResult>>> groupedFindings
+                = this.allAnalysisResults.stream()
+                .flatMap(result -> result.getFindings().stream()
+                        .map(finding -> Pair.with(finding, result)))
+                .collect(Collectors.groupingBy(
+                        findingPair -> Pair.with(
+                                findingPair.getValue0().originalEvidenceLocations(),
+                                ((JoernFinding) findingPair.getValue0().finding()).getName()
+                        )
+                ));
         return new AggregatedAnalysisResult(groupedFindings
                 .values().stream()
                 .map(findingPairs -> {
@@ -114,27 +113,29 @@ public class JoernAnalyzer implements Analyzer {
                 .collect(Collectors.toSet()));
     }
 
-    private void analyzeWithLanguageInformation(LanguageInformation languageInformation, Path sourceLocation,
-                                                Path outFile) throws AnalyzerFailureException, IOException {
-        logger.info("Running analysis for language {}", languageInformation.getName());
+    private void analyzeWithLanguageInformation(@NotNull LanguageInformation languageInformation,
+                                                @NotNull Path sourceLocation, @NotNull Path outFile)
+            throws AnalyzerFailureException, IOException {
+        LOGGER.info("Running analysis for language {}", languageInformation.getName());
         Path cpgLocation = this.workspacePath.resolve("cpg.bin");
-        logger.info("Generating CPG");
+        LOGGER.info("Generating CPG");
         languageInformation.accept(
                 new CPGGenerationVisitor(sourceLocation, cpgLocation, this.joernPath)
         );
-        logger.info("Running analysis on CPG");
+        LOGGER.info("Running analysis on CPG");
         runJoern(cpgLocation, outFile);
     }
 
     /**
      * Runs Joern on the specified source code. The results are saved in the JSON format in the specified file.
      *
-     * @param cpgLocation the location of the code property graph
-     * @param outFile     the path of the file to save the findings in
+     * @param cpgLocation the location of the code property graph. Must be an absolute path.
+     * @param outFile     the path of the file to save the findings in. Must be an absolute path.
      * @throws IOException              if an I/O error occurred
      * @throws AnalyzerFailureException if Joern exited with a non-zero exit code
      */
-    private void runJoern(Path cpgLocation, Path outFile) throws IOException, AnalyzerFailureException {
+    private void runJoern(@NotNull Path cpgLocation, @NotNull Path outFile)
+            throws IOException, AnalyzerFailureException {
         Process joernProcess = new ProcessBuilder(
                 this.joernPath == null ? JOERN_COMMAND : this.joernPath.resolve(JOERN_COMMAND).toString(),
                 "--script", this.scanScriptPath.toString(),
@@ -143,8 +144,8 @@ public class JoernAnalyzer implements Analyzer {
         )
                 .directory(this.workspacePath.toFile())
                 .start();
-        StreamGobbler stdoutGobbler = new StreamGobbler(joernProcess.getInputStream(), streamLogger);
-        StreamGobbler stderrGobbler = new StreamGobbler(joernProcess.getErrorStream(), streamLogger);
+        StreamGobbler stdoutGobbler = new StreamGobbler(joernProcess.getInputStream(), STREAM_LOGGER);
+        StreamGobbler stderrGobbler = new StreamGobbler(joernProcess.getErrorStream(), STREAM_LOGGER);
         stdoutGobbler.start();
         stderrGobbler.start();
         int joernExitCode;
@@ -159,10 +160,40 @@ public class JoernAnalyzer implements Analyzer {
             throw new AnalyzerFailureException(String.format("joern exited with %d", joernExitCode));
     }
 
-    private List<JoernFinding> parseFindings(Path findingsFile) throws IOException {
+    private @NotNull List<JoernFinding> parseFindings(@NotNull Path findingsFile)
+            throws IOException, AnalyzerFailureException {
         ObjectMapper objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
+        List<ParsedFinding> finding = objectMapper.readValue(findingsFile.toFile(), new TypeReference<>() {
         });
+        List<JoernFinding> list = new ArrayList<>();
+        for (ParsedFinding parsedFinding : finding) {
+            JoernFinding joernFinding = parsedFinding.toJoernFinding();
+            list.add(joernFinding);
+        }
+        return list;
+    }
+
+    protected record ParsedFinding(@Nullable String name, @Nullable String title, @Nullable String description,
+                                   double score, @Nullable List<ParsedEvidence> evidence) {
+        public @NotNull JoernFinding toJoernFinding() throws AnalyzerFailureException {
+            if (this.name == null || this.title == null || this.description == null || this.evidence == null)
+                throw new AnalyzerFailureException("Joern output is missing required fields");
+            Set<Evidence> set = new HashSet<>();
+            for (ParsedEvidence parsedEvidence : this.evidence) {
+                Evidence parsedEvidenceEvidence = parsedEvidence.toEvidence();
+                set.add(parsedEvidenceEvidence);
+            }
+            return new JoernFinding(this.name, this.title, this.description, this.score,
+                    set);
+        }
+    }
+
+    protected record ParsedEvidence(@Nullable String filename, int lineNumber) {
+        public @NotNull Evidence toEvidence() throws AnalyzerFailureException {
+            if (this.filename == null)
+                throw new AnalyzerFailureException("File name missing in evidence");
+            return new Evidence(this.filename, this.lineNumber);
+        }
     }
 }

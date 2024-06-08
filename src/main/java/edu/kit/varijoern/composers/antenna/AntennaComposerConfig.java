@@ -15,22 +15,22 @@ import java.nio.file.Path;
  */
 public class AntennaComposerConfig extends ComposerConfig {
     private static final String SOURCE_FIELD_NAME = "source";
-    private final Path sourceLocation;
+    private final @NotNull Path sourceLocation;
 
     /**
      * Creates a new {@link AntennaComposerConfig} by extracting data from the specified TOML section.
      * Relative paths are assumed to be relative to the specified path of the configuration file.
      *
      * @param toml       the TOML section
-     * @param configPath the path to the configuration file
+     * @param configPath the path to the configuration file. Must be absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public AntennaComposerConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
+    public AntennaComposerConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
         super(toml);
         String sourceLocation = TomlUtils.getMandatoryString(
-            SOURCE_FIELD_NAME,
-            toml,
-            "Source location for Antenna composer is missing or not a string"
+                SOURCE_FIELD_NAME,
+                toml,
+                "Source location for Antenna composer is missing or not a string"
         );
         Path sourcePath;
         try {
@@ -45,16 +45,16 @@ public class AntennaComposerConfig extends ComposerConfig {
     }
 
     @Override
-    public Composer newComposer(@NotNull Path tmpPath) {
+    public @NotNull Composer newComposer(@NotNull Path tmpPath) {
         return new AntennaComposer(this.sourceLocation);
     }
 
     /**
-     * Returns the location of the source code that will be preprocessed.
+     * Returns the location of the source code that will be preprocessed. This is an absolute path.
      *
      * @return the location of the source code
      */
-    public Path getSourceLocation() {
+    public @NotNull Path getSourceLocation() {
         return sourceLocation;
     }
 }

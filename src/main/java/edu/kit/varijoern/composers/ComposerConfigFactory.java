@@ -6,6 +6,7 @@ import edu.kit.varijoern.composers.kbuild.KbuildComposer;
 import edu.kit.varijoern.composers.kbuild.KbuildComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
@@ -15,8 +16,8 @@ import java.util.List;
  * This class is used for parsing the composer section of a configuration file. It uses its {@code name} field to
  * determine which {@link ComposerConfig} subclass to use.
  */
-public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerConfig> {
-    private static final ComposerConfigFactory instance = new ComposerConfigFactory();
+public final class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerConfig> {
+    private static final ComposerConfigFactory INSTANCE = new ComposerConfigFactory();
 
     private ComposerConfigFactory() {
     }
@@ -26,8 +27,8 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
      *
      * @return the instance
      */
-    public static ComposerConfigFactory getInstance() {
-        return instance;
+    public static @NotNull ComposerConfigFactory getInstance() {
+        return INSTANCE;
     }
 
     /**
@@ -36,12 +37,13 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
      *
      * @return the objects into which the command line arguments for the composers should be parsed
      */
-    public static List<Object> getComponentArgs() {
+    public static @NotNull List<Object> getComponentArgs() {
         return List.of(); // Currently, no composer has command line arguments
     }
 
     @Override
-    protected ComposerConfig newConfigFromName(String componentName, TomlTable toml, Path configPath)
+    protected @NotNull ComposerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
+                                                        @NotNull Path configPath)
             throws InvalidConfigException {
         return switch (componentName) {
             case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath);
@@ -51,7 +53,7 @@ public class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerC
     }
 
     @Override
-    public String getComponentType() {
+    public @NotNull String getComponentType() {
         return "composer";
     }
 }

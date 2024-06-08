@@ -1,5 +1,6 @@
 package edu.kit.varijoern.config;
 
+import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.nio.file.Path;
@@ -20,11 +21,12 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      * @return the name of the implementation
      * @throws InvalidConfigException if the name could not be extracted from the TOML section
      */
-    public static String getComponentName(TomlTable toml, String componentType) throws InvalidConfigException {
+    public static @NotNull String getComponentName(@NotNull TomlTable toml, @NotNull String componentType)
+            throws InvalidConfigException {
         return TomlUtils.getMandatoryString(
-            NAME_FIELD_NAME,
-            toml,
-            String.format("%s name is missing or not a string", componentType)
+                NAME_FIELD_NAME,
+                toml,
+                String.format("%s name is missing or not a string", componentType)
         );
     }
 
@@ -33,11 +35,11 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      * Relative paths are resolved against the parent directory of the specified configuration file path.
      *
      * @param toml       the component section
-     * @param configPath the path to the configuration file
+     * @param configPath the path to the configuration file. Must be absolute.
      * @return the parsed configuration
      * @throws InvalidConfigException if the TOML section did not represent a valid configuration
      */
-    public C readConfig(TomlTable toml, Path configPath) throws InvalidConfigException {
+    public @NotNull C readConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
         String componentName = getComponentName(toml, getComponentType());
         return newConfigFromName(componentName, toml, configPath);
     }
@@ -49,12 +51,13 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      *
      * @param componentName the name of the implementation of the component
      * @param toml          the component section
-     * @param configPath    the path to the configuration file
+     * @param configPath    the path to the configuration file. Must be absolute.
      * @return the parsed configuration
      * @throws InvalidConfigException if the TOML section did not represent a valid configuration
      */
-    protected abstract C newConfigFromName(String componentName, TomlTable toml, Path configPath)
-        throws InvalidConfigException;
+    protected abstract @NotNull C newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
+                                                    @NotNull Path configPath)
+            throws InvalidConfigException;
 
     /**
      * Returns the name of the type of the component this class parses configurations for. The name is used for
@@ -62,5 +65,5 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      *
      * @return the type of the component
      */
-    public abstract String getComponentType();
+    public abstract @NotNull String getComponentType();
 }

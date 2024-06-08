@@ -1002,13 +1002,8 @@ include-$(CONFIG_KMSAN)		+= scripts/Makefile.kmsan
 include-$(CONFIG_UBSAN)		+= scripts/Makefile.ubsan
 include-$(CONFIG_KCOV)		+= scripts/Makefile.kcov
 include-$(CONFIG_RANDSTRUCT)	+= scripts/Makefile.randstruct
-include-$(CONFIG_GCC_PLUGINS)	+= scripts/Makefile.gcc-plugins
 
 include $(addprefix $(srctree)/, $(include-y))
-
-# scripts/Makefile.gcc-plugins is intentionally included last.
-# Do not add $(call cc-option,...) below this line. When you build the kernel
-# from the clean source tree, the GCC plugins do not exist at this point.
 
 # Add user supplied CPPFLAGS, AFLAGS, CFLAGS and RUSTFLAGS as the last assignments
 KBUILD_CPPFLAGS += $(KCPPFLAGS)
@@ -1167,7 +1162,7 @@ include/config/kernel.release: FORCE
 # Carefully list dependencies so we do not try to build scripts twice
 # in parallel
 PHONY += scripts
-scripts: scripts_basic scripts_dtc
+scripts: scripts_basic
 	$(Q)$(MAKE) $(build)=$(@)
 
 # Things we need to do before we recursively start building the kernel
@@ -1406,22 +1401,6 @@ all: dtbs
 endif
 
 endif
-
-PHONY += scripts_dtc
-scripts_dtc: scripts_basic
-	$(Q)$(MAKE) $(build)=scripts/dtc
-
-ifneq ($(filter dt_binding_check, $(MAKECMDGOALS)),)
-export CHECK_DT_BINDING=y
-endif
-
-PHONY += dt_binding_check
-dt_binding_check: scripts_dtc
-	$(Q)$(MAKE) $(build)=Documentation/devicetree/bindings
-
-PHONY += dt_compatible_check
-dt_compatible_check: dt_binding_check
-	$(Q)$(MAKE) $(build)=Documentation/devicetree/bindings $@
 
 # ---------------------------------------------------------------------------
 # Modules
@@ -1739,15 +1718,6 @@ misc-check:
 	$(Q)$(srctree)/scripts/misc-check
 
 all: misc-check
-
-PHONY += scripts_gdb
-scripts_gdb: prepare0
-	$(Q)$(MAKE) $(build)=scripts/gdb
-	$(Q)ln -fsn $(abspath $(srctree)/scripts/gdb/vmlinux-gdb.py)
-
-ifdef CONFIG_GDB_SCRIPTS
-all: scripts_gdb
-endif
 
 else # KBUILD_EXTMOD
 

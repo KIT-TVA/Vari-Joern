@@ -14,8 +14,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -28,19 +31,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * A composer for Kconfig-Kbuild-based systems. It copies the files required by the specified variant to the output directory
- * and adds {@code #define} and {@code #include} directives to C files because it is not possible to pass command-line includes and
- * defines to Joern.
+ * A composer for Kconfig-Kbuild-based systems. It copies the files required by the specified variant to the output
+ * directory and adds {@code #define} and {@code #include} directives to C files because it is not possible to pass
+ * command-line includes and defines to Joern.
  * <p>
  * The composer uses kmax to determine the presence conditions of the individual files
- * (see {@link KbuildFeatureMapperCreator}). The presence conditions of individual lines are determined using
- * SuperC (see {@link LineFeatureMapper}).
+ * (see {@link FilePresenceConditionMapper}). The presence conditions of individual lines are determined using
+ * SuperC (see {@link LinePresenceConditionMapper}).
  * <p>
  * Currently, only the Kbuild and Kconfig variants of Linux and Busybox are supported. For Linux, no presence
  * conditions can be determined at the moment.
  * <h2>How it works</h2>
  * <ol>
- *     <li>If not yet done, create a {@link KbuildFeatureMapperCreator} which determines the presence conditions
+ *     <li>If not yet done, create a {@link FilePresenceConditionMapper} which determines the presence conditions
  *     of most C files.</li>
  *     <li>Copy the source directory to a temporary directory.</li>
  *     <li>Generate a .config file based on the specified features:
@@ -53,18 +56,18 @@ import java.util.stream.Stream;
  *     <li>Generate required header files (specifically {@code autoconf.h}) by invoking {@code make oldconfig}.</li>
  *     <li>Determine the set of files relevant to the variant:
  *     <ol>
- *         <li>Run {@code make -in} to determine the files explicitly compiled by {@code make} and the GCC flags they're compiled
- *         with.</li>
- *         <li>Run {@code gcc -M -MG} on each of the files determined in the previous step to determine the files they depend
- *         on. Files that are compiled with different include or define flags are treated as different dependencies.
- *         </li>
+ *         <li>Run {@code make -in} to determine the files explicitly compiled by {@code make} and the GCC flags they're
+ *         compiled with.</li>
+ *         <li>Run {@code gcc -M -MG} on each of the files determined in the previous step to determine the files they
+ *         depend on. Files that are compiled with different include or define flags are treated as different
+ *         dependencies. </li>
  *     </ol>
  *     </li>
  *     </li>
- *     <li>Copy the files determined in the previous step to the output directory and add {@code #define} and {@code #include}
- *     directives to non-header files.</li>
+ *     <li>Copy the files determined in the previous step to the output directory and add {@code #define} and
+ *     {@code #include} directives to non-header files.</li>
  *     <li>Determine the presence conditions of the individual lines of the files in the output directory. See
- *     {@link LineFeatureMapper} for details.</li>
+ *     {@link LinePresenceConditionMapper} for details.</li>
  * </ol>
  *
  * <h2>Issues</h2>
@@ -74,7 +77,8 @@ import java.util.stream.Stream;
  *         <li>The presence conditions of lines are determined using the include and define arguments to their
  *         respective GCC calls. These can vary depending on the variant analyzed and since the conditions of the
  *         compiler flags can't be determined, the extracted presence conditions can vary as well.</li>
- *         <li>See {@link KbuildFeatureMapperCreator} and {@link LineFeatureMapper} for more information.</li>
+ *         <li>See {@link FilePresenceConditionMapper} and {@link LinePresenceConditionMapper} for more information.
+ *         </li>
  *     </ul>
  *     </li>
  *     <li>Header files are copied to the output directory without adding define and include directives. This is
@@ -88,24 +92,25 @@ public class KbuildComposer implements Composer {
     private static final Pattern OPTION_NAME_VALUE_PATTERN = Pattern.compile("CONFIG_(\\w+)=.*");
     private static final Pattern OPTION_NOT_SET_PATTERN = Pattern.compile("# CONFIG_(\\w+) is not set");
     private static final Pattern HEADER_FILE_PATTERN = Pattern.compile(".*\\.(?:h|H|hpp|hxx|h++)");
-    private static final Set<String> supportedSystems = Set.of("linux", "busybox");
-    private static final Logger logger = LogManager.getLogger();
-    private static final OutputStream streamLogger = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
+    private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox");
+    private static final Logger LOGGER = LogManager.getLogger();
+    private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
-    private final String system;
-    private final Path tmpPath;
-    private final Path tmpSourcePath;
-    private KbuildFeatureMapperCreator featureMapperCreator = null;
+    private final @NotNull String system;
+    private final @NotNull Path tmpPath;
+    private final @NotNull Path tmpSourcePath;
+    private @Nullable FilePresenceConditionMapper filePresenceConditionMapper = null;
 
     /**
      * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
      *
-     * @param sourcePath the path to the source directory
-     * @param system     the variant of the Kbuild/Kconfig system. Use {@link KbuildComposer#isSupportedSystem(String)} to
-     *                   determine if a given system is supported.
-     * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer
+     * @param sourcePath the path to the source directory. Must be an absolute path.
+     * @param system     the variant of the Kbuild/Kconfig system. Use {@link KbuildComposer#isSupportedSystem(String)}
+     *                   to determine if a given system is supported.
+     * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer. Must be absolute.
      */
-    public KbuildComposer(Path sourcePath, String system, Path tmpPath) throws IOException, ComposerException {
+    public KbuildComposer(@NotNull Path sourcePath, @NotNull String system, @NotNull Path tmpPath)
+            throws IOException, ComposerException {
         this.system = system;
         this.tmpPath = tmpPath;
         this.tmpSourcePath = this.tmpPath.resolve("source");
@@ -124,8 +129,9 @@ public class KbuildComposer implements Composer {
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
-        if (this.featureMapperCreator == null) {
-            this.featureMapperCreator = new KbuildFeatureMapperCreator(this.tmpSourcePath, this.system,
+        if (this.filePresenceConditionMapper == null) {
+            LOGGER.info("Creating file presence condition mapper");
+            this.filePresenceConditionMapper = new FilePresenceConditionMapper(this.tmpSourcePath, this.system,
                     this.tmpPath, featureModel);
         }
 
@@ -134,7 +140,7 @@ public class KbuildComposer implements Composer {
         Map<Path, GenerationInformation> generationInformation = this.generateFiles(
                 includedFiles, destination, tmpSourcePath
         );
-        Map<Path, LineFeatureMapper> lineFeatureMappers = this.createLineFeatureMappers(
+        Map<Path, LinePresenceConditionMapper> linePresenceConditionMappers = this.createLinePresenceConditionMappers(
                 generationInformation,
                 includedFiles,
                 featureModel.getFeatures().stream()
@@ -145,7 +151,8 @@ public class KbuildComposer implements Composer {
         return new CompositionInformation(
                 destination,
                 features,
-                this.featureMapperCreator.createFeatureMapper(generationInformation, lineFeatureMappers),
+                new KbuildPresenceConditionMapper(this.filePresenceConditionMapper, linePresenceConditionMappers,
+                        generationInformation),
                 new KbuildComposerSourceMap(generationInformation),
                 List.of(new CCPPLanguageInformation(
                         includedFiles.stream()
@@ -158,17 +165,17 @@ public class KbuildComposer implements Composer {
     }
 
     /**
-     * Generates a .config file based on the specified features and ensures that the {@code include/autoconf.h} file exists
-     * and is up-to-date.
+     * Generates a .config file based on the specified features and ensures that the {@code include/autoconf.h} file
+     * exists and is up-to-date.
      *
      * @param features      the enabled and disabled features
-     * @param tmpSourcePath the path to the temporary source directory
+     * @param tmpSourcePath the absolute path to the temporary source directory
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if the .config file could not be generated
      */
-    private void generateConfig(Map<String, Boolean> features, Path tmpSourcePath)
+    private void generateConfig(@NotNull Map<String, Boolean> features, @NotNull Path tmpSourcePath)
             throws IOException, ComposerException {
-        logger.info("Generating .config");
+        LOGGER.info("Generating .config");
         this.runMake("defconfig");
 
         Set<String> remainingFeatures = new HashSet<>(features.keySet());
@@ -210,7 +217,7 @@ public class KbuildComposer implements Composer {
      * @param activated  whether the option is activated
      * @return the line that can be used in a .config file
      */
-    private String formatOption(String optionName, boolean activated) {
+    private @NotNull String formatOption(@NotNull String optionName, boolean activated) {
         if (activated)
             return "CONFIG_%s=y".formatted(optionName);
         else
@@ -220,19 +227,20 @@ public class KbuildComposer implements Composer {
     /**
      * Determines the files that are included in the variant and the compiler flags they are compiled with.
      *
-     * @param tmpSourcePath the path to the temporary source directory
+     * @param tmpSourcePath the absolute path to the temporary source directory
      * @return the files that are included in the variant
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if the files could not be determined
      */
-    private Set<Dependency> getIncludedFiles(Path tmpSourcePath) throws IOException, ComposerException {
-        logger.info("Determining files to be included");
+    private @NotNull Set<Dependency> getIncludedFiles(@NotNull Path tmpSourcePath)
+            throws IOException, ComposerException {
+        LOGGER.info("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
                 .directory(tmpSourcePath.toFile());
         int makeExitCode;
         String output;
         try {
-            logger.debug("Running make -in");
+            LOGGER.debug("Running make -in");
             Process makeProcess = makeProcessBuilder.start();
             output = IOUtils.toString(makeProcess.getInputStream(), Charset.defaultCharset());
             makeExitCode = makeProcess.waitFor();
@@ -243,12 +251,12 @@ public class KbuildComposer implements Composer {
             throw new ComposerException("make -in failed with exit code %d".formatted(makeExitCode));
         List<GCCCall> gccCalls;
         try {
-            logger.debug("Parsing gcc calls");
+            LOGGER.debug("Parsing gcc calls");
             gccCalls = new GCCCallExtractor(output).getCalls();
         } catch (ParseException e) {
             throw new ComposerException("gcc calls could not be parsed", e);
         }
-        logger.debug("Found {} gcc calls", gccCalls.size());
+        LOGGER.debug("Found {} gcc calls", gccCalls.size());
         List<InclusionInformation> compiledFiles = new ArrayList<>();
         for (GCCCall gccCall : gccCalls) {
             for (String file : gccCall.compiledFiles()) {
@@ -268,20 +276,21 @@ public class KbuildComposer implements Composer {
      * Determines the dependencies of the specified files.
      *
      * @param compiledFiles the files to determine the dependencies of
-     * @param tmpSourcePath the path to the temporary source directory
+     * @param tmpSourcePath the absolute path to the temporary source directory
      * @return the dependencies of the specified files
      * @throws ComposerException if the dependencies could not be determined
      * @throws IOException       if an I/O error occurs
      */
-    private Set<Dependency> getDependencies(List<InclusionInformation> compiledFiles, Path tmpSourcePath)
+    private @NotNull Set<Dependency> getDependencies(@NotNull List<InclusionInformation> compiledFiles,
+                                                     @NotNull Path tmpSourcePath)
             throws ComposerException, IOException {
-        logger.info("Getting dependencies");
+        LOGGER.info("Getting dependencies");
         Set<Dependency> dependencies = new HashSet<>();
         for (InclusionInformation compiledFile : compiledFiles) {
             dependencies.add(new CompiledDependency(compiledFile));
             dependencies.addAll(this.getDependenciesOfFile(compiledFile, tmpSourcePath));
         }
-        logger.debug("Found {} dependencies in total", dependencies.size());
+        LOGGER.debug("Found {} dependencies in total", dependencies.size());
         return dependencies;
     }
 
@@ -290,19 +299,20 @@ public class KbuildComposer implements Composer {
      * the specified file are included.
      *
      * @param inclusionInformation the file to determine the dependencies of
-     * @param tmpSourcePath        the path to the temporary source directory
+     * @param tmpSourcePath        the absolute path to the temporary source directory
      * @return the dependencies of the specified file
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if the dependencies could not be determined
      */
-    private List<Dependency> getDependenciesOfFile(InclusionInformation inclusionInformation, Path tmpSourcePath)
+    private @NotNull List<Dependency> getDependenciesOfFile(@NotNull InclusionInformation inclusionInformation,
+                                                            @NotNull Path tmpSourcePath)
             throws IOException, ComposerException {
         if (!Files.exists(tmpSourcePath.resolve(inclusionInformation.filePath()))) {
-            logger.warn("File {} does not exist, skipping dependency calculation",
+            LOGGER.warn("File {} does not exist, skipping dependency calculation",
                     inclusionInformation.filePath());
             return List.of();
         }
-        logger.info("Getting dependencies of {}", inclusionInformation.filePath());
+        LOGGER.info("Getting dependencies of {}", inclusionInformation.filePath());
         String makeRule = this.getFileMakeRule(inclusionInformation, tmpSourcePath);
         String dependencyList = makeRule.substring(makeRule.indexOf(':') + 1);
         Stream<String> dependencies = Arrays.stream(dependencyList.replace("\\", "").split("\\s+"))
@@ -327,7 +337,7 @@ public class KbuildComposer implements Composer {
                     }
                 })
                 .toList();
-        logger.debug("Found {} dependencies", dependencyInformation.size());
+        LOGGER.debug("Found {} dependencies", dependencyInformation.size());
         return dependencyInformation;
     }
 
@@ -336,12 +346,13 @@ public class KbuildComposer implements Composer {
      * using the syntax of a make rule. Dependencies of files generated during a full build may be missed.
      *
      * @param inclusionInformation the file to determine the dependencies of
-     * @param tmpSourcePath        the path to the temporary source directory
+     * @param tmpSourcePath        the absolute path to the temporary source directory
      * @return the make rule describing the dependencies of the specified file
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if GCC fails
      */
-    private String getFileMakeRule(InclusionInformation inclusionInformation, Path tmpSourcePath)
+    private @NotNull String getFileMakeRule(@NotNull InclusionInformation inclusionInformation,
+                                            @NotNull Path tmpSourcePath)
             throws IOException, ComposerException {
         List<String> gccCall = new ArrayList<>();
         gccCall.add("gcc");
@@ -372,9 +383,9 @@ public class KbuildComposer implements Composer {
             throw new RuntimeException("gcc was interrupted", e);
         }
         if (gccExitCode != 0) {
-            logger.error("GCC failed with the following error: {}", error);
-            logger.error("Its output was: {}", output);
-            logger.error("The command was: {}", String.join(" ", gccCall));
+            LOGGER.error("GCC failed with the following error: {}", error);
+            LOGGER.error("Its output was: {}", output);
+            LOGGER.error("The command was: {}", String.join(" ", gccCall));
             throw new ComposerException("gcc failed with exit code %d".formatted(gccExitCode));
         }
         return output;
@@ -384,15 +395,16 @@ public class KbuildComposer implements Composer {
      * Generates the files required by the specified variant using {@code generateFile}.
      *
      * @param dependencies  the files required by the variant
-     * @param destination   the path to the output directory
-     * @param tmpSourcePath the path to the temporary source directory
+     * @param destination   the absolute path to the output directory
+     * @param tmpSourcePath the absolute path to the temporary source directory
      * @return a map from the paths of the generated files to information about the generation process
      * @throws IOException if an I/O error occurs
      */
-    private Map<Path, GenerationInformation> generateFiles(Set<Dependency> dependencies, Path destination,
-                                                           Path tmpSourcePath)
+    private @NotNull Map<Path, GenerationInformation> generateFiles(@NotNull Set<Dependency> dependencies,
+                                                                    @NotNull Path destination,
+                                                                    @NotNull Path tmpSourcePath)
             throws IOException {
-        logger.info("Generating files");
+        LOGGER.info("Generating files");
         Map<Path, List<Dependency>> targets = new HashMap<>();
         for (Dependency dependency : dependencies) {
             targets.computeIfAbsent(dependency.getFilePath(), k -> new ArrayList<>()).add(dependency);
@@ -413,17 +425,19 @@ public class KbuildComposer implements Composer {
      * @param filePath       the path to the file to generate, relative to the temporary and output source directories
      * @param configurations information about which variants of the file to generate (e.g. with which preprocessor
      *                       directives)
-     * @param destination    the path to the output directory
-     * @param tmpSourcePath  the path to the temporary source directory
-     * @return a map from the paths of the generated files to information about the generation process
+     * @param destination    the absolute path to the output directory
+     * @param tmpSourcePath  the absolute path to the temporary source directory
+     * @return a map from the relative paths of the generated files to information about the generation process
      * @throws IOException if an I/O error occurs
      */
-    private Map<Path, GenerationInformation> generateFile(Path filePath, List<Dependency> configurations,
-                                                          Path destination, Path tmpSourcePath)
+    private @NotNull Map<Path, GenerationInformation> generateFile(@NotNull Path filePath,
+                                                                   @NotNull List<Dependency> configurations,
+                                                                   @NotNull Path destination,
+                                                                   @NotNull Path tmpSourcePath)
             throws IOException {
         Path sourcePath = tmpSourcePath.resolve(filePath);
         if (!Files.exists(sourcePath)) {
-            logger.warn("File {} does not exist, not generating.", filePath);
+            LOGGER.warn("File {} does not exist, not generating.", filePath);
             return Map.of();
         }
         Path destinationPath = destination.resolve(filePath);
@@ -433,17 +447,17 @@ public class KbuildComposer implements Composer {
         boolean generated = false;
         for (Dependency configuration : configurations) {
             if (configuration instanceof CompiledDependency) {
-                Map.Entry<Path, GenerationInformation> fileGenerationInformation =
-                        this.generateFileWithPreprocessorDirectives(
-                                ((CompiledDependency) configuration).getInclusionInformation(),
-                                destination,
-                                tmpSourcePath
-                        );
+                Map.Entry<Path, GenerationInformation> fileGenerationInformation
+                        = this.generateFileWithPreprocessorDirectives(
+                        ((CompiledDependency) configuration).getInclusionInformation(),
+                        destination,
+                        tmpSourcePath
+                );
                 generationInformation.put(fileGenerationInformation.getKey(), fileGenerationInformation.getValue());
                 generated = true;
             } else if (configuration instanceof HeaderDependency) {
                 if (!copied) {
-                    logger.debug("Copying {}", filePath);
+                    LOGGER.debug("Copying {}", filePath);
                     Files.copy(sourcePath, destinationPath);
                     copied = true;
                     generationInformation.put(filePath, new GenerationInformation(filePath, 0));
@@ -456,16 +470,20 @@ public class KbuildComposer implements Composer {
         return generationInformation;
     }
 
-    private Map.Entry<Path, GenerationInformation> generateFileWithPreprocessorDirectives(
-            InclusionInformation inclusionInformation, Path destination, Path tmpSourcePath) throws IOException {
-        logger.debug("Generating {} with preprocessor directives", inclusionInformation.filePath());
+    private @NotNull Map.Entry<Path, GenerationInformation> generateFileWithPreprocessorDirectives(
+            @NotNull InclusionInformation inclusionInformation, @NotNull Path destination, @NotNull Path tmpSourcePath)
+            throws IOException {
+        LOGGER.debug("Generating {} with preprocessor directives", inclusionInformation.filePath());
         Path relativeDestinationPath = inclusionInformation.getComposedFilePath();
         Path destinationPath = destination
                 .resolve(relativeDestinationPath);
 
         try (FileOutputStream stream = new FileOutputStream(destinationPath.toFile())) {
             for (Map.Entry<String, String> define : inclusionInformation.defines().entrySet()) {
-                stream.write(("#define %s %s%n".formatted(define.getKey(), define.getValue())).getBytes(StandardCharsets.US_ASCII));
+                stream.write(
+                        "#define %s %s%n".formatted(define.getKey(), define.getValue())
+                                .getBytes(StandardCharsets.US_ASCII)
+                );
             }
             for (String include : inclusionInformation.includedFiles()) {
                 Path includePath = inclusionInformation.filePath().getParent().relativize(Path.of(include));
@@ -479,22 +497,24 @@ public class KbuildComposer implements Composer {
         ));
     }
 
-    private Map<Path, LineFeatureMapper> createLineFeatureMappers(Map<Path, GenerationInformation> generationInformation,
-                                                                  Set<Dependency> dependencies,
-                                                                  Set<String> knownFeatures,
-                                                                  Path tmpSourcePath)
+    private @NotNull Map<Path, LinePresenceConditionMapper> createLinePresenceConditionMappers(
+            @NotNull Map<Path, GenerationInformation> generationInformation,
+            @NotNull Set<Dependency> dependencies,
+            @NotNull Set<String> knownFeatures,
+            @NotNull Path tmpSourcePath)
             throws IOException, ComposerException {
-        if (!LineFeatureMapper.isSupportedSystem(this.system)) {
-            logger.warn("System {} is not supported, skipping line feature mapper creation", this.system);
+        if (!LinePresenceConditionMapper.isSupportedSystem(this.system)) {
+            LOGGER.warn("System {} is not supported, skipping line presence condition mapper creation",
+                    this.system);
             return Map.of();
         }
 
-        logger.info("Creating line feature mappers");
+        LOGGER.info("Creating line presence condition mappers");
 
         // Clean up to ensure that the header file containing config definitions doesn't exist
         this.runMake("clean");
 
-        Map<Path, LineFeatureMapper> lineFeatureMappers = new HashMap<>();
+        Map<Path, LinePresenceConditionMapper> linePresenceConditionMappers = new HashMap<>();
         Map<Path, Dependency> dependenciesByPath = dependencies.stream()
                 .collect(Collectors.toMap(Dependency::getFilePath, dependency -> dependency));
         for (Map.Entry<Path, GenerationInformation> entry : generationInformation.entrySet()) {
@@ -504,16 +524,16 @@ public class KbuildComposer implements Composer {
             if (!(dependency instanceof CompiledDependency)) {
                 continue;
             }
-            logger.debug("Creating line feature mapper for {}", entry.getKey());
+            LOGGER.debug("Creating line presence condition mapper for {}", entry.getKey());
             InclusionInformation inclusionInformation = ((CompiledDependency) dependency).getInclusionInformation();
-            lineFeatureMappers.put(
+            linePresenceConditionMappers.put(
                     generatedFilePath,
-                    new LineFeatureMapper(inclusionInformation, tmpSourcePath, fileGenerationInformation.addedLines(),
-                            knownFeatures, this.system)
+                    new LinePresenceConditionMapper(inclusionInformation, tmpSourcePath,
+                            fileGenerationInformation.addedLines(), knownFeatures, this.system)
             );
         }
 
-        return lineFeatureMappers;
+        return linePresenceConditionMappers;
     }
 
     /**
@@ -524,19 +544,19 @@ public class KbuildComposer implements Composer {
      * @throws ComposerException if make returns a non-zero exit code
      * @throws IOException       if an I/O error occurs
      */
-    private void runMake(String... args) throws ComposerException, IOException {
-        Process makeProcessBuilder = new ProcessBuilder(
+    private void runMake(String @NotNull ... args) throws ComposerException, IOException {
+        Process makeProcess = new ProcessBuilder(
                 Stream.concat(Stream.of("make"), Arrays.stream(args))
                         .toList())
                 .directory(this.tmpSourcePath.toFile())
                 .start();
-        StreamGobbler stdoutGobbler = new StreamGobbler(makeProcessBuilder.getInputStream(), streamLogger);
-        StreamGobbler stderrGobbler = new StreamGobbler(makeProcessBuilder.getErrorStream(), streamLogger);
+        StreamGobbler stdoutGobbler = new StreamGobbler(makeProcess.getInputStream(), STREAM_LOGGER);
+        StreamGobbler stderrGobbler = new StreamGobbler(makeProcess.getErrorStream(), STREAM_LOGGER);
         stdoutGobbler.start();
         stderrGobbler.start();
         int makeExitCode;
         try {
-            makeExitCode = makeProcessBuilder.waitFor();
+            makeExitCode = makeProcess.waitFor();
         } catch (InterruptedException e) {
             throw new RuntimeException("Unexpected interruption of make process", e);
         }
@@ -544,9 +564,12 @@ public class KbuildComposer implements Composer {
             throw new ComposerException("Make failed with exit code %d".formatted(makeExitCode));
     }
 
-    private void copySourceTo(Path originalSourcePath, Path tmpSourcePath) throws IOException {
-        logger.info("Copying source");
-        FileUtils.copyDirectory(originalSourcePath.toFile(), tmpSourcePath.toFile(), file -> !file.getName().equals(".git"));
+    private void copySourceTo(@NotNull Path originalSourcePath, @NotNull Path tmpSourcePath) throws IOException {
+        LOGGER.info("Copying source");
+        FileUtils.copyDirectory(
+                originalSourcePath.toFile(), tmpSourcePath.toFile(),
+                file -> !file.getName().equals(".git")
+        );
     }
 
     /**
@@ -555,43 +578,43 @@ public class KbuildComposer implements Composer {
      * @param system the variant to check
      * @return if the variant is supported
      */
-    public static boolean isSupportedSystem(String system) {
-        return supportedSystems.contains(system);
+    public static boolean isSupportedSystem(@NotNull String system) {
+        return SUPPORTED_SYSTEMS.contains(system);
     }
 
     /**
      * Contains information about a file included in the variant.
      */
-    private static abstract class Dependency {
+    private abstract static class Dependency {
         /**
          * Returns the path to the file, relative to the source directory.
          *
          * @return the path to the file
          */
-        public abstract Path getFilePath();
+        public abstract @NotNull Path getFilePath();
     }
 
     /**
      * Contains information about a non-header file included in the variant, specifically the flags used to compile it.
      */
     private static class CompiledDependency extends Dependency {
-        private final InclusionInformation inclusionInformation;
+        private final @NotNull InclusionInformation inclusionInformation;
 
-        public CompiledDependency(InclusionInformation inclusionInformation) {
+        public CompiledDependency(@NotNull InclusionInformation inclusionInformation) {
             this.inclusionInformation = inclusionInformation;
         }
 
         @Override
-        public Path getFilePath() {
+        public @NotNull Path getFilePath() {
             return this.inclusionInformation.filePath();
         }
 
-        public InclusionInformation getInclusionInformation() {
+        public @NotNull InclusionInformation getInclusionInformation() {
             return this.inclusionInformation;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(@Nullable Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             CompiledDependency that = (CompiledDependency) o;
@@ -608,19 +631,19 @@ public class KbuildComposer implements Composer {
      * Contains minimal information about a header file included in the variant.
      */
     private static class HeaderDependency extends Dependency {
-        private final Path filePath;
+        private final @NotNull Path filePath;
 
-        public HeaderDependency(String filePath) {
+        public HeaderDependency(@NotNull String filePath) {
             this.filePath = Path.of(filePath).normalize();
         }
 
         @Override
-        public Path getFilePath() {
+        public @NotNull Path getFilePath() {
             return this.filePath;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(@Nullable Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             HeaderDependency that = (HeaderDependency) o;

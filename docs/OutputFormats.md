@@ -32,8 +32,8 @@ specified. `json` generates a JSON object with the structure described in the ne
 
 ### Finding
 A finding is an object with the following fields:
-- `title`: A short string describing the finding.
-- `name` (specific to the Joern analyzer): The name of the finding as used in Joern.
+- `name`: The name of the kind of this finding.
+- `title` (specific to the Joern analyzer): A short string describing the finding.
 - `description` (specific to the Joern analyzer): A longer description of the finding.
 - `score` (specific to the Joern analyzer): A number indicating the severity of the finding.
 

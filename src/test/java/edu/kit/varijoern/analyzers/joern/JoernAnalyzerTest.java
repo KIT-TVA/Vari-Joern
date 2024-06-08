@@ -2,7 +2,6 @@ package edu.kit.varijoern.analyzers.joern;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.ConditionUtils;
-import edu.kit.varijoern.IllegalFeatureNameException;
 import edu.kit.varijoern.KconfigTestCaseManager;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.analyzers.AnnotatedFinding;
@@ -37,8 +36,7 @@ class JoernAnalyzerTest {
      * Tests the analysis of the BusyBox sample with two different configurations.
      */
     @Test
-    void analyze() throws IOException, GitAPIException, ComposerException, IllegalFeatureNameException,
-            AnalyzerFailureException {
+    void analyze() throws IOException, GitAPIException, ComposerException, AnalyzerFailureException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("busybox-sample");
 
         List<Map<String, Boolean>> configurations = Stream.of(
@@ -46,7 +44,8 @@ class JoernAnalyzerTest {
                         List.of("USE_GETS", "INCLUDE_IO_FILE", "PERFORM_CHMOD", "PERFORM_RENAME")
                 )
                 .map(configuration -> {
-                    Sampler sampler = new FixedSampler(configuration, testCaseManager.getCorrectFeatureModel());
+                    Sampler sampler = new FixedSampler(List.of(configuration),
+                            testCaseManager.getCorrectFeatureModel());
                     try {
                         return sampler.sample(null).get(0);
                     } catch (SamplerException e) {
@@ -56,22 +55,22 @@ class JoernAnalyzerTest {
                 .toList();
 
         List<ExpectedFinding> expectedFindings = List.of(
-                new ExpectedFinding("Dangerous function gets() used",
+                new ExpectedFinding("call-to-gets",
                         Set.of(new SourceLocation(Path.of("src/main.c"), 12)),
                         new Literal("USE_GETS"),
                         configurations
                 ),
-                new ExpectedFinding("Two file operations on the same path can act on different files",
+                new ExpectedFinding("file-operation-race",
                         Set.of(new SourceLocation(Path.of("src/io-file.c"), 21)),
                         new And(new Literal("INCLUDE_IO_FILE"), new Literal("PERFORM_CHMOD")),
                         List.of(configurations.get(1))
                 ),
-                new ExpectedFinding("Two file operations on the same path can act on different files",
+                new ExpectedFinding("file-operation-race",
                         Set.of(new SourceLocation(Path.of("src/io-file.c"), 24)),
                         new And(new Literal("INCLUDE_IO_FILE"), new Literal("PERFORM_RENAME")),
                         List.of(configurations.get(1))
                 ),
-                new ExpectedFinding("Dangerous copy-operation into heap-allocated buffer",
+                new ExpectedFinding("malloc-memcpy-int-overflow",
                         Set.of(new SourceLocation(Path.of("src/hello-cpp.cc"), 11)),
                         new Literal("USE_CPP_FILE"),
                         List.of(configurations.get(0))
@@ -98,7 +97,7 @@ class JoernAnalyzerTest {
 
     private JoernAnalysisResult analyzeVariant(Map<String, Boolean> configuration, IFeatureModel featureModel,
                                                Composer composer, JoernAnalyzer analyzer, Path destinationDirectory)
-            throws IllegalFeatureNameException, ComposerException, IOException, AnalyzerFailureException {
+            throws ComposerException, IOException, AnalyzerFailureException {
         CompositionInformation compositionInformation = composer.compose(configuration, destinationDirectory,
                 featureModel);
         return analyzer.analyze(compositionInformation);
@@ -115,7 +114,7 @@ class JoernAnalyzerTest {
     private void verifyFindings(List<AnnotatedFinding> findings, List<ExpectedFinding> expectedFindings,
                                 Map<String, Boolean> configuration) {
         BiPredicate<ExpectedFinding, AnnotatedFinding> findingsEqual = (expectedFinding, finding) -> {
-            if (!finding.finding().getTitle().equals(expectedFinding.title)) {
+            if (!finding.finding().getName().equals(expectedFinding.name)) {
                 return false;
             }
             if (!finding.originalEvidenceLocations().equals(expectedFinding.evidence)) {
@@ -153,7 +152,7 @@ class JoernAnalyzerTest {
                         .toList(),
                 expectedFindings, null,
                 (expectedFinding, finding) -> {
-                    if (!finding.getFinding().getTitle().equals(expectedFinding.title))
+                    if (!finding.getFinding().getName().equals(expectedFinding.name))
                         return false;
 
                     if (!finding.getOriginalEvidenceLocations().equals(expectedFinding.evidence))
@@ -184,7 +183,7 @@ class JoernAnalyzerTest {
                             .filter(finding -> findingsEqual.test(expectedFinding, finding))
                             .count(),
                     "Finding not found or reported more than once: %s in %s"
-                            .formatted(expectedFinding.title, findings)
+                            .formatted(expectedFinding.name, findings)
             );
             foundExpectedFindings++;
         }
@@ -193,7 +192,7 @@ class JoernAnalyzerTest {
                 "Unexpected findings were reported: %s".formatted(findings));
     }
 
-    private record ExpectedFinding(String title, Set<SourceLocation> evidence, Node presenceCondition,
+    private record ExpectedFinding(String name, Set<SourceLocation> evidence, Node presenceCondition,
                                    List<Map<String, Boolean>> affectedVariants) {
     }
 }
