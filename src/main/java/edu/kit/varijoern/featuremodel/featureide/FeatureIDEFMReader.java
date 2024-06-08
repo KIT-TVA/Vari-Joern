@@ -1,4 +1,4 @@
-package edu.kit.varijoern.featuremodel;
+package edu.kit.varijoern.featuremodel.featureide;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.impl.CoreFactoryWorkspaceLoader;
@@ -7,6 +7,7 @@ import de.ovgu.featureide.fm.core.base.impl.FMFactoryManager;
 import de.ovgu.featureide.fm.core.base.impl.FMFormatManager;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
+import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;

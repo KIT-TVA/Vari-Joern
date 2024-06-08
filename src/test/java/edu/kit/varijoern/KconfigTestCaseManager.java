@@ -1,7 +1,7 @@
 package edu.kit.varijoern;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import edu.kit.varijoern.featuremodel.FeatureIDEFMReader;
+import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReader;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;

@@ -2,6 +2,10 @@ package edu.kit.varijoern.featuremodel;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReader;
+import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReaderConfig;
+import edu.kit.varijoern.featuremodel.tortekmax.TorteKmaxFMReader;
+import edu.kit.varijoern.featuremodel.tortekmax.TorteKmaxFMReaderConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 

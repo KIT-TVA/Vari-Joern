@@ -1,4 +1,4 @@
-package edu.kit.varijoern.featuremodel;
+package edu.kit.varijoern.featuremodel.tortekmax;
 
 import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
@@ -6,6 +6,9 @@ import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
 import de.ovgu.featureide.fm.core.base.impl.Feature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
+import edu.kit.varijoern.featuremodel.FeatureModelReader;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
+import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReader;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.FileUtils;

@@ -1,7 +1,9 @@
-package edu.kit.varijoern.featuremodel;
+package edu.kit.varijoern.featuremodel.featureide;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import edu.kit.varijoern.featuremodel.FeatureModelReader;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 

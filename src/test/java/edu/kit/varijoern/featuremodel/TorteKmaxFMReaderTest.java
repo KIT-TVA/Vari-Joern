@@ -4,6 +4,7 @@ import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.KconfigTestCaseManager;
+import edu.kit.varijoern.featuremodel.tortekmax.TorteKmaxFMReader;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.jupiter.api.Test;
 
