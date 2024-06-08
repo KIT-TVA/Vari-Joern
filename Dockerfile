@@ -83,9 +83,16 @@ RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
     && mv /opt/Vari-Joern-1.0-SNAPSHOT /opt/vari-joern \
     && rm /Vari-Joern-1.0-SNAPSHOT.tar
 
+# If the Docker daemon has been started in rootless mode, torte runs `whoami` to ensure that it does not run as root.
+# If the daemon has not been started in rootless mode, torte wants to run as root. We can fake the user by overriding
+# the `whoami` command.
 RUN mkdir /root/overrides && cat <<EOF > /root/overrides/whoami && chmod +x /root/overrides/whoami
 #!/bin/sh
-echo "absolutely-not-root"
+if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
+    echo "absolutely-not-root"
+else
+    echo "root"
+fi
 EOF
 
 ENV PATH="/root/overrides:/opt/vari-joern/bin:${PATH}"
