@@ -5,6 +5,7 @@ import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,7 +40,7 @@ public class FixedSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(@NotNull List<AnalysisResult> analysisResults)
+    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult> analysisResults)
             throws SamplerException {
         List<Map<String, Boolean>> result = new ArrayList<>();
         for (List<String> enabledFeaturesOfConfiguration : this.enabledFeaturesOfConfigurations) {

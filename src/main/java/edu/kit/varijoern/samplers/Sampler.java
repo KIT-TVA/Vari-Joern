@@ -2,6 +2,7 @@ package edu.kit.varijoern.samplers;
 
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -18,5 +19,5 @@ public interface Sampler {
      * @return a list of configurations
      */
     @NotNull
-    List<Map<String, Boolean>> sample(@NotNull List<AnalysisResult> analysisResults) throws SamplerException;
+    List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult> analysisResults) throws SamplerException;
 }

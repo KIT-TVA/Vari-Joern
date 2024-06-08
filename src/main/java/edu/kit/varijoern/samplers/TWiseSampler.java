@@ -12,6 +12,7 @@ import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,7 @@ public class TWiseSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(@NotNull List<AnalysisResult> analysisResults)
+    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult> analysisResults)
             throws SamplerException {
         LOGGER.info("Calculating {}-wise sample", this.t);
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
