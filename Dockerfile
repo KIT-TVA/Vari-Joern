@@ -1,38 +1,38 @@
 FROM ubuntu:noble AS base-system
 # Prepare for installation of Docker and Python 3.11
 RUN apt-get update && apt-get install -y \
-        ca-certificates \
-        curl \
-        software-properties-common \
+    ca-certificates \
+    curl \
+    software-properties-common \
     && install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
     && chmod a+r /etc/apt/keyrings/docker.asc \
     && echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-        $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-        tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update \
     && apt-get install -y \
-# Required for building SuperC and for executing Vari-Joern. Keep this in the base image, as this ensures that both
-# the build and the execution environment are the same. This is important for SuperC, because it assumes that it runs
-# in the same environment as it was built in.
-        g++ \
-        gcc \
-# Required for building and running SuperC
-        libz3-java=4.8.12-3.1build1 \
-# Required for building SuperC and for executing Vari-Joern's KBuildComposer.
-        make
+    # Required for building SuperC and for executing Vari-Joern. Keep this in the base image, as this ensures that both
+    # the build and the execution environment are the same. This is important for SuperC, because it assumes that it runs
+    # in the same environment as it was built in.
+    g++ \
+    gcc \
+    # Required for building and running SuperC
+    libz3-java=4.8.12-3.1build1 \
+    # Required for building SuperC and for executing Vari-Joern's KBuildComposer.
+    make
 
 FROM base-system AS build
 RUN apt-get install -y \
-# Required for building SuperC
+    # Required for building SuperC
     bison \
-# Required for building SuperC and Vari-Joern
+    # Required for building SuperC and Vari-Joern
     openjdk-21-jdk \
-# Required for building SuperC
+    # Required for building SuperC
     libjson-java \
-# Required for building SuperC
+    # Required for building SuperC
     sat4j
 
 ADD git@github.com:KIT-TVA/superc#7722a5904da0ef5e26342e45222baeb864de00cd /superc
@@ -52,23 +52,24 @@ RUN ./gradlew distTar
 
 FROM base-system
 RUN apt-get install -y \
-# Required by torte
+    # Required by torte
     docker-ce-cli \
-# Required by torte
+    # Required by torte
     git \
-# Required by Vari-Joern and Joern
+    # Required by Vari-Joern and Joern
     openjdk-21-jre \
-# Required for installing kmax
+    # Required for installing kmax
     pipx \
-# Required for executing kmax
+    # Required for executing kmax
     python3.11-dev \
-# Required for installing Joern
+    # Required for installing Joern
     unzip \
+    # `&& exit` is necessary because otherwise `pipx ensurepath` would not be started in a new `bash` process.
+    # This would then make it detect that it runs in `sh` and not in `bash` and therefore not add the necessary
+    # line to the `.bashrc` file.
     && bash -c "pipx ensurepath && exit" \
     && git config --global user.email "vari-joern@example.com"
-# `&& exit` is necessary because otherwise `pipx ensurepath` would not be started in a new `bash` process.
-# This would then make it detect that it runs in `sh` and not in `bash` and therefore not add the necessary
-# line to the `.bashrc` file.
+
 ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
     && /joern-install.sh --version 2.0.400 \
