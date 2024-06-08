@@ -10,12 +10,12 @@ import java.util.Set;
  */
 public interface Finding {
     /**
-     * Returns a short description of the kind of finding.
+     * Returns the name of the kind of this finding.
      *
-     * @return the title of the finding
+     * @return the name
      */
     @NotNull
-    String getTitle();
+    String getName();
 
     /**
      * Returns the evidence that caused this finding.

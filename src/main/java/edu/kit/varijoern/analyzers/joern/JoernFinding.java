@@ -46,6 +46,7 @@ public class JoernFinding implements Finding {
      *
      * @return the name of the query
      */
+    @Override
     public @NotNull String getName() {
         return name;
     }
@@ -55,7 +56,6 @@ public class JoernFinding implements Finding {
      *
      * @return the title of the finding
      */
-    @Override
     public @NotNull String getTitle() {
         return this.title;
     }
