@@ -3,10 +3,7 @@ package edu.kit.varijoern;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import edu.kit.varijoern.analyzers.AnalysisResult;
-import edu.kit.varijoern.analyzers.Analyzer;
-import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
-import edu.kit.varijoern.analyzers.AnalyzerFailureException;
+import edu.kit.varijoern.analyzers.*;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.composers.ComposerException;
@@ -143,13 +140,14 @@ public class Main {
             LOGGER.atFatal().withThrowable(e).log("Failed to instantiate composer:");
             return STATUS_INTERNAL_ERROR;
         }
-        Analyzer analyzer;
+        Analyzer<?> analyzer;
         try {
             analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
         } catch (IOException e) {
             LOGGER.atFatal().withThrowable(e).log("Failed to instantiate analyzer:");
             return STATUS_IO_ERROR;
         }
+        ResultAggregator<?> resultAggregator = config.getAnalyzerConfig().getResultAggregator();
 
         List<AnalysisResult> allAnalysisResults = new ArrayList<>();
         List<AnalysisResult> iterationAnalysisResults = List.of();
@@ -202,7 +200,7 @@ public class Main {
 
         try {
             args.getResultOutputArgs().getFormatter().printResults(
-                    new OutputData(allAnalysisResults, analyzer.aggregateResults()),
+                    new OutputData(allAnalysisResults, resultAggregator.aggregateResults()),
                     args.getResultOutputArgs().getDestination().getStream()
             );
         } catch (IOException e) {

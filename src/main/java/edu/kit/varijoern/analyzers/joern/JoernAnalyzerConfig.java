@@ -13,9 +13,8 @@ import java.nio.file.Path;
 /**
  * Contains the configuration of the Joern analyzer.
  */
-public class JoernAnalyzerConfig extends AnalyzerConfig {
-    @Nullable
-    private final Path joernPath;
+public class JoernAnalyzerConfig extends AnalyzerConfig<JoernAnalysisResult> {
+    private final @Nullable Path joernPath;
 
     /**
      * Creates a new {@link JoernAnalyzerConfig} by extracting data from the specified TOML section.
@@ -25,13 +24,13 @@ public class JoernAnalyzerConfig extends AnalyzerConfig {
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
     public JoernAnalyzerConfig(@NotNull TomlTable toml, @NotNull JoernArgs args) throws InvalidConfigException {
-        super(toml);
+        super(toml, new JoernResultAggregator());
         this.joernPath = args.getJoernPath();
     }
 
     @Override
-    public @NotNull Analyzer newAnalyzer(@NotNull Path workspacePath) throws IOException {
-        return new JoernAnalyzer(this.joernPath, workspacePath);
+    public @NotNull Analyzer<JoernAnalysisResult> newAnalyzer(@NotNull Path workspacePath) throws IOException {
+        return new JoernAnalyzer(this.joernPath, workspacePath, this.getResultAggregator());
     }
 
     /**
@@ -39,8 +38,7 @@ public class JoernAnalyzerConfig extends AnalyzerConfig {
      *
      * @return the path to the Joern executables
      */
-    @Nullable
-    Path getJoernPath() {
+    public @Nullable Path getJoernPath() {
         return joernPath;
     }
 }

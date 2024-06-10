@@ -6,6 +6,7 @@ import edu.kit.varijoern.KconfigTestCaseManager;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.analyzers.AnnotatedFinding;
 import edu.kit.varijoern.analyzers.FindingAggregation;
+import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
@@ -80,7 +81,8 @@ class JoernAnalyzerTest {
         Path tempDirectory = Files.createTempDirectory("vari-joern-test-joern");
         Path workspaceDirectory = tempDirectory.resolve("workspace");
         Files.createDirectory(workspaceDirectory);
-        JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory);
+        ResultAggregator<JoernAnalysisResult> resultAggregator = new JoernResultAggregator();
+        JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
         Composer composer = new KbuildComposer(testCaseManager.getPath(), "busybox", composerTempDirectory);
@@ -92,7 +94,7 @@ class JoernAnalyzerTest {
             this.verifyFindings(result.getFindings(), expectedFindings, configuration);
         }
 
-        this.verifyAggregatedFindings(analyzer.aggregateResults().findingAggregations(), expectedFindings);
+        this.verifyAggregatedFindings(resultAggregator.aggregateResults().findingAggregations(), expectedFindings);
     }
 
     private JoernAnalysisResult analyzeVariant(Map<String, Boolean> configuration, IFeatureModel featureModel,
