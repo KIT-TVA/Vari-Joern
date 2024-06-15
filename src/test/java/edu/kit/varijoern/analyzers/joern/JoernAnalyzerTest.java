@@ -56,17 +56,17 @@ class JoernAnalyzerTest {
 
         List<ExpectedFinding> expectedFindings = List.of(
                 new ExpectedFinding("call-to-gets",
-                        Set.of(new SourceLocation(Path.of("src/main.c"), 12)),
+                        Set.of(new SourceLocation(Path.of("src/main.c"), 14)),
                         new Literal("USE_GETS"),
                         configurations
                 ),
                 new ExpectedFinding("file-operation-race",
-                        Set.of(new SourceLocation(Path.of("src/io-file.c"), 21)),
+                        Set.of(new SourceLocation(Path.of("src/io-file.c"), 22)),
                         new And(new Literal("INCLUDE_IO_FILE"), new Literal("PERFORM_CHMOD")),
                         List.of(configurations.get(1))
                 ),
                 new ExpectedFinding("file-operation-race",
-                        Set.of(new SourceLocation(Path.of("src/io-file.c"), 24)),
+                        Set.of(new SourceLocation(Path.of("src/io-file.c"), 25)),
                         new And(new Literal("INCLUDE_IO_FILE"), new Literal("PERFORM_RENAME")),
                         List.of(configurations.get(1))
                 ),
