@@ -31,8 +31,6 @@ import java.util.concurrent.*;
  * This class is thread-safe.
  */
 public class ParallelIterationRunner {
-    private static final int NUM_COMPOSERS = 2;
-    private static final int NUM_ANALYZERS = 1;
     private static final Logger LOGGER = LogManager.getLogger();
 
     private boolean isStopped = false;
@@ -44,7 +42,7 @@ public class ParallelIterationRunner {
     private final @NotNull BlockingDeque<Message<CompositionInformation>> compositionQueue;
     private final @NotNull BlockingQueue<Message<AnalysisResult>> resultQueue = new LinkedBlockingQueue<>();
 
-    private final @NotNull List<FallibleRunner<?, ?>> runners = new ArrayList<>(NUM_COMPOSERS + NUM_ANALYZERS);
+    private final @NotNull List<FallibleRunner<?, ?>> runners;
     // Always lock `this` before accessing `iteration`. Currently, this field is only accessed in the `run` method, so
     // there is no need to make it atomic.
     private volatile int iteration = 0;
@@ -52,20 +50,27 @@ public class ParallelIterationRunner {
     /**
      * Creates a new parallel iteration runner.
      *
-     * @param composerConfig the configuration for the composer
-     * @param analyzerConfig the configuration for the analyzer
-     * @param featureModel   the feature model of the source code
-     * @param tmpDir         the temporary directory to store intermediate results
+     * @param numComposers             the number of composer workers
+     * @param numAnalyzers             the number of analyzer workers
+     * @param compositionQueueCapacity the capacity of the composition queue, i.e., the maximum number of compositions
+     *                                 that can the composer workers can queue for analysis
+     * @param composerConfig           the configuration for the composer
+     * @param analyzerConfig           the configuration for the analyzer
+     * @param featureModel             the feature model of the source code
+     * @param tmpDir                   the temporary directory to store intermediate results
      * @throws RunnerException if an error occurs during instantiation
      */
-    public ParallelIterationRunner(@NotNull ComposerConfig composerConfig, @NotNull AnalyzerConfig<?> analyzerConfig,
+    public ParallelIterationRunner(int numComposers, int numAnalyzers, int compositionQueueCapacity,
+                                   @NotNull ComposerConfig composerConfig, @NotNull AnalyzerConfig<?> analyzerConfig,
                                    @NotNull IFeatureModel featureModel, @NotNull Path tmpDir)
             throws RunnerException {
         this.featureModel = featureModel;
         this.tmpDir = tmpDir;
-        this.compositionQueue = new LinkedBlockingDeque<>(1);
+        this.compositionQueue = new LinkedBlockingDeque<>(compositionQueueCapacity);
 
-        for (int i = 0; i < NUM_COMPOSERS; i++) {
+        this.runners = new ArrayList<>(numComposers + numAnalyzers);
+
+        for (int i = 0; i < numComposers; i++) {
             Path composerTmpDirectory = tmpDir.resolve("composer" + i);
             try {
                 Files.createDirectories(composerTmpDirectory);
@@ -84,7 +89,7 @@ public class ParallelIterationRunner {
             runners.add(composerRunner);
         }
 
-        for (int i = 0; i < NUM_ANALYZERS; i++) {
+        for (int i = 0; i < numAnalyzers; i++) {
             Path analyzerTmpDirectory = tmpDir.resolve("analyzer" + i);
             try {
                 Files.createDirectories(analyzerTmpDirectory);

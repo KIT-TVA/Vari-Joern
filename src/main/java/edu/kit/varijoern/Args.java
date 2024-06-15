@@ -17,6 +17,18 @@ public class Args {
     @Parameter(names = {"-h", "--help"}, help = true, description = "Show this help message")
     private boolean help;
 
+    @Parameter(names = "--composers", description = "Number of composer threads to use",
+            validateWith = PositiveIntegerValidator.class)
+    private int numComposers = 1;
+
+    @Parameter(names = "--analyzers", description = "Number of analyzer threads to use",
+            validateWith = PositiveIntegerValidator.class)
+    private int numAnalyzers = 1;
+
+    @Parameter(names = "--composition-queue", description = "Maximum number of compositions to queue up for analysis",
+            validateWith = PositiveIntegerValidator.class)
+    private int compositionQueueCapacity = 1;
+
     @Parameter(description = "<path to configuration file>", required = true, converter = PathConverter.class)
     private @NotNull Path config;
 
@@ -39,6 +51,33 @@ public class Args {
      */
     public boolean isTrace() {
         return trace;
+    }
+
+    /**
+     * Returns the number of composer threads to use.
+     *
+     * @return the number of composer threads to use
+     */
+    public int getNumComposers() {
+        return numComposers;
+    }
+
+    /**
+     * Returns the number of analyzer threads to use.
+     *
+     * @return the number of analyzer threads to use
+     */
+    public int getNumAnalyzers() {
+        return numAnalyzers;
+    }
+
+    /**
+     * Returns the size of the composition queue.
+     *
+     * @return the size of the composition queue
+     */
+    public int getCompositionQueueCapacity() {
+        return compositionQueueCapacity;
     }
 
     /**

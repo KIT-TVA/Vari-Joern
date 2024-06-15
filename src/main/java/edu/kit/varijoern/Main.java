@@ -127,8 +127,9 @@ public class Main {
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
         ParallelIterationRunner runner;
         try {
-            runner = new ParallelIterationRunner(config.getComposerConfig(),
-                    config.getAnalyzerConfig(), featureModel, tmpDir);
+            runner = new ParallelIterationRunner(args.getNumComposers(), args.getNumAnalyzers(),
+                    args.getCompositionQueueCapacity(), config.getComposerConfig(), config.getAnalyzerConfig(),
+                    featureModel, tmpDir);
         } catch (RunnerException e) {
             LOGGER.atFatal().withThrowable(e).log("Failed to create runner");
             return STATUS_INTERNAL_ERROR;
