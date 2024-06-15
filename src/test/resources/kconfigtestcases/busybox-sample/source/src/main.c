@@ -5,6 +5,8 @@
 #include "hello-cpp.h"
 #endif
 
+#include "included.c"
+
 int main(void) {
         char buf[BUF_SIZE];
 #ifdef CONFIG_USE_GETS

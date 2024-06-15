@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include "io-file.h"
+#include "included.c"
 
 void insecure_race(char *path) {
 #ifdef CONFIG_PERFORM_CHMOD

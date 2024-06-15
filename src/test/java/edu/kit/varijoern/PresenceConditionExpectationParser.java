@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  * separated from the file name by a comma. The presence condition is a propositional formula in the "short symbol"
  * syntax of the
  * <a href="https://github.com/FeatureIDE/FeatureIDE/tree/423fa0a1b3cdecb3d00826ce7d32a264cc1ff078/plugins/de.ovgu.featureide.fm.core/src/org/prop4j">prop4j</a>
- * library.
+ * library. The string {@code -} may be used to indicate that no presence condition is specified.
  * </p>
  * <p>
  * After the file line, there are lines specifying the presence conditions for individual lines in the file.
@@ -40,9 +40,10 @@ import java.util.stream.Stream;
  * case, the line has the format {@code <start>? <presence condition>} or {@code <start>! <presence condition>}.
  * </p>
  * <p>
- * The presence condition for a line is the conjunction of the presence condition for the file and the presence
- * condition for the line. Multiple presence conditions for the same line are not allowed. Not specifying a presence
- * condition between two specified presence conditions is also not allowed.
+ * The final presence condition for a line is the conjunction of the presence condition for the file and the presence
+ * condition for the line. If any of these conditions is unspecified, the final presence condition will be unspecified
+ * too. Multiple presence conditions for the same line are not allowed. Not specifying a presence condition between two
+ * specified presence conditions is also not allowed.
  * </p>
  */
 // CHECKSTYLE:ON: LineLength
@@ -63,7 +64,7 @@ public class PresenceConditionExpectationParser {
         Map<Path, List<PresenceConditionExpectation>> result = new HashMap<>();
         Path currentFile = null;
         List<PresenceConditionExpectation> currentExpectations = null;
-        Node currentFilePresenceCondition = null;
+        Optional<Node> currentFilePresenceCondition = Optional.empty();
         int currentLineOffset;
         int currentLineNumber = 0;
         int nextLineOffset = 0;
@@ -112,10 +113,11 @@ public class PresenceConditionExpectationParser {
                     ? startLine
                     : Integer.parseInt(lineConditionMatcher.group(2));
             boolean optional = lineConditionMatcher.group(3).equals("?");
-            Node presenceCondition = new And(
-                    currentFilePresenceCondition,
-                    readNode(lineConditionMatcher.group(4))
-            );
+            Optional<Node> presenceCondition = currentFilePresenceCondition
+                    .flatMap(fileCondition ->
+                            readNode(lineConditionMatcher.group(4).trim())
+                                    .map(lineCondition -> new And(fileCondition, lineCondition))
+                    );
             if (currentExpectations.size() < endLine) {
                 currentExpectations.addAll(
                         Stream.generate(() -> (PresenceConditionExpectation) null)
@@ -130,7 +132,8 @@ public class PresenceConditionExpectationParser {
                             currentLineOffset
                     );
                 }
-                currentExpectations.set(i - 1, new PresenceConditionExpectation(optional, presenceCondition));
+                currentExpectations.set(i - 1,
+                        new PresenceConditionExpectation(optional, presenceCondition.orElse(null)));
             }
         }
         if (currentFile != null) {
@@ -148,9 +151,12 @@ public class PresenceConditionExpectationParser {
         result.put(currentFile, currentExpectations);
     }
 
-    private static Node readNode(String condition) {
+    private static Optional<Node> readNode(String condition) {
+        if (condition.equals("-"))
+            return Optional.empty();
+
         NodeReader nodeReader = new NodeReader();
         nodeReader.activateShortSymbols();
-        return nodeReader.stringToNode(condition);
+        return Optional.of(nodeReader.stringToNode(condition));
     }
 }

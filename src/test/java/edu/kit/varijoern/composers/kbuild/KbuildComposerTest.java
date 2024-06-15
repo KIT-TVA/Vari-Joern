@@ -34,11 +34,22 @@ class KbuildComposerTest {
 
     private static Stream<Arguments> busyboxTestCases() {
         Set<String> standardIncludedFiles = Set.of("include/autoconf.h", "include/cmdline-included-header.h");
-        Set<String> standardIncludePaths = Set.of("include");
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("main"),
+                List.of("include")
+        );
+        InclusionInformation includedCByMain = new InclusionInformation(
+                Path.of("src/included.c"),
+                standardIncludedFiles,
+                standardBusyboxDefinesForFile("main"),
+                List.of("include")
+        );
+        InclusionInformation includedCByIO = new InclusionInformation(
+                Path.of("src/included.c"),
+                standardIncludedFiles,
+                standardBusyboxDefinesForFile("io-file"),
                 List.of("include")
         );
         Stream<TestCase> testCases = Stream.of(
@@ -53,6 +64,7 @@ class KbuildComposerTest {
                                 FileAbsentVerifier.originalSourceAndHeader("hello-cpp"),
                                 FileAbsentVerifier.originalSourceAndHeader("io-file"),
                                 new FileContentVerifier(mainC),
+                                new FileContentVerifier(includedCByMain),
                                 new FileContentVerifier(Path.of("src/main.h")),
                                 new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
                         )
@@ -84,8 +96,10 @@ class KbuildComposerTest {
                                         standardBusyboxDefinesForFile("io_file"),
                                         List.of("include")
                                 )),
+                                new FileContentVerifier(includedCByIO),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
+                                new FileContentVerifier(includedCByMain),
                                 new FileContentVerifier(Path.of("src/main.h")),
                                 new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
                         )
@@ -413,7 +427,7 @@ class KbuildComposerTest {
             List<PresenceConditionExpectation> expectedPresenceConditions = expectedPresenceConditionsOptional.get();
 
             PresenceConditionMapper presenceConditionMapper = compositionInformation.getPresenceConditionMapper();
-            for (int i = 1; i <= expectedPresenceConditions.size(); i++) {
+            for (int i = 1; i <= expectedPresenceConditions.size() + this.expectedPrependedLines.size(); i++) {
                 if (i <= this.expectedPrependedLines.size()) {
                     assertTrue(presenceConditionMapper.getPresenceCondition(this.composedRelativePath, i).isEmpty(),
                             "Presence condition of line %d of %s should be absent"
