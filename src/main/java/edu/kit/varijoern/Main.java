@@ -3,11 +3,10 @@ package edu.kit.varijoern;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import edu.kit.varijoern.analyzers.*;
-import edu.kit.varijoern.composers.Composer;
+import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
+import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
-import edu.kit.varijoern.composers.ComposerException;
-import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
@@ -32,12 +31,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class Main {
-    private static final int STATUS_COMMAND_LINE_USAGE_ERROR = 64;
-    private static final int STATUS_INVALID_CONFIG = 78;
-    private static final int STATUS_IO_ERROR = 74;
-    private static final int STATUS_INTERNAL_ERROR = 70;
+    public static final int STATUS_OK = 0;
+    public static final int STATUS_COMMAND_LINE_USAGE_ERROR = 64;
+    public static final int STATUS_INVALID_CONFIG = 78;
+    public static final int STATUS_IO_ERROR = 74;
+    public static final int STATUS_INTERNAL_ERROR = 70;
     private static final Logger LOGGER = LogManager.getLogger();
 
     public static void main(String[] args) {
@@ -101,15 +102,9 @@ public class Main {
 
     private static int runUsingConfig(@NotNull Config config, @NotNull Args args) {
         Path tmpDir;
-        Path analyzerTmpDirectory;
-        Path composerTmpDirectory;
         Path featureModelReaderTmpDirectory;
         try {
             tmpDir = Files.createTempDirectory("vari-joern");
-            analyzerTmpDirectory = tmpDir.resolve("analyzer");
-            Files.createDirectories(analyzerTmpDirectory);
-            composerTmpDirectory = tmpDir.resolve("composer");
-            Files.createDirectories(composerTmpDirectory);
             featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
             Files.createDirectories(featureModelReaderTmpDirectory);
         } catch (IOException e) {
@@ -130,72 +125,47 @@ public class Main {
         }
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
-        Composer composer;
+        ParallelIterationRunner runner;
         try {
-            composer = config.getComposerConfig().newComposer(composerTmpDirectory);
-        } catch (IOException e) {
-            LOGGER.atFatal().withThrowable(e).log("Failed to instantiate composer:");
-            return STATUS_IO_ERROR;
-        } catch (ComposerException e) {
-            LOGGER.atFatal().withThrowable(e).log("Failed to instantiate composer:");
+            runner = new ParallelIterationRunner(config.getComposerConfig(),
+                    config.getAnalyzerConfig(), featureModel, tmpDir);
+        } catch (RunnerException e) {
+            LOGGER.atFatal().withThrowable(e).log("Failed to create runner");
             return STATUS_INTERNAL_ERROR;
-        }
-        Analyzer<?> analyzer;
-        try {
-            analyzer = config.getAnalyzerConfig().newAnalyzer(analyzerTmpDirectory);
-        } catch (IOException e) {
-            LOGGER.atFatal().withThrowable(e).log("Failed to instantiate analyzer:");
-            return STATUS_IO_ERROR;
         }
         ResultAggregator<?> resultAggregator = config.getAnalyzerConfig().getResultAggregator();
 
         List<AnalysisResult> allAnalysisResults = new ArrayList<>();
-        List<AnalysisResult> iterationAnalysisResults = List.of();
-        for (int i = 0; i < config.getIterations(); i++) {
-            LOGGER.info("Iteration {}", i + 1);
-            List<Map<String, Boolean>> sample;
+        List<AnalysisResult> iterationAnalysisResults = null;
+        try {
+            for (int i = 0; i < config.getIterations(); i++) {
+                LOGGER.info("Iteration {}", i + 1);
+                List<Map<String, Boolean>> sample;
+                try {
+                    sample = sampler.sample(iterationAnalysisResults);
+                } catch (SamplerException e) {
+                    LOGGER.atFatal().withThrowable(e).log("A sampler error occurred");
+                    return STATUS_INTERNAL_ERROR;
+                }
+                LOGGER.info("Analyzing {} variants", sample.size());
+                ParallelIterationRunner.Output runnerOutput;
+                try {
+                    runnerOutput = runner.run(sample);
+                } catch (InterruptedException e) {
+                    LOGGER.atFatal().withThrowable(e).log("The runner was interrupted");
+                    return STATUS_INTERNAL_ERROR;
+                }
+                if (runnerOutput.isError()) return Objects.requireNonNull(runnerOutput.exitCode());
+                iterationAnalysisResults = Objects.requireNonNull(runnerOutput.results());
+
+                allAnalysisResults.addAll(iterationAnalysisResults);
+            }
+        } finally {
             try {
-                sample = sampler.sample(iterationAnalysisResults);
-            } catch (SamplerException e) {
-                LOGGER.atFatal().withThrowable(e).log("A sampler error occurred");
-                return STATUS_INTERNAL_ERROR;
+                runner.stop();
+            } catch (InterruptedException e) {
+                LOGGER.atWarn().withThrowable(e).log("Interrupted while closing runner");
             }
-            LOGGER.info("Analyzing {} variants", sample.size());
-            iterationAnalysisResults = new ArrayList<>();
-            for (int j = 0; j < sample.size(); j++) {
-                Map<String, Boolean> features = sample.get(j);
-                LOGGER.info("Analyzing variant with features {}", features);
-                String destinationDirectoryName = String.format("%d-%d", i, j);
-                Path composerDestination = tmpDir.resolve(destinationDirectoryName);
-                try {
-                    Files.createDirectories(composerDestination);
-                } catch (IOException e) {
-                    LOGGER.atFatal().withThrowable(e).log("Failed to create composer destination directory");
-                    return STATUS_IO_ERROR;
-                }
-
-                CompositionInformation composedSourceLocation;
-                try {
-                    composedSourceLocation = composer.compose(features, composerDestination, featureModel);
-                } catch (IOException e) {
-                    LOGGER.atFatal().withThrowable(e).log("An IO error occurred:");
-                    return STATUS_IO_ERROR;
-                } catch (ComposerException e) {
-                    LOGGER.atFatal().withThrowable(e).log("A composer error occurred:");
-                    return STATUS_INTERNAL_ERROR;
-                }
-
-                try {
-                    iterationAnalysisResults.add(analyzer.analyze(composedSourceLocation));
-                } catch (IOException e) {
-                    LOGGER.atFatal().withThrowable(e).log("An I/O error occurred while running the analyzer");
-                    return STATUS_IO_ERROR;
-                } catch (AnalyzerFailureException e) {
-                    LOGGER.atFatal().withThrowable(e).log("The analysis did not complete successfully.");
-                    return STATUS_INTERNAL_ERROR;
-                }
-            }
-            allAnalysisResults.addAll(iterationAnalysisResults);
         }
 
         try {
@@ -207,6 +177,6 @@ public class Main {
             LOGGER.atError().withThrowable(e).log("Failed to print results");
             return STATUS_IO_ERROR;
         }
-        return 0;
+        return STATUS_OK;
     }
 }

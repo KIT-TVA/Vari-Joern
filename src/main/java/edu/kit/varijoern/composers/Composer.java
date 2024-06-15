@@ -12,7 +12,8 @@ import java.util.Map;
  */
 public interface Composer {
     /**
-     * Runs the composer on the source files given to the {@link Composer} instance.
+     * Runs the composer on the source files given to the {@link Composer} instance. Implementations must not modify the
+     * feature model or the source files.
      *
      * @param features     a map of feature names to their enabled status
      * @param destination  a {@link Path} to an existing empty directory into which the resulting code should be saved.
