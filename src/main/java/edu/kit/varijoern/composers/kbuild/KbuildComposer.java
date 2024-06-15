@@ -440,8 +440,8 @@ public class KbuildComposer implements Composer {
             LOGGER.warn("File {} does not exist, not generating.", filePath);
             return Map.of();
         }
-        Path destinationPath = destination.resolve(filePath);
-        Files.createDirectories(destinationPath.getParent());
+        Path destinationDirectory = destination.resolve(filePath).getParent();
+        Files.createDirectories(destinationDirectory);
         Map<Path, GenerationInformation> generationInformation = new HashMap<>();
         boolean copied = false;
         boolean generated = false;
@@ -458,9 +458,10 @@ public class KbuildComposer implements Composer {
             } else if (configuration instanceof HeaderDependency) {
                 if (!copied) {
                     LOGGER.debug("Copying {}", filePath);
-                    Files.copy(sourcePath, destinationPath);
+                    Files.copy(sourcePath, destination.resolve(configuration.getComposedFilePath()));
                     copied = true;
-                    generationInformation.put(filePath, new GenerationInformation(filePath, 0));
+                    generationInformation.put(configuration.getComposedFilePath(),
+                            new GenerationInformation(filePath, 0));
                 }
             }
         }
@@ -516,11 +517,11 @@ public class KbuildComposer implements Composer {
 
         Map<Path, LinePresenceConditionMapper> linePresenceConditionMappers = new HashMap<>();
         Map<Path, Dependency> dependenciesByPath = dependencies.stream()
-                .collect(Collectors.toMap(Dependency::getFilePath, dependency -> dependency));
+                .collect(Collectors.toMap(Dependency::getComposedFilePath, dependency -> dependency));
         for (Map.Entry<Path, GenerationInformation> entry : generationInformation.entrySet()) {
             Path generatedFilePath = entry.getKey();
             GenerationInformation fileGenerationInformation = entry.getValue();
-            Dependency dependency = dependenciesByPath.get(fileGenerationInformation.originalPath());
+            Dependency dependency = dependenciesByPath.get(generatedFilePath);
             if (!(dependency instanceof CompiledDependency)) {
                 continue;
             }
@@ -592,6 +593,14 @@ public class KbuildComposer implements Composer {
          * @return the path to the file
          */
         public abstract @NotNull Path getFilePath();
+
+        /**
+         * Returns the path to the file the composer will generate / has generated for this dependency, relative to the
+         * output directory.
+         *
+         * @return the path to the file
+         */
+        public abstract @NotNull Path getComposedFilePath();
     }
 
     /**
@@ -607,6 +616,11 @@ public class KbuildComposer implements Composer {
         @Override
         public @NotNull Path getFilePath() {
             return this.inclusionInformation.filePath();
+        }
+
+        @Override
+        public @NotNull Path getComposedFilePath() {
+            return this.inclusionInformation.getComposedFilePath();
         }
 
         public @NotNull InclusionInformation getInclusionInformation() {
@@ -639,6 +653,11 @@ public class KbuildComposer implements Composer {
 
         @Override
         public @NotNull Path getFilePath() {
+            return this.filePath;
+        }
+
+        @Override
+        public @NotNull Path getComposedFilePath() {
             return this.filePath;
         }
 

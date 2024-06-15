@@ -49,7 +49,7 @@ class KbuildComposerTest {
         InclusionInformation includedCByIO = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
-                standardBusyboxDefinesForFile("io-file"),
+                standardBusyboxDefinesForFile("io_file"),
                 List.of("include")
         );
         Stream<TestCase> testCases = Stream.of(
