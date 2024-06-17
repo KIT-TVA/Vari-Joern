@@ -17,12 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TorteKmaxFMReaderTest {
     @Test
-    void buildFeatureModelBusyBox() throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
+    void buildFeatureModelBusyBox()
+            throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
         runTestFor("busybox-sample", "busybox");
     }
 
     @Test
-    void buildFeatureModelLinux() throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
+    void buildFeatureModelLinux()
+            throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
         runTestFor("linux-sample", "linux");
     }
 

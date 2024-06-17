@@ -111,8 +111,8 @@ public class LinePresenceConditionMapper {
                     try {
                         next = preprocessor.next();
                     } catch (IllegalStateException | Error e) {
-                        // The preprocessor can `throw new Error()` when it encounters an internal error. If a subclass of
-                        // `Error` is caught, it was not thrown by the preprocessor and something is seriously wrong.
+                        // The preprocessor can `throw new Error()` when it encounters an internal error. If a subclass
+                        // of `Error` is caught, it was not thrown by the preprocessor and something is seriously wrong.
                         if (e instanceof Error && e.getClass() != Error.class)
                             throw (Error) e;
                         LOGGER.atWarn().withThrowable(e).log("Preprocessor encountered an internal error at {}",
