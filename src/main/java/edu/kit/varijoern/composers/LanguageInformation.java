@@ -18,6 +18,8 @@ public abstract class LanguageInformation {
      *
      * @param visitor the visitor to accept
      * @param <T>     the type of exception that can be thrown by the visitor
+     * @throws InterruptedException if the current thread is interrupted
      */
-    public abstract <T extends Throwable> void accept(@NotNull LanguageInformationVisitor<T> visitor) throws T;
+    public abstract <T extends Throwable> void accept(@NotNull LanguageInformationVisitor<T> visitor)
+            throws T, InterruptedException;
 }

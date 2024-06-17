@@ -108,9 +108,12 @@ public class KbuildComposer implements Composer {
      * @param system     the variant of the Kbuild/Kconfig system. Use {@link KbuildComposer#isSupportedSystem(String)}
      *                   to determine if a given system is supported.
      * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer. Must be absolute.
+     * @throws IOException          if an I/O error occurs
+     * @throws ComposerException    if the composer could not be created for another reason
+     * @throws InterruptedException if the current thread is interrupted
      */
     public KbuildComposer(@NotNull Path sourcePath, @NotNull String system, @NotNull Path tmpPath)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         this.system = system;
         this.tmpPath = tmpPath;
         this.tmpSourcePath = this.tmpPath.resolve("source");
@@ -128,7 +131,7 @@ public class KbuildComposer implements Composer {
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         if (this.filePresenceConditionMapper == null) {
             LOGGER.info("Creating file presence condition mapper");
             this.filePresenceConditionMapper = new FilePresenceConditionMapper(this.tmpSourcePath, this.system,
@@ -170,11 +173,12 @@ public class KbuildComposer implements Composer {
      *
      * @param features      the enabled and disabled features
      * @param tmpSourcePath the absolute path to the temporary source directory
-     * @throws IOException       if an I/O error occurs
-     * @throws ComposerException if the .config file could not be generated
+     * @throws IOException          if an I/O error occurs
+     * @throws ComposerException    if the .config file could not be generated
+     * @throws InterruptedException if the current thread is interrupted
      */
     private void generateConfig(@NotNull Map<String, Boolean> features, @NotNull Path tmpSourcePath)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         LOGGER.info("Generating .config");
         this.runMake("defconfig");
 
@@ -233,19 +237,20 @@ public class KbuildComposer implements Composer {
      * @throws ComposerException if the files could not be determined
      */
     private @NotNull Set<Dependency> getIncludedFiles(@NotNull Path tmpSourcePath)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         LOGGER.info("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
                 .directory(tmpSourcePath.toFile());
         int makeExitCode;
         String output;
+        LOGGER.debug("Running make -in");
+        Process makeProcess = makeProcessBuilder.start();
         try {
-            LOGGER.debug("Running make -in");
-            Process makeProcess = makeProcessBuilder.start();
             output = IOUtils.toString(makeProcess.getInputStream(), Charset.defaultCharset());
             makeExitCode = makeProcess.waitFor();
         } catch (InterruptedException e) {
-            throw new RuntimeException("make -in was interrupted", e);
+            makeProcess.destroy();
+            throw e;
         }
         if (makeExitCode != 0)
             throw new ComposerException("make -in failed with exit code %d".formatted(makeExitCode));
@@ -278,12 +283,13 @@ public class KbuildComposer implements Composer {
      * @param compiledFiles the files to determine the dependencies of
      * @param tmpSourcePath the absolute path to the temporary source directory
      * @return the dependencies of the specified files
-     * @throws ComposerException if the dependencies could not be determined
-     * @throws IOException       if an I/O error occurs
+     * @throws ComposerException    if the dependencies could not be determined
+     * @throws IOException          if an I/O error occurs
+     * @throws InterruptedException if the current thread is interrupted
      */
     private @NotNull Set<Dependency> getDependencies(@NotNull List<InclusionInformation> compiledFiles,
                                                      @NotNull Path tmpSourcePath)
-            throws ComposerException, IOException {
+            throws ComposerException, IOException, InterruptedException {
         LOGGER.info("Getting dependencies");
         Set<Dependency> dependencies = new HashSet<>();
         for (InclusionInformation compiledFile : compiledFiles) {
@@ -301,12 +307,13 @@ public class KbuildComposer implements Composer {
      * @param inclusionInformation the file to determine the dependencies of
      * @param tmpSourcePath        the absolute path to the temporary source directory
      * @return the dependencies of the specified file
-     * @throws IOException       if an I/O error occurs
-     * @throws ComposerException if the dependencies could not be determined
+     * @throws IOException          if an I/O error occurs
+     * @throws ComposerException    if the dependencies could not be determined
+     * @throws InterruptedException if the current thread is interrupted
      */
     private @NotNull List<Dependency> getDependenciesOfFile(@NotNull InclusionInformation inclusionInformation,
                                                             @NotNull Path tmpSourcePath)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         if (!Files.exists(tmpSourcePath.resolve(inclusionInformation.filePath()))) {
             LOGGER.warn("File {} does not exist, skipping dependency calculation",
                     inclusionInformation.filePath());
@@ -353,7 +360,7 @@ public class KbuildComposer implements Composer {
      */
     private @NotNull String getFileMakeRule(@NotNull InclusionInformation inclusionInformation,
                                             @NotNull Path tmpSourcePath)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         List<String> gccCall = new ArrayList<>();
         gccCall.add("gcc");
         gccCall.addAll(inclusionInformation.includePaths().stream()
@@ -371,16 +378,17 @@ public class KbuildComposer implements Composer {
 
         ProcessBuilder gccProcessBuilder = new ProcessBuilder(gccCall)
                 .directory(tmpSourcePath.toFile());
+        Process gccProcess = gccProcessBuilder.start();
         int gccExitCode;
         String output;
         String error;
         try {
-            Process gccProcess = gccProcessBuilder.start();
             output = IOUtils.toString(gccProcess.getInputStream(), Charset.defaultCharset());
             error = IOUtils.toString(gccProcess.getErrorStream(), Charset.defaultCharset());
             gccExitCode = gccProcess.waitFor();
         } catch (InterruptedException e) {
-            throw new RuntimeException("gcc was interrupted", e);
+            gccProcess.destroy();
+            throw e;
         }
         if (gccExitCode != 0) {
             LOGGER.error("GCC failed with the following error: {}", error);
@@ -502,7 +510,7 @@ public class KbuildComposer implements Composer {
             @NotNull Set<Dependency> dependencies,
             @NotNull Set<String> knownFeatures,
             @NotNull Path tmpSourcePath)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         if (!LinePresenceConditionMapper.isSupportedSystem(this.system)) {
             LOGGER.warn("System {} is not supported, skipping line presence condition mapper creation",
                     this.system);
@@ -541,10 +549,11 @@ public class KbuildComposer implements Composer {
      * directory.
      *
      * @param args the arguments to pass to make
-     * @throws ComposerException if make returns a non-zero exit code
-     * @throws IOException       if an I/O error occurs
+     * @throws ComposerException    if make returns a non-zero exit code
+     * @throws IOException          if an I/O error occurs
+     * @throws InterruptedException if the current thread is interrupted
      */
-    private void runMake(String @NotNull ... args) throws ComposerException, IOException {
+    private void runMake(String @NotNull ... args) throws ComposerException, IOException, InterruptedException {
         Process makeProcess = new ProcessBuilder(
                 Stream.concat(Stream.of("make"), Arrays.stream(args))
                         .toList())
@@ -558,7 +567,8 @@ public class KbuildComposer implements Composer {
         try {
             makeExitCode = makeProcess.waitFor();
         } catch (InterruptedException e) {
-            throw new RuntimeException("Unexpected interruption of make process", e);
+            makeProcess.destroy();
+            throw e;
         }
         if (makeExitCode != 0)
             throw new ComposerException("Make failed with exit code %d".formatted(makeExitCode));

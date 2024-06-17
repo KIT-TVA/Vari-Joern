@@ -18,8 +18,9 @@ public interface Analyzer<T extends AnalysisResult> {
      * @return a summary of the weaknesses found during the analysis
      * @throws IOException              if an I/O exception occurred
      * @throws AnalyzerFailureException if the analysis failed for another reason
+     * @throws InterruptedException     if the current thread is interrupted
      */
     @NotNull
     T analyze(@NotNull CompositionInformation compositionInformation)
-            throws IOException, AnalyzerFailureException;
+            throws IOException, AnalyzerFailureException, InterruptedException;
 }

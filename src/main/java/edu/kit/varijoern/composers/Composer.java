@@ -20,10 +20,11 @@ public interface Composer {
      *                     This path must be absolute.
      * @param featureModel the feature model of the analyzed system
      * @return a {@link CompositionInformation} instance containing information about this composer pass
-     * @throws ComposerException if the composer failed due to invalid source code
+     * @throws ComposerException    if the composer failed due to invalid source code
+     * @throws InterruptedException if the current thread is interrupted
      */
     @NotNull
     CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                    @NotNull IFeatureModel featureModel)
-            throws IOException, ComposerException;
+            throws IOException, ComposerException, InterruptedException;
 }

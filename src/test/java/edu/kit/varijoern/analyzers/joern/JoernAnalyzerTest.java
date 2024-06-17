@@ -30,14 +30,15 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class JoernAnalyzerTest {
     /**
      * Tests the analysis of the BusyBox sample with two different configurations.
      */
     @Test
-    void analyze() throws IOException, GitAPIException, ComposerException, AnalyzerFailureException {
+    void analyze()
+            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("busybox-sample");
 
         List<Map<String, Boolean>> configurations = Stream.of(
@@ -99,7 +100,7 @@ class JoernAnalyzerTest {
 
     private JoernAnalysisResult analyzeVariant(Map<String, Boolean> configuration, IFeatureModel featureModel,
                                                Composer composer, JoernAnalyzer analyzer, Path destinationDirectory)
-            throws ComposerException, IOException, AnalyzerFailureException {
+            throws ComposerException, IOException, AnalyzerFailureException, InterruptedException {
         CompositionInformation compositionInformation = composer.compose(configuration, destinationDirectory,
                 featureModel);
         return analyzer.analyze(compositionInformation);

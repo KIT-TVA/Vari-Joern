@@ -38,9 +38,10 @@ import java.util.concurrent.TimeUnit;
 public class Main {
     public static final int STATUS_OK = 0;
     public static final int STATUS_COMMAND_LINE_USAGE_ERROR = 64;
-    public static final int STATUS_INVALID_CONFIG = 78;
-    public static final int STATUS_IO_ERROR = 74;
     public static final int STATUS_INTERNAL_ERROR = 70;
+    public static final int STATUS_IO_ERROR = 74;
+    public static final int STATUS_INVALID_CONFIG = 78;
+    public static final int STATUS_INTERRUPTED = 130;
     private static final Logger LOGGER = LogManager.getLogger();
 
     private static final CountDownLatch EXITED_LATCH = new CountDownLatch(1);
@@ -137,6 +138,8 @@ public class Main {
         } catch (FeatureModelReaderException e) {
             LOGGER.atFatal().withThrowable(e).log("The feature model could not be read");
             return STATUS_INTERNAL_ERROR;
+        } catch (InterruptedException e) {
+            return STATUS_INTERRUPTED;
         }
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
@@ -148,7 +151,10 @@ public class Main {
         } catch (RunnerException e) {
             LOGGER.atFatal().withThrowable(e).log("Failed to create runner");
             return STATUS_INTERNAL_ERROR;
+        } catch (InterruptedException e) {
+            return STATUS_INTERRUPTED;
         }
+
         ResultAggregator<?> resultAggregator = config.getAnalyzerConfig().getResultAggregator();
 
         List<AnalysisResult> allAnalysisResults = new ArrayList<>();
@@ -208,9 +214,9 @@ public class Main {
                     if (!EXITED_LATCH.await(5, TimeUnit.SECONDS)) {
                         LOGGER.atWarn().log("Main thread did not exit in time. Exiting anyway.");
                     }
-                } catch (InterruptedException e1) {
+                } catch (InterruptedException e) {
                     LOGGER.atWarn()
-                            .withThrowable(e1)
+                            .withThrowable(e)
                             .log("Interrupted while waiting for main thread to exit. Not waiting any longer.");
                 }
             } finally {

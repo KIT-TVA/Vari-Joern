@@ -58,12 +58,13 @@ public class ParallelIterationRunner {
      * @param analyzerConfig           the configuration for the analyzer
      * @param featureModel             the feature model of the source code
      * @param tmpDir                   the temporary directory to store intermediate results
-     * @throws RunnerException if an error occurs during instantiation
+     * @throws RunnerException      if an error occurs during instantiation
+     * @throws InterruptedException if the current thread is interrupted
      */
     public ParallelIterationRunner(int numComposers, int numAnalyzers, int compositionQueueCapacity,
                                    @NotNull ComposerConfig composerConfig, @NotNull AnalyzerConfig<?> analyzerConfig,
                                    @NotNull IFeatureModel featureModel, @NotNull Path tmpDir)
-            throws RunnerException {
+            throws RunnerException, InterruptedException {
         this.featureModel = featureModel;
         this.tmpDir = tmpDir;
         this.compositionQueue = new LinkedBlockingDeque<>(compositionQueueCapacity);
@@ -243,7 +244,7 @@ public class ParallelIterationRunner {
         }
 
         @Override
-        public Message<CompositionInformation> process(ComposerInvocation arguments) {
+        public Message<CompositionInformation> process(ComposerInvocation arguments) throws InterruptedException {
             LOGGER.info("Composing variant with features {}", arguments.features);
             try {
                 CompositionInformation compositionInformation
@@ -268,7 +269,8 @@ public class ParallelIterationRunner {
         }
 
         @Override
-        public Message<AnalysisResult> process(CompositionInformation compositionInformation) {
+        public Message<AnalysisResult> process(CompositionInformation compositionInformation)
+                throws InterruptedException {
             LOGGER.info("Analyzing variant with features {}", compositionInformation.getEnabledFeatures());
 
             try {

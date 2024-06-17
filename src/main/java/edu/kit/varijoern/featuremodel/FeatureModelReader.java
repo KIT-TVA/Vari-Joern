@@ -16,8 +16,10 @@ public interface FeatureModelReader {
      * @param tmpPath a path to a directory used for temporary files that are needed for reading the feature model. Must
      *                be absolute.
      * @return the feature model
-     * @throws IOException if an I/O error occurs
+     * @throws IOException                 if an I/O error occurs
+     * @throws FeatureModelReaderException if the feature model cannot be read
+     * @throws InterruptedException        if the current thread is interrupted
      */
     @NotNull
-    IFeatureModel read(@NotNull Path tmpPath) throws IOException, FeatureModelReaderException;
+    IFeatureModel read(@NotNull Path tmpPath) throws IOException, FeatureModelReaderException, InterruptedException;
 }

@@ -61,7 +61,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     }
 
     @Override
-    public @NotNull IFeatureModel read(@NotNull Path tmpPath) throws IOException, FeatureModelReaderException {
+    public @NotNull IFeatureModel read(@NotNull Path tmpPath)
+            throws IOException, FeatureModelReaderException, InterruptedException {
         LOGGER.info("Reading feature model from Kconfig files in {}", this.sourcePath);
         String readerScript = ResourcesUtil.getResourceAsString("torte/" + getExperimentScriptName());
         Path readerScriptPath = tmpPath.resolve(getExperimentScriptName());
@@ -91,7 +92,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         }
     }
 
-    private void runReader(@NotNull Path tmpPath) throws IOException, FeatureModelReaderException {
+    private void runReader(@NotNull Path tmpPath)
+            throws IOException, FeatureModelReaderException, InterruptedException {
         ProcessBuilder readerProcessBuilder = new ProcessBuilder("bash", getExperimentScriptName())
                 .directory(tmpPath.toFile());
         readerProcessBuilder.environment().put("TORTE_INPUT_DIRECTORY", tmpPath.resolve("input").toString());
@@ -106,7 +108,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         try {
             readerExitCode = readerProcess.waitFor();
         } catch (InterruptedException e) {
-            throw new RuntimeException("Unexpected interruption of Torte process", e);
+            readerProcess.destroy();
+            throw e;
         }
         if (readerExitCode != 0) {
             throw new FeatureModelReaderException("Torte exited with non-zero exit code: " + readerExitCode);

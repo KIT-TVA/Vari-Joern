@@ -29,7 +29,8 @@ public class CCPPLanguageInformation extends LanguageInformation {
     }
 
     @Override
-    public <T extends Throwable> void accept(@NotNull LanguageInformationVisitor<T> visitor) throws T {
+    public <T extends Throwable> void accept(@NotNull LanguageInformationVisitor<T> visitor)
+            throws T, InterruptedException {
         visitor.visit(this);
     }
 

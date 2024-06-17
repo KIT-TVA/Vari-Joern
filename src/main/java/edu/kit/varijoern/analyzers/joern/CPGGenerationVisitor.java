@@ -57,12 +57,14 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
     }
 
     @Override
-    public void visit(@NotNull GenericLanguageInformation languageInformation) throws AnalyzerFailureException {
+    public void visit(@NotNull GenericLanguageInformation languageInformation)
+            throws AnalyzerFailureException, InterruptedException {
         generateCPG(List.of());
     }
 
     @Override
-    public void visit(@NotNull CCPPLanguageInformation languageInformation) throws AnalyzerFailureException {
+    public void visit(@NotNull CCPPLanguageInformation languageInformation)
+            throws AnalyzerFailureException, InterruptedException {
         List<String> extraArguments = new ArrayList<>();
         extraArguments.add("--language");
         extraArguments.add("newc");
@@ -77,7 +79,8 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
         generateCPG(extraArguments);
     }
 
-    private void generateCPG(@NotNull List<String> joernParseExtraArguments) throws AnalyzerFailureException {
+    private void generateCPG(@NotNull List<String> joernParseExtraArguments)
+            throws AnalyzerFailureException, InterruptedException {
         List<String> command = Stream.concat(
                 Stream.of(this.joernPath == null
                                 ? "joern-parse"
@@ -101,7 +104,8 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
         try {
             exitCode = parserProcess.waitFor();
         } catch (InterruptedException e) {
-            throw new AnalyzerFailureException("joern-parse was interrupted", e);
+            parserProcess.destroy();
+            throw e;
         }
         if (exitCode != 0)
             throw new AnalyzerFailureException("joern-parse failed with exit code " + exitCode);

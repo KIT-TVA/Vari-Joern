@@ -60,7 +60,7 @@ public class JoernAnalyzer implements Analyzer<JoernAnalysisResult> {
 
     @Override
     public @NotNull JoernAnalysisResult analyze(@NotNull CompositionInformation compositionInformation)
-            throws IOException, AnalyzerFailureException {
+            throws IOException, AnalyzerFailureException, InterruptedException {
         LOGGER.info("Running analysis");
         Path sourceLocation = compositionInformation.getLocation();
         Path outFile = this.workspacePath.resolve(
@@ -87,7 +87,7 @@ public class JoernAnalyzer implements Analyzer<JoernAnalysisResult> {
 
     private void analyzeWithLanguageInformation(@NotNull LanguageInformation languageInformation,
                                                 @NotNull Path sourceLocation, @NotNull Path outFile)
-            throws AnalyzerFailureException, IOException {
+            throws AnalyzerFailureException, IOException, InterruptedException {
         LOGGER.info("Running analysis for language {}", languageInformation.getName());
         Path cpgLocation = this.workspacePath.resolve("cpg.bin");
         LOGGER.info("Generating CPG");
@@ -107,7 +107,7 @@ public class JoernAnalyzer implements Analyzer<JoernAnalysisResult> {
      * @throws AnalyzerFailureException if Joern exited with a non-zero exit code
      */
     private void runJoern(@NotNull Path cpgLocation, @NotNull Path outFile)
-            throws IOException, AnalyzerFailureException {
+            throws IOException, AnalyzerFailureException, InterruptedException {
         Process joernProcess = new ProcessBuilder(
                 this.joernPath == null ? JOERN_COMMAND : this.joernPath.resolve(JOERN_COMMAND).toString(),
                 "--script", this.scanScriptPath.toString(),
@@ -124,7 +124,8 @@ public class JoernAnalyzer implements Analyzer<JoernAnalysisResult> {
         try {
             joernExitCode = joernProcess.waitFor();
         } catch (InterruptedException e) {
-            throw new RuntimeException("Unexpected interruption", e);
+            joernProcess.destroy();
+            throw e;
         }
         stdoutGobbler.waitFor();
         stderrGobbler.waitFor();
