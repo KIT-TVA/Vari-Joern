@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
     public static final int STATUS_OK = 0;
@@ -40,6 +42,8 @@ public class Main {
     public static final int STATUS_IO_ERROR = 74;
     public static final int STATUS_INTERNAL_ERROR = 70;
     private static final Logger LOGGER = LogManager.getLogger();
+
+    private static final CountDownLatch EXITED_LATCH = new CountDownLatch(1);
 
     public static void main(String[] args) {
         Args parsedArgs = new Args();
@@ -70,21 +74,32 @@ public class Main {
         log4jConfig.getProperties().put("level", logLevel);
         Configurator.reconfigure(log4jConfig);
 
-        LOGGER.info("Reading configuration");
+        setupShutdownHook();
 
-        Config config;
         try {
-            config = new Config(parsedArgs.getConfig());
-        } catch (IOException e) {
-            LOGGER.atFatal().withThrowable(e).log("The configuration file could not be read");
-            System.exit(STATUS_INVALID_CONFIG);
-            return;
-        } catch (InvalidConfigException e) {
-            LOGGER.atFatal().withThrowable(e).log("The configuration file could not be parsed");
-            System.exit(STATUS_INVALID_CONFIG);
-            return;
+            LOGGER.info("Reading configuration");
+
+            Config config;
+            try {
+                config = new Config(parsedArgs.getConfig());
+            } catch (IOException e) {
+                LOGGER.atFatal().withThrowable(e).log("The configuration file could not be read");
+                EXITED_LATCH.countDown();
+                System.exit(STATUS_INVALID_CONFIG);
+                return;
+            } catch (InvalidConfigException e) {
+                LOGGER.atFatal().withThrowable(e).log("The configuration file could not be parsed");
+                EXITED_LATCH.countDown();
+                System.exit(STATUS_INVALID_CONFIG);
+                return;
+            }
+
+            int status = runUsingConfig(config, parsedArgs);
+            EXITED_LATCH.countDown();
+            System.exit(status);
+        } finally {
+            EXITED_LATCH.countDown();
         }
-        System.exit(runUsingConfig(config, parsedArgs));
     }
 
     private static void addComponentArgs(@NotNull JCommander.Builder jcommanderBuilder) {
@@ -179,5 +194,29 @@ public class Main {
             return STATUS_IO_ERROR;
         }
         return STATUS_OK;
+    }
+
+    private static void setupShutdownHook() {
+        Thread mainThread = Thread.currentThread();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                if (EXITED_LATCH.getCount() == 0) return;
+
+                LOGGER.warn("Aborting");
+                mainThread.interrupt();
+                try {
+                    if (!EXITED_LATCH.await(5, TimeUnit.SECONDS)) {
+                        LOGGER.atWarn().log("Main thread did not exit in time. Exiting anyway.");
+                    }
+                } catch (InterruptedException e1) {
+                    LOGGER.atWarn()
+                            .withThrowable(e1)
+                            .log("Interrupted while waiting for main thread to exit. Not waiting any longer.");
+                }
+            } finally {
+                // Log4J's shutdown hook had to be disabled to allow logging in this shutdown hook
+                LogManager.shutdown();
+            }
+        }));
     }
 }
