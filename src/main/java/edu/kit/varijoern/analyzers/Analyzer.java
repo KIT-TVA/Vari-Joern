@@ -7,26 +7,20 @@ import java.io.IOException;
 
 /**
  * Analyzers scan composed source code for weaknesses.
+ *
+ * @param <T> the type of the analysis results this analyzer produces
  */
-public interface Analyzer {
+public interface Analyzer<T extends AnalysisResult> {
     /**
-     * Analyzes the source code referenced in the given {@link CompositionInformation}. The result is stored to be used
-     * in {@link #aggregateResults()}.
+     * Analyzes the source code referenced in the given {@link CompositionInformation}.
      *
      * @param compositionInformation information about the composer pass that generated the code to be analyzed
      * @return a summary of the weaknesses found during the analysis
      * @throws IOException              if an I/O exception occurred
      * @throws AnalyzerFailureException if the analysis failed for another reason
+     * @throws InterruptedException     if the current thread is interrupted
      */
     @NotNull
-    AnalysisResult analyze(@NotNull CompositionInformation compositionInformation)
-            throws IOException, AnalyzerFailureException;
-
-    /**
-     * Aggregates the results of multiple analysis runs, grouping them by their evidence.
-     *
-     * @return the aggregated results
-     */
-    @NotNull
-    AggregatedAnalysisResult aggregateResults();
+    T analyze(@NotNull CompositionInformation compositionInformation)
+            throws IOException, AnalyzerFailureException, InterruptedException;
 }

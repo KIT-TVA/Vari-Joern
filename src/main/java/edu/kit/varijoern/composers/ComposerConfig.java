@@ -16,14 +16,22 @@ public abstract class ComposerConfig extends NamedComponentConfig {
         super(toml);
     }
 
+    protected ComposerConfig(@NotNull String name) {
+        super(name);
+    }
+
     /**
      * Instantiates a new composer using this configuration.
      *
      * @param tmpPath a {@link Path} to a temporary directory that can be used by the composer. This path must be
      *                absolute.
      * @return the new composer
+     * @throws IOException          if an I/O error occurred
+     * @throws ComposerException    if the composer failed to initialize
+     * @throws InterruptedException if the current thread is interrupted
      */
-    public abstract @NotNull Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException;
+    public abstract @NotNull Composer newComposer(@NotNull Path tmpPath)
+            throws IOException, ComposerException, InterruptedException;
 
     @Override
     public @NotNull String getComponentType() {

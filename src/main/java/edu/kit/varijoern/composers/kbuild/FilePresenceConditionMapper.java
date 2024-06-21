@@ -52,7 +52,7 @@ public class FilePresenceConditionMapper {
      */
     public FilePresenceConditionMapper(@NotNull Path sourcePath, @NotNull String system, @NotNull Path composerTmpDir,
                                        @NotNull IFeatureModel featureModel)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         this.createKmaxallScript(composerTmpDir);
         if (system.equals("busybox")) {
             processKmaxOutput(runKmax(sourcePath, composerTmpDir), sourcePath, featureModel);
@@ -67,7 +67,7 @@ public class FilePresenceConditionMapper {
     }
 
     private static @NotNull String runKmax(@NotNull Path sourcePath, @NotNull Path composerTmpDir)
-            throws IOException, ComposerException {
+            throws IOException, ComposerException, InterruptedException {
         List<String> kmaxallArgs = new ArrayList<>(List.of(
                 "python3",
                 composerTmpDir.resolve("run-kmaxall.py").toString()
@@ -81,15 +81,16 @@ public class FilePresenceConditionMapper {
         ProcessBuilder processBuilder = new ProcessBuilder(kmaxallArgs)
                 .directory(sourcePath.toFile());
         String output;
+        Process process = processBuilder.start();
         int exitCode;
         try {
-            Process process = processBuilder.start();
             StreamGobbler stderrGobbler = new StreamGobbler(process.getErrorStream(), STREAM_LOGGER);
             stderrGobbler.start();
             output = IOUtils.toString(process.getInputStream(), Charset.defaultCharset());
             exitCode = process.waitFor();
         } catch (InterruptedException e) {
-            throw new RuntimeException("run-kmax.py was interrupted", e);
+            process.destroy();
+            throw e;
         }
         if (exitCode != 0) {
             throw new ComposerException("run-kmax.py exited with code " + exitCode);

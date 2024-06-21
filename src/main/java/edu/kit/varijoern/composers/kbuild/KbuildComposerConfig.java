@@ -59,7 +59,8 @@ public class KbuildComposerConfig extends ComposerConfig {
     }
 
     @Override
-    public @NotNull Composer newComposer(@NotNull Path tmpPath) throws IOException, ComposerException {
+    public @NotNull Composer newComposer(@NotNull Path tmpPath)
+            throws IOException, ComposerException, InterruptedException {
         return new KbuildComposer(this.sourceLocation, this.system, tmpPath);
     }
 }

@@ -13,21 +13,23 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TorteKmaxFMReaderTest {
     @Test
-    void buildFeatureModelBusyBox() throws GitAPIException, IOException, FeatureModelReaderException {
+    void buildFeatureModelBusyBox()
+            throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
         runTestFor("busybox-sample", "busybox");
     }
 
     @Test
-    void buildFeatureModelLinux() throws GitAPIException, IOException, FeatureModelReaderException {
+    void buildFeatureModelLinux()
+            throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
         runTestFor("linux-sample", "linux");
     }
 
     private void runTestFor(String testCase, String system)
-            throws GitAPIException, IOException, FeatureModelReaderException {
+            throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase);
         IFeatureModel featureModel = buildFeatureModel(testCaseManager, system);
         assertEquals(List.of(), testCaseManager.getModifications(), "Feature model reader modified original source");
@@ -48,7 +50,7 @@ class TorteKmaxFMReaderTest {
     }
 
     private IFeatureModel buildFeatureModel(KconfigTestCaseManager testCaseManager, String system)
-            throws IOException, FeatureModelReaderException {
+            throws IOException, FeatureModelReaderException, InterruptedException {
         TorteKmaxFMReader fmReader = new TorteKmaxFMReader(testCaseManager.getPath(), system);
         return fmReader.read(Files.createTempDirectory("vari-joern-test-fm-reader"));
     }

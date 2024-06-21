@@ -1,6 +1,9 @@
 package edu.kit.varijoern.composers.kbuild;
 
-import edu.kit.varijoern.*;
+import edu.kit.varijoern.ConditionUtils;
+import edu.kit.varijoern.KconfigTestCaseManager;
+import edu.kit.varijoern.KconfigTestCasePreparer;
+import edu.kit.varijoern.PresenceConditionExpectation;
 import edu.kit.varijoern.composers.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.samplers.FixedSampler;
@@ -217,7 +220,8 @@ class KbuildComposerTest {
 
     @ParameterizedTest
     @MethodSource("testCases")
-    void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer) throws IOException, GitAPIException {
+    void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer)
+            throws IOException, GitAPIException, InterruptedException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name, preparer);
         Map<String, Boolean> featureMap;
         try {

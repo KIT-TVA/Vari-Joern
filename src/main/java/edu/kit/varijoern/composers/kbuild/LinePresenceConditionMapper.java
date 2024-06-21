@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
  * </ul>
  */
 public class LinePresenceConditionMapper {
+    protected static final Object LOCK = new Object();
     private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)|([A-Za-z0-9_]+)");
     // In busybox, enabled (non-module) tristate features are defined as CONFIG_<feature> as well as ENABLE_<feature>
     private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN
@@ -74,86 +75,88 @@ public class LinePresenceConditionMapper {
                                              @NotNull Path sourcePath, @NotNull Set<String> knownFeatures,
                                              @NotNull String system)
             throws FileNotFoundException {
-        LOGGER.debug("Determining line presence conditions for {}", inclusionInformation.filePath());
-        Path filePath = sourcePath.resolve(inclusionInformation.filePath());
+        synchronized (LOCK) {
+            LOGGER.debug("Determining line presence conditions for {}", inclusionInformation.filePath());
+            Path filePath = sourcePath.resolve(inclusionInformation.filePath());
 
-        // Create preprocessor
-        TokenCreator tokenCreator = new CTokenCreator();
-        LexerCreator lexerCreator = new CLexerCreator();
-        MacroTable macroTable = new MacroTable(tokenCreator);
-        PresenceConditionManager presenceConditionManager = new PresenceConditionManager();
-        ConditionEvaluator conditionEvaluator = new ConditionEvaluator(ExpressionParser.fromRats(),
-                presenceConditionManager, macroTable);
-        this.preparePreprocessor(inclusionInformation, macroTable, presenceConditionManager, conditionEvaluator,
-                lexerCreator, tokenCreator, sourcePath);
-        try (ConditionCapturingHeaderFileManager headerFileManager = new ConditionCapturingHeaderFileManager(
-                new FileReader(filePath.toFile()),
-                filePath.toFile(),
-                List.of(),
-                inclusionInformation.includePaths().stream()
-                        .map(p -> Path.of(p).isAbsolute() ? p : sourcePath.resolve(p).toString())
-                        .toList(),
-                Arrays.asList(Builtins.sysdirs),
-                lexerCreator,
-                tokenCreator,
-                new StopWatch(),
-                presenceConditionManager
-        )) {
-            headerFileManager.showErrors(false);
-            Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
-                    conditionEvaluator, tokenCreator);
+            // Create preprocessor
+            TokenCreator tokenCreator = new CTokenCreator();
+            LexerCreator lexerCreator = new CLexerCreator();
+            MacroTable macroTable = new MacroTable(tokenCreator);
+            PresenceConditionManager presenceConditionManager = new PresenceConditionManager();
+            ConditionEvaluator conditionEvaluator = new ConditionEvaluator(ExpressionParser.fromRats(),
+                    presenceConditionManager, macroTable);
+            this.preparePreprocessor(inclusionInformation, macroTable, presenceConditionManager, conditionEvaluator,
+                    lexerCreator, tokenCreator, sourcePath);
+            try (ConditionCapturingHeaderFileManager headerFileManager = new ConditionCapturingHeaderFileManager(
+                    new FileReader(filePath.toFile()),
+                    filePath.toFile(),
+                    List.of(),
+                    inclusionInformation.includePaths().stream()
+                            .map(p -> Path.of(p).isAbsolute() ? p : sourcePath.resolve(p).toString())
+                            .toList(),
+                    Arrays.asList(Builtins.sysdirs),
+                    lexerCreator,
+                    tokenCreator,
+                    new StopWatch(),
+                    presenceConditionManager
+            )) {
+                headerFileManager.showErrors(false);
+                Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
+                        conditionEvaluator, tokenCreator);
 
-            // Preprocess the file and collect presence conditions
-            Syntax next;
-            do {
-                try {
-                    next = preprocessor.next();
-                } catch (IllegalStateException | Error e) {
-                    // The preprocessor can `throw new Error()` when it encounters an internal error. If a subclass of
-                    // `Error` is caught, it was not thrown by the preprocessor and something is seriously wrong.
-                    if (e instanceof Error && e.getClass() != Error.class)
-                        throw (Error) e;
-                    LOGGER.atWarn().withThrowable(e).log("Preprocessor encountered an internal error at {}",
-                            headerFileManager.include.getLocation());
-                    break;
+                // Preprocess the file and collect presence conditions
+                Syntax next;
+                do {
+                    try {
+                        next = preprocessor.next();
+                    } catch (IllegalStateException | Error e) {
+                        // The preprocessor can `throw new Error()` when it encounters an internal error. If a subclass
+                        // of `Error` is caught, it was not thrown by the preprocessor and something is seriously wrong.
+                        if (e instanceof Error && e.getClass() != Error.class)
+                            throw (Error) e;
+                        LOGGER.atWarn().withThrowable(e).log("Preprocessor encountered an internal error at {}",
+                                headerFileManager.include.getLocation());
+                        break;
+                    }
+                } while (next.kind() != Syntax.Kind.EOF);
+
+                // Convert presence conditions to nodes
+                for (int line = 1; line <= headerFileManager.getLastLine(); line++) {
+                    Optional<PresenceConditionManager.PresenceCondition> conditionOptional
+                            = headerFileManager.getCondition(line);
+                    if (conditionOptional.isEmpty()) {
+                        LOGGER.debug("No presence condition found for line {} in {}", line, filePath);
+                        continue;
+                    }
+
+                    PresenceConditionManager.PresenceCondition condition = conditionOptional.get();
+
+                    Optional<Node> nodeOptional = this.convertBDD(condition.getBDD(), presenceConditionManager);
+                    if (nodeOptional.isEmpty()) {
+                        LOGGER.warn("Could not convert presence condition to node at {}:{}: {}", filePath,
+                                line, condition);
+                        continue;
+                    }
+
+                    condition.delRef();
+
+                    Node node = nodeOptional.get();
+                    this.convertMacrosToFeatures(node, system);
+                    List<String> unknownFeatures = node.getUniqueLiterals().stream()
+                            .filter(literal -> !(literal instanceof True || literal instanceof False))
+                            .map(literal -> String.valueOf(literal.var))
+                            .filter(var -> !knownFeatures.contains(var))
+                            .toList();
+
+                    if (!unknownFeatures.isEmpty()) {
+                        LOGGER.warn("Unknown features {} in presence condition at {}:{}", unknownFeatures, filePath,
+                                line);
+                        node = Node.replaceLiterals(node, unknownFeatures, true);
+                    }
+
+                    this.linePresenceConditions.put(line, node);
                 }
-            } while (next.kind() != Syntax.Kind.EOF);
-
-            // Convert presence conditions to nodes
-            for (int line = 1; line <= headerFileManager.getLastLine(); line++) {
-                Optional<PresenceConditionManager.PresenceCondition> conditionOptional
-                        = headerFileManager.getCondition(line);
-                if (conditionOptional.isEmpty()) {
-                    LOGGER.debug("No presence condition found for line {} in {}", line, filePath);
-                    continue;
-                }
-
-                PresenceConditionManager.PresenceCondition condition = conditionOptional.get();
-
-                Optional<Node> nodeOptional = this.convertBDD(condition.getBDD(), presenceConditionManager);
-                if (nodeOptional.isEmpty()) {
-                    LOGGER.warn("Could not convert presence condition to node at {}:{}: {}", filePath,
-                            line, condition);
-                    continue;
-                }
-
-                condition.delRef();
-
-                Node node = nodeOptional.get();
-                this.convertMacrosToFeatures(node, system);
-                List<String> unknownFeatures = node.getUniqueLiterals().stream()
-                        .filter(literal -> !(literal instanceof True || literal instanceof False))
-                        .map(literal -> String.valueOf(literal.var))
-                        .filter(var -> !knownFeatures.contains(var))
-                        .toList();
-
-                if (!unknownFeatures.isEmpty()) {
-                    LOGGER.warn("Unknown features {} in presence condition at {}:{}", unknownFeatures, filePath,
-                            line);
-                    node = Node.replaceLiterals(node, unknownFeatures, true);
-                }
-
-                this.linePresenceConditions.put(line, node);
             }
         }
 
