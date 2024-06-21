@@ -188,6 +188,15 @@ public class ParallelIterationRunner {
         LOGGER.info("Runner stopped");
     }
 
+    /**
+     * Returns whether the runner has been stopped.
+     *
+     * @return {@code true} if the runner has been stopped, {@code false} otherwise
+     */
+    public boolean isStopped() {
+        return this.isStopped;
+    }
+
     private abstract static class FallibleRunner<T, R> extends Thread {
         private final BlockingQueue<Message<T>> inputQueue;
         private final BlockingQueue<Message<R>> outputQueue;

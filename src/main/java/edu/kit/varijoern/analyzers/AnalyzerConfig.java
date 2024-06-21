@@ -29,6 +29,17 @@ public abstract class AnalyzerConfig<T extends AnalysisResult> extends NamedComp
         this.resultAggregator = resultAggregator;
     }
 
+    /**
+     * Creates a new {@link AnalyzerConfig} with the specified name and result aggregator.
+     *
+     * @param name             the name of the implementation
+     * @param resultAggregator the result aggregator to use
+     */
+    protected AnalyzerConfig(@NotNull String name, @NotNull ResultAggregator<T> resultAggregator) {
+        super(name);
+        this.resultAggregator = resultAggregator;
+    }
+
     @Override
     public @NotNull String getComponentType() {
         return "analyzer";

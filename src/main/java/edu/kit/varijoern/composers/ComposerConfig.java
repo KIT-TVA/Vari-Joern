@@ -16,6 +16,10 @@ public abstract class ComposerConfig extends NamedComponentConfig {
         super(toml);
     }
 
+    protected ComposerConfig(@NotNull String name) {
+        super(name);
+    }
+
     /**
      * Instantiates a new composer using this configuration.
      *

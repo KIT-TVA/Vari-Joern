@@ -21,6 +21,15 @@ public abstract class NamedComponentConfig {
     }
 
     /**
+     * Creates a new {@link NamedComponentConfig} with the specified name.
+     *
+     * @param name the name of the implementation
+     */
+    protected NamedComponentConfig(@NotNull String name) {
+        this.name = name;
+    }
+
+    /**
      * Returns the name of the type of the component this class configures. This is used for error messages.
      *
      * @return the type of the component
