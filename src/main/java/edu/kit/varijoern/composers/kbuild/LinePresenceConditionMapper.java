@@ -93,7 +93,7 @@ public class LinePresenceConditionMapper {
                     filePath.toFile(),
                     List.of(),
                     inclusionInformation.includePaths().stream()
-                            .map(p -> Path.of(p).isAbsolute() ? p : sourcePath.resolve(p).toString())
+                            .map(p -> p.isAbsolute() ? p.toString() : sourcePath.resolve(p).toString())
                             .toList(),
                     Arrays.asList(Builtins.sysdirs),
                     lexerCreator,
@@ -192,7 +192,7 @@ public class LinePresenceConditionMapper {
                     .append("\n");
         }
 
-        for (String includedFile : inclusionInformation.includedFiles()) {
+        for (Path includedFile : inclusionInformation.includedFiles()) {
             commandLineDirectives.append("#include \"").append(includedFile).append("\"\n");
         }
 
@@ -211,7 +211,7 @@ public class LinePresenceConditionMapper {
                 new File("<injected-source>"),
                 List.of(),
                 inclusionInformation.includePaths().stream()
-                        .map(p -> Path.of(p).isAbsolute() ? p : sourceRoot.resolve(p).toString())
+                        .map(p -> p.isAbsolute() ? p.toString() : sourceRoot.resolve(p).toString())
                         .toList(),
                 Arrays.asList(Builtins.sysdirs),
                 lexerCreator,

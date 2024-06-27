@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,24 +37,25 @@ class KbuildComposerTest {
     }
 
     private static Stream<Arguments> busyboxTestCases() {
-        Set<String> standardIncludedFiles = Set.of("include/autoconf.h", "include/cmdline-included-header.h");
+        Set<Path> standardIncludedFiles = Set.of(Path.of("include/autoconf.h"),
+                Path.of("include/cmdline-included-header.h"));
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("main"),
-                List.of("include")
+                List.of(Path.of("include"))
         );
         InclusionInformation includedCByMain = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("main"),
-                List.of("include")
+                List.of(Path.of("include"))
         );
         InclusionInformation includedCByIO = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("io_file"),
-                List.of("include")
+                List.of(Path.of("include"))
         );
         Stream<TestCase> testCases = Stream.of(
                 new TestCase(
@@ -90,14 +92,14 @@ class KbuildComposerTest {
                                         Path.of("src/hello-cpp.cc"),
                                         standardIncludedFiles,
                                         standardBusyboxDefinesForFile("hello_cpp"),
-                                        List.of("include")
+                                        List.of(Path.of("include"))
                                 )),
                                 new FileContentVerifier(Path.of("src/hello-cpp.h")),
                                 new FileContentVerifier(new InclusionInformation(
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
                                         standardBusyboxDefinesForFile("io_file"),
-                                        List.of("include")
+                                        List.of(Path.of("include"))
                                 )),
                                 new FileContentVerifier(includedCByIO),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
@@ -115,11 +117,11 @@ class KbuildComposerTest {
     }
 
     private static Stream<Arguments> linuxTestCases() {
-        Set<String> standardIncludedFiles = Set.of("./include/linux/compiler-version.h", "./include/linux/kconfig.h",
-                "./include/linux/compiler_types.h");
-        List<String> standardIncludePaths = List.of("./arch/x86/include", "./arch/x86/include/generated",
-                "./include", "./arch/x86/include/uapi", "./arch/x86/include/generated/uapi",
-                "./include/uapi", "./include/generated/uapi");
+        Set<Path> standardIncludedFiles = Stream.of("include/linux/compiler-version.h", "include/linux/kconfig.h",
+                "include/linux/compiler_types.h").map(Path::of).collect(Collectors.toSet());
+        List<Path> standardIncludePaths = Stream.of("arch/x86/include", "arch/x86/include/generated",
+                "include", "arch/x86/include/uapi", "arch/x86/include/generated/uapi",
+                "include/uapi", "include/generated/uapi").map(Path::of).toList();
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
@@ -330,7 +332,7 @@ class KbuildComposerTest {
         private final Path originalRelativePath;
         private final Path composedRelativePath;
         private final List<String> expectedPrependedLines;
-        private final List<String> expectedIncludePaths;
+        private final List<Path> expectedIncludePaths;
 
         /**
          * Creates a new verifier for a file in the composition. This constructor assumes that the file is not renamed
@@ -353,7 +355,7 @@ class KbuildComposerTest {
          * @param expectedIncludePaths   the expected include paths for this file
          */
         public FileContentVerifier(Path originalRelativePath, Path composedRelativePath,
-                                   List<String> expectedPrependedLines, List<String> expectedIncludePaths) {
+                                   List<String> expectedPrependedLines, List<Path> expectedIncludePaths) {
             this.expectedIncludePaths = expectedIncludePaths;
             if (originalRelativePath.isAbsolute())
                 throw new IllegalArgumentException("originalRelativePath must be relative");
@@ -380,7 +382,7 @@ class KbuildComposerTest {
                                     .map(entry -> "#define %s %s".formatted(entry.getKey(), entry.getValue())),
                             inclusionInformation.includedFiles().stream()
                                     .map(includedFile -> this.originalRelativePath.getParent()
-                                            .relativize(Path.of(includedFile))
+                                            .relativize(includedFile)
                                     )
                                     .map("#include \"%s\""::formatted)
                     )

@@ -14,6 +14,7 @@ import java.util.stream.Stream;
  * Extracts GCC calls from a command string.
  */
 public class GCCCallExtractor {
+    private static final List<String> COMMAND_PREFIXES = List.of("", "x86_64-linux-gnu-");
     private static final List<String> COMMAND_NAMES = List.of("gcc", "g++");
     // Match common C and C++ file names. Exclude files starting with a hyphen as they are probably actually GCC flags.
     private static final Pattern SOURCE_FILE_PATTERN = Pattern.compile("^[^-].*\\.(?:c|C|cc|cpp|cxx|c++)$");
@@ -38,10 +39,17 @@ public class GCCCallExtractor {
     public @NotNull List<GCCCall> getCalls() throws ParseException {
         List<GCCCall> calls = new ArrayList<>();
         for (List<String> command : this.parser.parse()) {
-            if (!COMMAND_NAMES.contains(command.get(0))) continue;
+            if (!isRelevantCommand(command.get(0))) continue;
             calls.add(this.parseCall(command));
         }
         return calls;
+    }
+
+    private static boolean isRelevantCommand(@NotNull String commandName) {
+        return COMMAND_PREFIXES.stream()
+                .anyMatch(prefix -> commandName.startsWith(prefix)
+                        && COMMAND_NAMES.contains(commandName.substring(prefix.length()))
+                );
     }
 
     private @NotNull GCCCall parseCall(@NotNull List<String> command) {
