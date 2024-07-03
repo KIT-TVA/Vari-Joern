@@ -33,10 +33,14 @@ RUN apt-get install -y \
     # Required for building SuperC
     libjson-java \
     # Required for building SuperC
-    sat4j
+    sat4j \
+    # Required for cloning SuperC
+    git
 
-ADD git@github.com:KIT-TVA/superc#7722a5904da0ef5e26342e45222baeb864de00cd /superc
+RUN git clone https://github.com/KIT-TVA/superc.git
 WORKDIR /superc
+RUN  git checkout 7722a5904da0ef5e26342e45222baeb864de00cd
+
 RUN JAVA_DEV_ROOT=/superc \
     && CLASSPATH=$CLASSPATH:$JAVA_DEV_ROOT/classes:$JAVA_DEV_ROOT/bin/junit.jar:$JAVA_DEV_ROOT/bin/antlr.jar:$JAVA_DEV_ROOT/bin/javabdd.jar:$JAVA_DEV_ROOT/bin/json-simple-1.1.1.jar \
     && CLASSPATH=$CLASSPATH:/usr/share/java/org.sat4j.core.jar:/usr/share/java/com.microsoft.z3.jar:/usr/share/java/json-lib.jar \
