@@ -37,9 +37,10 @@ RUN apt-get install -y \
     # Required for cloning SuperC
     git
 
-RUN git clone https://github.com/KIT-TVA/superc.git
+# For running SugarC, the mergingParseErrors branch of the original SuperC is required.
+RUN git clone https://github.com/appleseedlab/superc.git
 WORKDIR /superc
-RUN  git checkout 7722a5904da0ef5e26342e45222baeb864de00cd
+RUN git checkout mergingParseErrors
 
 RUN JAVA_DEV_ROOT=/superc \
     && CLASSPATH=$CLASSPATH:$JAVA_DEV_ROOT/classes:$JAVA_DEV_ROOT/bin/junit.jar:$JAVA_DEV_ROOT/bin/antlr.jar:$JAVA_DEV_ROOT/bin/javabdd.jar:$JAVA_DEV_ROOT/bin/json-simple-1.1.1.jar \
@@ -52,6 +53,11 @@ RUN JAVA_DEV_ROOT=/superc \
 COPY . /vari-joern
 WORKDIR /vari-joern
 RUN cp /superc/bin/xtc.jar /superc/bin/superc.jar lib
+
+# External dependencies of SuperC/SugarC.
+RUN cp /superc/bin/junit.jar /superc/bin/antlr.jar /superc/bin/javabdd.jar /superc/bin/json-simple-1.1.1.jar lib \
+    && cp /usr/share/java/org.sat4j.core.jar /usr/share/java/com.microsoft.z3.jar /usr/share/java/json-lib.jar lib
+
 RUN ./gradlew distTar
 
 FROM base-system
