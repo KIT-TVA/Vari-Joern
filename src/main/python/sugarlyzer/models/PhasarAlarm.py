@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Iterable, Dict
 
-from src.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.models.Alarm import Alarm
 
 
 class PhasarAlarm(Alarm):

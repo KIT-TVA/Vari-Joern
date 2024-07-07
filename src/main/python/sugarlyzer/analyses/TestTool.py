@@ -1,7 +1,7 @@
-from src.sugarlyzer.analyses.AbstractTool import AbstractTool
+from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from pathlib import Path
-from typing import Iterable, Optional
-from src.sugarlyzer.readers.TestReader import TestReader
+from typing import Iterable
+from python.sugarlyzer.readers.TestReader import TestReader
 
 
 class TestTool(AbstractTool):

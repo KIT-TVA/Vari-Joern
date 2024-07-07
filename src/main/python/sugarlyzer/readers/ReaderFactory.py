@@ -1,5 +1,5 @@
-from src.sugarlyzer.readers.AbstractReader import AbstractReader
-from src.sugarlyzer.readers.ClangReader import ClangReader
+from python.sugarlyzer.readers.AbstractReader import AbstractReader
+from python.sugarlyzer.readers.ClangReader import ClangReader
 
 
 class ReaderFactory:

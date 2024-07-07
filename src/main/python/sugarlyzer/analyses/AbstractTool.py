@@ -5,11 +5,10 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable
 
-from src.sugarlyzer.util.decorators import log_all_params_and_return
-from src.sugarlyzer.models.Alarm import Alarm, map_source_line
-from src.sugarlyzer.readers.AbstractReader import AbstractReader
+from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.readers.AbstractReader import AbstractReader
 
 logger = logging.getLogger(__name__)
 

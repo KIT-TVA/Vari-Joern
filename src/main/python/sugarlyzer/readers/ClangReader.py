@@ -1,12 +1,9 @@
 import logging
-import re
 from pathlib import Path
-from typing import List, Iterable
+from typing import Iterable
 
-from src.sugarlyzer.analyses.AbstractTool import AbstractTool
-from src.sugarlyzer.models.Alarm import Alarm
-from src.sugarlyzer.models.ClangAlarm import ClangAlarm
-from src.sugarlyzer.readers.AbstractReader import AbstractReader
+from python.sugarlyzer.models.ClangAlarm import ClangAlarm
+from python.sugarlyzer.readers.AbstractReader import AbstractReader
 
 logger = logging.getLogger(__name__)
 

@@ -3,13 +3,12 @@ import logging
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Iterable, Optional
-import re
+from typing import Iterable
 
-from src.sugarlyzer.analyses.AbstractTool import AbstractTool
+from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 import os
-from src.sugarlyzer.readers.PhasarReader import PhasarReader
-from src.sugarlyzer.util.ParseBashTime import parse_bash_time
+from python.sugarlyzer.readers.PhasarReader import PhasarReader
+from python.sugarlyzer.util.ParseBashTime import parse_bash_time
 
 logger = logging.getLogger(__name__)
 

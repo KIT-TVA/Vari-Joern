@@ -7,11 +7,9 @@ import logging
 import multiprocessing
 import os
 import shutil
-import subprocess
 import tempfile
 import time
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Iterable, List, Dict, Any, Tuple
 
 # noinspection PyUnresolvedReferences
@@ -24,12 +22,12 @@ from tqdm import tqdm
 # noinspection PyUnresolvedReferences
 from z3.z3 import Solver, sat, Bool, Int, Not, And, Or
 
-from src.sugarlyzer import SugarCRunner
-from src.sugarlyzer.SugarCRunner import process_alarms
-from src.sugarlyzer.analyses.AbstractTool import AbstractTool
-from src.sugarlyzer.analyses.AnalysisToolFactory import AnalysisToolFactory
-from src.sugarlyzer.models.Alarm import Alarm
-from src.sugarlyzer.models.ProgramSpecification import ProgramSpecification
+from python.sugarlyzer import SugarCRunner
+from python.sugarlyzer.SugarCRunner import process_alarms
+from python.sugarlyzer.analyses.AbstractTool import AbstractTool
+from python.sugarlyzer.analyses.AnalysisToolFactory import AnalysisToolFactory
+from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
 multiprocessing.set_start_method("spawn")
 logger = logging.getLogger(__name__)
@@ -137,16 +135,16 @@ class Tester:
                 start = time.monotonic()
                 # noinspection PyTypeChecker
                 desugared_file_location, log_file = SugarCRunner.desugar_file(file,
-                                                       recommended_space=None,
-                                                       remove_errors=self.remove_errors,
-                                                       config_prefix=self.config_prefix,
-                                                       whitelist=self.whitelist,
-                                                       no_stdlibs=True,
-                                                       included_files=included_files,
-                                                       included_directories=included_directories,
-                                                       commandline_declarations=cmd_decs,
-                                                       keep_mem=self.tool.keep_mem,
-                                                       make_main=self.tool.make_main)
+                                                                              recommended_space=None,
+                                                                              remove_errors=self.remove_errors,
+                                                                              config_prefix=self.config_prefix,
+                                                                              whitelist=self.whitelist,
+                                                                              no_stdlibs=True,
+                                                                              included_files=included_files,
+                                                                              included_directories=included_directories,
+                                                                              commandline_declarations=cmd_decs,
+                                                                              keep_mem=self.tool.keep_mem,
+                                                                              make_main=self.tool.make_main)
 
                 return desugared_file_location, log_file, file, time.monotonic() - start
 

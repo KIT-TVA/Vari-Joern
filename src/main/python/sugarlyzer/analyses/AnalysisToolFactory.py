@@ -1,10 +1,8 @@
-from src.sugarlyzer.analyses.AbstractTool import AbstractTool
-from src.sugarlyzer.analyses.Clang import Clang
-from src.sugarlyzer.analyses.Infer import Infer
-from src.sugarlyzer.analyses.Phasar import Phasar
-from src.sugarlyzer.analyses.TestTool import TestTool
-from src.sugarlyzer.readers.AbstractReader import AbstractReader
-from src.sugarlyzer.readers.ReaderFactory import ReaderFactory
+from python.sugarlyzer.analyses.AbstractTool import AbstractTool
+from python.sugarlyzer.analyses.Clang import Clang
+from python.sugarlyzer.analyses.Infer import Infer
+from python.sugarlyzer.analyses.Phasar import Phasar
+from python.sugarlyzer.analyses.TestTool import TestTool
 
 
 class AnalysisToolFactory:

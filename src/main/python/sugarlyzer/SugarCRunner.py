@@ -1,5 +1,4 @@
 import itertools
-import itertools
 import logging
 import os
 import re
@@ -14,8 +13,8 @@ from typing import List, Optional, Dict, Iterable
 # noinspection PyUnresolvedReferences
 from z3.z3 import Solver, sat, Bool, Int, Not, And, Or
 
-from src.sugarlyzer.models.Alarm import Alarm
-from src.sugarlyzer.util.ParseBashTime import parse_bash_time
+from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.util.ParseBashTime import parse_bash_time
 
 USER_DEFS = '/tmp/__sugarlyzerPredefs.h'
 
