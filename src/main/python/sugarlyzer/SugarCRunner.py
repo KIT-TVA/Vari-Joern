@@ -306,7 +306,7 @@ def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Al
         s = Solver()
         missingCondition = False
         for a in w.static_condition_results:
-            if a['var'] == '' or not a['var'] in condition_mapping.replacers.keys() or '"' in condition_mapping.replacers[a['var']]:
+            if a['var'] == '' or not a['var'] in condition_mapping.replacers.keys() or condition_mapping.replacers[a['var']] == '':
                 missingCondition = True
                 break
             if a['val']:
@@ -340,7 +340,6 @@ def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Al
             # Use None and make correNum an Optional type
             # w.correNum = '-1'
     return alarms
-
 
 def find_condition_scope(start, fpa, goingUp):
     """
