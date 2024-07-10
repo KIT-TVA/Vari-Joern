@@ -22,7 +22,9 @@ RUN apt-get update && apt-get install -y \
     # Required for building and running SuperC
     libz3-java=4.8.12-3.1build1 \
     # Required for building SuperC and for executing Vari-Joern's KBuildComposer.
-    make
+    make \
+    # Required by Sugarlyzer.
+    python3.10 python3-pip python3-apt python3.10-venv
 
 FROM base-system AS build
 RUN apt-get install -y \
@@ -37,11 +39,14 @@ RUN apt-get install -y \
     # Required for cloning SuperC
     git
 
-# For running SugarC, the mergingParseErrors branch of the original SuperC is required.
-RUN git clone https://github.com/appleseedlab/superc.git
+
+# Clone SuperC/SugarC.
+RUN git clone https://github.com/appleseedlab/superc.git /superc
 WORKDIR /superc
+# For running SugarC, the mergingParseErrors branch of the original SuperC is required.
 RUN git checkout mergingParseErrors
 
+# Build SuperC/SugarC.
 RUN JAVA_DEV_ROOT=/superc \
     && CLASSPATH=$CLASSPATH:$JAVA_DEV_ROOT/classes:$JAVA_DEV_ROOT/bin/junit.jar:$JAVA_DEV_ROOT/bin/antlr.jar:$JAVA_DEV_ROOT/bin/javabdd.jar:$JAVA_DEV_ROOT/bin/json-simple-1.1.1.jar \
     && CLASSPATH=$CLASSPATH:/usr/share/java/org.sat4j.core.jar:/usr/share/java/com.microsoft.z3.jar:/usr/share/java/json-lib.jar \
@@ -57,6 +62,13 @@ RUN cp /superc/bin/xtc.jar /superc/bin/superc.jar lib
 # External dependencies of SuperC/SugarC.
 RUN cp /superc/bin/junit.jar /superc/bin/antlr.jar /superc/bin/javabdd.jar /superc/bin/json-simple-1.1.1.jar lib \
     && cp /usr/share/java/org.sat4j.core.jar /usr/share/java/com.microsoft.z3.jar /usr/share/java/json-lib.jar lib
+
+# Build Sugarlyzer.
+RUN python3.10 -m venv /venv
+ENV PATH=/venv/bin:$PATH
+#RUN python -m pip install -r requirements.txt --use-pep517
+RUN python -m pip install build
+RUN python -m build
 
 RUN ./gradlew distTar
 
@@ -93,6 +105,18 @@ COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /V
 RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
     && mv /opt/Vari-Joern-1.0-SNAPSHOT /opt/vari-joern \
     && rm /Vari-Joern-1.0-SNAPSHOT.tar
+
+RUN git clone https://github.com/Z3Prover/z3.git
+RUN apt-get update \
+  && apt-get -y install build-essential \
+  && apt-get install -y cmake
+WORKDIR z3
+RUN mkdir build && cd build && cmake -DZ3_BUILD_JAVA_BINDINGS=ON .. &&  \
+    make -j 6 && make install
+WORKDIR /
+
+COPY --from=build /vari-joern/dist/Sugarlyzer-0.0.1a0-py3-none-any.whl /Sugarlyzer-0.0.1a0-py3-none-any.whl
+RUN python3.10 -m pip install /Sugarlyzer-0.0.1a0-py3-none-any.whl
 
 # If the Docker daemon has been started in rootless mode, torte runs `whoami` to ensure that it does not run as root.
 # If the daemon has not been started in rootless mode, torte wants to run as root. We can fake the user by overriding
