@@ -20,11 +20,11 @@ lineNumber = arguments.loc
 alarm = Alarm(input_file=desugaredFilePath,
               line_in_input_file=lineNumber)
 
-print("Starting to process alarms...")
+print("Processing input... ", end='')
 processedAlarms = process_alarms([alarm], desugaredFilePath)
-print("Alarms processed!")
+print("finished!")
 print("Presence Conditions:")
 for alarm in processedAlarms:
-    print(f"Alarm in line #{alarm.line_in_input_file}")
+    print(f"File with path: \"{alarm.input_file}\" and loc {alarm.line_in_input_file}")
     print(f"\t Presence condition: {alarm.presence_condition}")
     print(f"\t Presence condition satisfiable: {alarm.feasible}")
