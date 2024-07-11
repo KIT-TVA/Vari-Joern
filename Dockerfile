@@ -79,7 +79,7 @@ RUN apt-get install -y \
     # Required by torte
     git \
     # Required by Vari-Joern and Joern
-    openjdk-21-jre \
+    openjdk-21-jdk \
     # Required for installing kmax
     pipx \
     # Required for executing kmax
@@ -115,6 +115,7 @@ RUN mkdir build && cd build && cmake -DZ3_BUILD_JAVA_BINDINGS=ON .. &&  \
     make -j 6 && make install
 WORKDIR /
 
+RUN python3.10 -m pip install --upgrade setuptools
 COPY --from=build /vari-joern/dist/Sugarlyzer-0.0.1a0-py3-none-any.whl /Sugarlyzer-0.0.1a0-py3-none-any.whl
 RUN python3.10 -m pip install /Sugarlyzer-0.0.1a0-py3-none-any.whl
 
