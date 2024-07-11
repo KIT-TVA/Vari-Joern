@@ -106,15 +106,6 @@ RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
     && mv /opt/Vari-Joern-1.0-SNAPSHOT /opt/vari-joern \
     && rm /Vari-Joern-1.0-SNAPSHOT.tar
 
-RUN git clone https://github.com/Z3Prover/z3.git
-RUN apt-get update \
-  && apt-get -y install build-essential \
-  && apt-get install -y cmake
-WORKDIR z3
-RUN mkdir build && cd build && cmake -DZ3_BUILD_JAVA_BINDINGS=ON .. &&  \
-    make -j 6 && make install
-WORKDIR /
-
 RUN python3.10 -m pip install --upgrade setuptools
 COPY --from=build /vari-joern/dist/Sugarlyzer-0.0.1a0-py3-none-any.whl /Sugarlyzer-0.0.1a0-py3-none-any.whl
 RUN python3.10 -m pip install /Sugarlyzer-0.0.1a0-py3-none-any.whl

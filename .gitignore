@@ -100,3 +100,8 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 
+# Python build
+build/
+dist/
+src/main/Sugarlyzer.egg-info/
+
