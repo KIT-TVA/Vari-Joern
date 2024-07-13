@@ -174,7 +174,12 @@ public class KbuildComposer implements Composer {
                                 .filter(dependency -> dependency instanceof CompiledDependency)
                                 .map(dependency -> ((CompiledDependency) dependency).getInclusionInformation())
                                 .collect(Collectors.toMap(InclusionInformation::getComposedFilePath,
-                                        InclusionInformation::includePaths))
+                                        InclusionInformation::includePaths)),
+                        includedFiles.stream()
+                                .filter(dependency -> dependency instanceof CompiledDependency)
+                                .map(dependency -> ((CompiledDependency) dependency).getInclusionInformation())
+                                .collect(Collectors.toMap(InclusionInformation::getComposedFilePath,
+                                        InclusionInformation::systemIncludePaths))
                 ))
         );
     }
@@ -398,7 +403,8 @@ public class KbuildComposer implements Composer {
                                         .filter(includedFile -> !includedFile.toString().equals(dep))
                                         .collect(Collectors.toSet()),
                                 inclusionInformation.defines(),
-                                inclusionInformation.includePaths()
+                                inclusionInformation.includePaths(),
+                                inclusionInformation.systemIncludePaths()
                         ));
                     }
                 })

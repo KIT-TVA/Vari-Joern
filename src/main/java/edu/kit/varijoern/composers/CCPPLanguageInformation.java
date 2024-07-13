@@ -13,14 +13,18 @@ import java.util.Objects;
  */
 public class CCPPLanguageInformation extends LanguageInformation {
     private final @NotNull Map<Path, List<Path>> includePaths;
+    private final @NotNull Map<Path, List<Path>> systemIncludePaths;
 
     /**
      * Creates a new {@link CCPPLanguageInformation} instance.
      *
-     * @param includePaths the include paths for the C/C++ code
+     * @param includePaths       the include paths for the C/C++ code
+     * @param systemIncludePaths the system include paths for the C/C++ code
      */
-    public CCPPLanguageInformation(@NotNull Map<Path, List<Path>> includePaths) {
+    public CCPPLanguageInformation(@NotNull Map<Path, List<Path>> includePaths,
+                                   @NotNull Map<Path, List<Path>> systemIncludePaths) {
         this.includePaths = includePaths;
+        this.systemIncludePaths = systemIncludePaths;
     }
 
     @Override
@@ -41,6 +45,15 @@ public class CCPPLanguageInformation extends LanguageInformation {
      */
     public @NotNull Map<Path, List<Path>> getIncludePaths() {
         return includePaths;
+    }
+
+    /**
+     * Returns the system include paths for the C/C++ code.
+     *
+     * @return the system include paths for the C/C++ code
+     */
+    public @NotNull Map<Path, List<Path>> getSystemIncludePaths() {
+        return systemIncludePaths;
     }
 
     @Override

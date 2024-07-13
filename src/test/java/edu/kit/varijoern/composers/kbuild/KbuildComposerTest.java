@@ -40,23 +40,28 @@ class KbuildComposerTest {
     private static Stream<Arguments> busyboxTestCases() {
         Set<Path> standardIncludedFiles = Set.of(Path.of("include/autoconf.h"),
                 Path.of("include/cmdline-included-header.h"));
+        List<Path> standardIncludePaths = List.of(Path.of("include"));
+        List<Path> standardSystemIncludePaths = List.of();
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("main"),
-                List.of(Path.of("include"))
+                standardIncludePaths,
+                standardSystemIncludePaths
         );
         InclusionInformation includedCByMain = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("main"),
-                List.of(Path.of("include"))
+                standardIncludePaths,
+                standardSystemIncludePaths
         );
         InclusionInformation includedCByIO = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("io_file"),
-                List.of(Path.of("include"))
+                standardIncludePaths,
+                standardSystemIncludePaths
         );
         Stream<TestCase> testCases = Stream.of(
                 new TestCase(
@@ -93,14 +98,16 @@ class KbuildComposerTest {
                                         Path.of("src/hello-cpp.cc"),
                                         standardIncludedFiles,
                                         standardBusyboxDefinesForFile("hello_cpp"),
-                                        List.of(Path.of("include"))
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
                                 )),
                                 new FileContentVerifier(Path.of("src/hello-cpp.h")),
                                 new FileContentVerifier(new InclusionInformation(
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
                                         standardBusyboxDefinesForFile("io_file"),
-                                        List.of(Path.of("include"))
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
                                 )),
                                 new FileContentVerifier(includedCByIO),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
@@ -123,11 +130,13 @@ class KbuildComposerTest {
         List<Path> standardIncludePaths = Stream.of("arch/x86/include", "arch/x86/include/generated",
                 "include", "arch/x86/include/uapi", "arch/x86/include/generated/uapi",
                 "include/uapi", "include/generated/uapi").map(Path::of).toList();
+        List<Path> standardSystemIncludePaths = List.of();
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
                 standardLinuxDefinesForFile("main"),
-                standardIncludePaths
+                standardIncludePaths,
+                standardSystemIncludePaths
         );
         Stream<TestCase> testCases = Stream.of(
                 new TestCase(
@@ -156,7 +165,8 @@ class KbuildComposerTest {
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
                                         standardLinuxDefinesForFile("io-file"),
-                                        standardIncludePaths
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
                                 )),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
@@ -171,13 +181,14 @@ class KbuildComposerTest {
     }
 
     private static Stream<Arguments> fiascoTestCases() {
-        Path gccIncludePath = getGCCIncludePath();
+        List<Path> standardSystemIncludePaths = List.of(getGCCIncludePath());
         List<Path> standardIncludePaths = List.of(Path.of("build"), Path.of("build/auto"));
         FileContentVerifier mainVerifier = new FileContentVerifier(new InclusionInformation(
                 Path.of("build/auto/main.cc"),
                 Set.of(),
                 Map.of(),
-                standardIncludePaths
+                standardIncludePaths,
+                standardSystemIncludePaths
         ), true); // The build/* files aren't in the original source, so they must be read from the
         // composer's tmp dir, which will run fiasco's preprocessor to generate them
         FileContentVerifier mainHVerifier = new FileContentVerifier(Path.of("build/auto/main.h"), true);
@@ -223,7 +234,8 @@ class KbuildComposerTest {
                                         Path.of("build/auto/io_file.cc"),
                                         Set.of(),
                                         Map.of(),
-                                        standardIncludePaths
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
                                 ), true),
                                 new FileContentVerifier(Path.of("build/auto/io_file.h"), true),
                                 new FileContentVerifier(Path.of("build/auto/io_file_i.h"), true),
@@ -246,7 +258,7 @@ class KbuildComposerTest {
                             .start()
                             .getInputStream()
                             .readAllBytes()
-            ));
+            ).trim());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -438,6 +450,7 @@ class KbuildComposerTest {
         private final Path composedRelativePath;
         private final List<String> expectedPrependedLines;
         private final List<Path> expectedIncludePaths;
+        private final List<Path> expectedSystemIncludePaths;
         private final boolean useComposerTmpDir;
 
         /**
@@ -447,7 +460,7 @@ class KbuildComposerTest {
          * @param relativePath the relative path to the file
          */
         public FileContentVerifier(Path relativePath) {
-            this(relativePath, relativePath, List.of(), null);
+            this(relativePath, relativePath, List.of(), null, null);
         }
 
         /**
@@ -458,7 +471,7 @@ class KbuildComposerTest {
          * @param useComposerTmpDir whether to read the original file from the composer's temporary directory
          */
         public FileContentVerifier(Path relativePath, boolean useComposerTmpDir) {
-            this(relativePath, relativePath, List.of(), null, useComposerTmpDir);
+            this(relativePath, relativePath, List.of(), null, null, useComposerTmpDir);
         }
 
         /**
@@ -466,31 +479,36 @@ class KbuildComposerTest {
          * the file name generated by the composer. The verifier checks that the file has the expected preprocessor
          * directives prepended.
          *
-         * @param originalRelativePath   the relative path to the original file
-         * @param composedRelativePath   the relative path to the file in the composition
-         * @param expectedPrependedLines the expected preprocessor directives
-         * @param expectedIncludePaths   the expected include paths for this file
-         */
-        public FileContentVerifier(Path originalRelativePath, Path composedRelativePath,
-                                   List<String> expectedPrependedLines, List<Path> expectedIncludePaths) {
-            this(originalRelativePath, composedRelativePath, expectedPrependedLines, expectedIncludePaths, false);
-        }
-
-        /**
-         * Creates a new verifier for a file in the composition with the specified paths to the original file name and
-         * the file name generated by the composer. The verifier checks that the file has the expected preprocessor
-         * directives prepended.
-         *
-         * @param originalRelativePath   the relative path to the original file
-         * @param composedRelativePath   the relative path to the file in the composition
-         * @param expectedPrependedLines the expected preprocessor directives
-         * @param expectedIncludePaths   the expected include paths for this file
-         * @param useComposerTmpDir      whether to read the original file from the composer's temporary directory
+         * @param originalRelativePath       the relative path to the original file
+         * @param composedRelativePath       the relative path to the file in the composition
+         * @param expectedPrependedLines     the expected preprocessor directives
+         * @param expectedIncludePaths       the expected include paths for this file
+         * @param expectedSystemIncludePaths the expected system include paths for this file
          */
         public FileContentVerifier(Path originalRelativePath, Path composedRelativePath,
                                    List<String> expectedPrependedLines, List<Path> expectedIncludePaths,
-                                   boolean useComposerTmpDir) {
+                                   List<Path> expectedSystemIncludePaths) {
+            this(originalRelativePath, composedRelativePath, expectedPrependedLines, expectedIncludePaths,
+                    expectedSystemIncludePaths, false);
+        }
+
+        /**
+         * Creates a new verifier for a file in the composition with the specified paths to the original file name and
+         * the file name generated by the composer. The verifier checks that the file has the expected preprocessor
+         * directives prepended.
+         *
+         * @param originalRelativePath       the relative path to the original file
+         * @param composedRelativePath       the relative path to the file in the composition
+         * @param expectedPrependedLines     the expected preprocessor directives
+         * @param expectedIncludePaths       the expected include paths for this file
+         * @param expectedSystemIncludePaths the expected system include paths for this file
+         * @param useComposerTmpDir          whether to read the original file from the composer's temporary directory
+         */
+        public FileContentVerifier(Path originalRelativePath, Path composedRelativePath,
+                                   List<String> expectedPrependedLines, List<Path> expectedIncludePaths,
+                                   List<Path> expectedSystemIncludePaths, boolean useComposerTmpDir) {
             this.expectedIncludePaths = expectedIncludePaths;
+            this.expectedSystemIncludePaths = expectedSystemIncludePaths;
             this.useComposerTmpDir = useComposerTmpDir;
             if (originalRelativePath.isAbsolute())
                 throw new IllegalArgumentException("originalRelativePath must be relative");
@@ -535,6 +553,7 @@ class KbuildComposerTest {
                     )
                     .toList();
             this.expectedIncludePaths = inclusionInformation.includePaths();
+            this.expectedSystemIncludePaths = inclusionInformation.systemIncludePaths();
             this.useComposerTmpDir = useComposerTmpDir;
         }
 
@@ -631,8 +650,13 @@ class KbuildComposerTest {
             assertTrue(languageInformation.size() == 1 && languageInformation.get(0) instanceof CCPPLanguageInformation,
                     "Composition should contain exactly one C/C++ language information");
             CCPPLanguageInformation ccppLanguageInformation = (CCPPLanguageInformation) languageInformation.get(0);
-            assertEquals(this.expectedIncludePaths,
+            assertEquals(
+                    this.expectedIncludePaths,
                     ccppLanguageInformation.getIncludePaths().get(this.composedRelativePath)
+            );
+            assertEquals(
+                    this.expectedSystemIncludePaths,
+                    ccppLanguageInformation.getSystemIncludePaths().get(this.composedRelativePath)
             );
         }
     }
