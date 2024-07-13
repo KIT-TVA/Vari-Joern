@@ -1,5 +1,16 @@
+INTERFACE:
+
+#define BUF_SIZE 25
+
+int main(void);
+
+IMPLEMENTATION:
+
+#include "globalconfig.h"
+
 #include <stdio.h>
-#include "main.h"
+
+int gets(char *buf);
 
 int main(void) {
         char buf[BUF_SIZE];

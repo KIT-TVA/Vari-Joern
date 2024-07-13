@@ -1,0 +1,9 @@
+# -*- makefile -*-
+# vi:se ft=make:
+
+SAMPLE              := libsample.a
+VPATH               += sample
+INTERFACES_SAMPLE   := main
+
+INTERFACES_SAMPLE-$(CONFIG_INCLUDE_IO_FILE) += io_file
+INTERFACES_SAMPLE   += $(INTERFACES_SAMPLE-y)
