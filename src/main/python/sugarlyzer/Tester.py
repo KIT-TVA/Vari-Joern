@@ -49,7 +49,7 @@ class Tester:
             :param file: The program file to read.
             :return: The JSON representation of the program file. Throws an exception if the file is malformed.
             """
-            with open(importlib.resources.path(f'resources.programs', 'program_schema.json'), 'r') as schema_file:
+            with open(importlib.resources.path(f'resources.sugarlyzer.programs', 'program_schema.json'), 'r') as schema_file:
                 resolver = RefResolver.from_schema(schema := json.load(schema_file))
                 validator = Draft7Validator(schema, resolver)
             with open(file, 'r') as program_file:
@@ -58,7 +58,7 @@ class Tester:
             return result
 
         program_as_json = read_json_and_validate(
-            importlib.resources.path(f'resources.programs.{program}', 'program.json'))
+            importlib.resources.path(f'resources.sugarlyzer.programs.{program}', 'program.json'))
         self.program: ProgramSpecification = ProgramSpecification(program, **program_as_json)
         self.tool: AbstractTool = AnalysisToolFactory().get_tool(tool)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
@@ -172,8 +172,9 @@ class Tester:
             alarms = []
             logger.info("Running analysis....")
             with ProcessPool(self.jobs) as p:
-                for result in tqdm(p.imap(lambda x: analyze_read_and_process(*x), ((d, o, dt) for d, _, o, dt in input_files)),
-                                   total=len(input_files)):
+                for result in tqdm(
+                        p.imap(lambda x: analyze_read_and_process(*x), ((d, o, dt) for d, _, o, dt in input_files)),
+                        total=len(input_files)):
                     alarms.extend(result)
 
             logger.info(f"Got {len(alarms)} unique alarms.")
@@ -231,11 +232,12 @@ class Tester:
                 mappedKey = k
                 mappedValue = v
                 if self.kgen_map != None:
-                    with open(importlib.resources.path(f'resources.programs.{self.program.name}', self.kgen_map)) as mapping:
+                    with open(importlib.resources.path(f'resources.programs.{self.program.name}',
+                                                       self.kgen_map)) as mapping:
                         map = json.load(mapping)
                     kdef = k
                     if v.lower() == 'false':
-                        kdef = '!'+kdef
+                        kdef = '!' + kdef
                     if kdef in map.keys():
                         toParse = map[kdef]
                         if toParse.startswith('DEF'):
@@ -264,7 +266,9 @@ class Tester:
             ntf = tempfile.NamedTemporaryFile(delete=False, mode="w")
             ntf.write(config_string)
             ps: ProgramSpecification = self.clone_program_and_configure(self.program, Path(ntf.name))
-            updated_file =  str(alarm.input_file.absolute()).replace('/targets',f'/targets/{Path(ntf.name).name}').replace('.desugared','')
+            updated_file = str(alarm.input_file.absolute()).replace('/targets',
+                                                                    f'/targets/{Path(ntf.name).name}').replace(
+                '.desugared', '')
             updated_file = Path(updated_file)
             logger.debug(f"Mapped file {alarm.input_file} to {updated_file}")
             verify = self.analyze_file_and_associate_configuration(updated_file, Path(ntf.name), ps)
@@ -295,7 +299,8 @@ class Tester:
         else:
             return alarm
 
-    def analyze_file_and_associate_configuration(self, file: Path, config: Path, ps: ProgramSpecification) -> Iterable[Alarm]:
+    def analyze_file_and_associate_configuration(self, file: Path, config: Path, ps: ProgramSpecification) -> Iterable[
+        Alarm]:
         def get_config_object(config: Path) -> List[Tuple[str, str]]:
             with open(config, 'r') as f:
                 lines = [l.strip() for l in f.readlines()]
@@ -344,7 +349,8 @@ class Tester:
         with ProcessPool(self.jobs) as p:
             alarms = list()
             for i in tqdm(
-                    p.imap(lambda x: self.analyze_file_and_associate_configuration(*x), source_files_config_spec_triples),
+                    p.imap(lambda x: self.analyze_file_and_associate_configuration(*x),
+                           source_files_config_spec_triples),
                     total=len(source_files_config_spec_triples)):
                 alarms.extend(i)
 
@@ -377,9 +383,17 @@ def set_up_logging(args: argparse.Namespace) -> None:
     else:
         logging_level = logging.INFO
 
+    logging_dir = "log"
+    if not os.path.exists(logging_dir):
+        os.makedirs(logging_dir)
+
     logging_kwargs = {"level": logging_level,
                       "format": '%(asctime)s %(name)s [%(levelname)s - %(process)d] %(message)s',
-                      "handlers": [logging.StreamHandler(), logging.FileHandler("/log", 'w')]}
+                      "handlers": [
+                          logging.StreamHandler(),
+                          logging.FileHandler(os.path.join(logging_dir, "logfile.log"), 'w')
+                      ]
+    }
 
     logging.basicConfig(**logging_kwargs)
 
@@ -391,6 +405,7 @@ def main():
     t = Tester(args.tool, args.program, args.baselines, True, args.jobs, args.validate)
     t.execute()
     print(f'total time: {time.monotonic() - start}')
+
 
 if __name__ == '__main__':
     main()
