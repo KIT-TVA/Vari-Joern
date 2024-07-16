@@ -41,10 +41,9 @@ RUN apt-get install -y \
 
 
 # Clone SuperC/SugarC.
-RUN git clone https://github.com/appleseedlab/superc.git /superc
+RUN git clone https://github.com/KIT-TVA/superc.git /superc
 WORKDIR /superc
-# For running SugarC, the mergingParseErrors branch of the original SuperC is required.
-RUN git checkout mergingParseErrors
+RUN git checkout merge-with-upstream-mergingParseErrors
 
 # Build SuperC/SugarC.
 RUN JAVA_DEV_ROOT=/superc \

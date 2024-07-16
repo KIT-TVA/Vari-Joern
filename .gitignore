@@ -105,3 +105,6 @@ build/
 dist/
 src/main/Sugarlyzer.egg-info/
 
+# Logging files
+*.log
+
