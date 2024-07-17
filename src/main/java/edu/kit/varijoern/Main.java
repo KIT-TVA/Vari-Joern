@@ -5,6 +5,7 @@ import com.beust.jcommander.ParameterException;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
+import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.cli.Args;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
@@ -17,6 +18,7 @@ import edu.kit.varijoern.output.OutputData;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerConfigFactory;
 import edu.kit.varijoern.samplers.SamplerException;
+import jodd.io.StreamGobbler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -29,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -209,6 +212,34 @@ public class Main {
 
     private static int runFamilyBased(Config config, Args args) {
         // TODO
+        Process sugarlyzerProcess = null;
+        try {
+            sugarlyzerProcess = new ProcessBuilder(
+                    "tester", config.getAnalyzerConfig().getName()
+                    //"--param", String.format("cpgPath=%s", cpgLocation),
+                    //"--param", String.format("outFile=%s", outFile)
+            )
+                    .directory(Paths.get(System.getProperty("user.home")).toFile())
+                    .start();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        //StreamGobbler stdoutGobbler = new StreamGobbler(sugarlyzerProcess.getInputStream(), STREAM_LOGGER);
+        //StreamGobbler stderrGobbler = new StreamGobbler(sugarlyzerProcess.getErrorStream(), STREAM_LOGGER);
+        //stdoutGobbler.start();
+        //stderrGobbler.start();
+        int joernExitCode;
+        try {
+            joernExitCode = sugarlyzerProcess.waitFor();
+        } catch (InterruptedException e) {
+            sugarlyzerProcess.destroy();
+            throw new RuntimeException(e);
+        }
+        //stdoutGobbler.waitFor();
+        //stderrGobbler.waitFor();
+        if (joernExitCode != 0)
+            System.err.println(String.format("joern exited with %d", joernExitCode));
+
         return 0;
     }
 
