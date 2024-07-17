@@ -6,6 +6,7 @@ import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.analyzers.ResultAggregator;
+import edu.kit.varijoern.cli.Args;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
@@ -95,7 +96,11 @@ public class Main {
                 return;
             }
 
-            int status = runUsingConfig(config, parsedArgs);
+            int status = switch (parsedArgs.getAnalysisStrategy()) {
+                case PRODUCT -> runUsingConfig(config, parsedArgs);
+                case FAMILY -> runFamilyBased(config, parsedArgs);
+            };
+
             EXITED_LATCH.countDown();
             System.exit(status);
         } finally {
@@ -200,6 +205,11 @@ public class Main {
             return STATUS_IO_ERROR;
         }
         return STATUS_OK;
+    }
+
+    private static int runFamilyBased(Config config, Args args) {
+        // TODO
+        return 0;
     }
 
     private static void setupShutdownHook() {

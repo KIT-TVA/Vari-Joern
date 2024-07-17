@@ -1,13 +1,18 @@
-package edu.kit.varijoern;
+package edu.kit.varijoern.cli;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.PathConverter;
+import edu.kit.varijoern.ResultOutputArgs;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 
 public class Args {
+    @Parameter(names = {"-s", "--strategy"}, description = "The analysis strategy (product or family)>", required = true,
+            validateWith = StrategyParameterValidator.class, converter = AnalysisStrategyConverter.class)
+    private @NotNull AnalysisStrategy strategy;
+
     @Parameter(names = "--verbose", description = "Enable verbose logging")
     private boolean verbose;
 
@@ -34,6 +39,10 @@ public class Args {
 
     @ParametersDelegate
     private @NotNull ResultOutputArgs resultOutputArgs = new ResultOutputArgs();
+
+    public @NotNull AnalysisStrategy getAnalysisStrategy() {
+        return this.strategy;
+    }
 
     /**
      * Returns whether verbose logging is enabled. This corresponds to logging level DEBUG.

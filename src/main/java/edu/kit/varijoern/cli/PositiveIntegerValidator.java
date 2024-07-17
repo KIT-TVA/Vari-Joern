@@ -1,4 +1,4 @@
-package edu.kit.varijoern;
+package edu.kit.varijoern.cli;
 
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.ParameterException;

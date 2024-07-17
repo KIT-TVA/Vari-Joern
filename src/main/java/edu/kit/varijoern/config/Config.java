@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
  * This class contains the complete configuration of Vari-Joern. This includes the subsections for components.
  */
 public class Config {
+    private static final String PROGRAM_FIELD_NAME = "program";
     private static final String FEATURE_MODEL_READER_FIELD_NAME = "feature-model-reader";
     private static final String ITERATIONS_FIELD_NAME = "iterations";
     private static final String SAMPLER_FIELD_NAME = "sampler";
@@ -31,6 +32,7 @@ public class Config {
     private static final String ANALYZER_FIELD_NAME = "analyzer";
 
     private final long iterations;
+    private final @NotNull ProgramConfig programConfig;
     private final @NotNull FeatureModelReaderConfig featureModelReaderConfig;
     private final @NotNull SamplerConfig samplerConfig;
     private final @NotNull ComposerConfig composerConfig;
@@ -63,6 +65,10 @@ public class Config {
             throw new InvalidConfigException("Invalid type of option `iterations`", e);
         }
 
+        if (!parsedConfig.isTable(PROGRAM_FIELD_NAME))
+            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, PROGRAM_FIELD_NAME));
+        this.programConfig = new ProgramConfig(Objects.requireNonNull(parsedConfig.getTable(PROGRAM_FIELD_NAME)));
+
         if (!parsedConfig.isTable(SAMPLER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
         this.samplerConfig = SamplerConfigFactory.getInstance()
@@ -92,6 +98,10 @@ public class Config {
      */
     public long getIterations() {
         return iterations;
+    }
+
+    public @NotNull ProgramConfig getProgramConfig() {
+        return this.programConfig;
     }
 
     /**
