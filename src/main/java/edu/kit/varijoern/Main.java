@@ -5,7 +5,6 @@ import com.beust.jcommander.ParameterException;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
-import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.cli.Args;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
@@ -18,7 +17,6 @@ import edu.kit.varijoern.output.OutputData;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerConfigFactory;
 import edu.kit.varijoern.samplers.SamplerException;
-import jodd.io.StreamGobbler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -86,7 +84,7 @@ public class Main {
 
             Config config;
             try {
-                config = new Config(parsedArgs.getConfig());
+                config = new Config(parsedArgs.getConfig(), parsedArgs.getAnalysisStrategy());
             } catch (IOException e) {
                 LOGGER.atFatal().withThrowable(e).log("The configuration file could not be read");
                 EXITED_LATCH.countDown();
@@ -100,7 +98,7 @@ public class Main {
             }
 
             int status = switch (parsedArgs.getAnalysisStrategy()) {
-                case PRODUCT -> runUsingConfig(config, parsedArgs);
+                case PRODUCT -> runProductBased(config, parsedArgs);
                 case FAMILY -> runFamilyBased(config, parsedArgs);
             };
 
@@ -124,7 +122,7 @@ public class Main {
         }
     }
 
-    private static int runUsingConfig(@NotNull Config config, @NotNull Args args) {
+    private static int runProductBased(@NotNull Config config, @NotNull Args args) {
         Path tmpDir;
         Path featureModelReaderTmpDirectory;
         try {
