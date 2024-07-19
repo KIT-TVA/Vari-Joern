@@ -4,12 +4,15 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.analyzers.AnalyzerConfig;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.cli.Args;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.config.ProgramConfig;
+import edu.kit.varijoern.config.SugarlyzerConfig;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfigFactory;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
@@ -17,6 +20,8 @@ import edu.kit.varijoern.output.OutputData;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerConfigFactory;
 import edu.kit.varijoern.samplers.SamplerException;
+import jodd.io.StreamGobbler;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -24,9 +29,11 @@ import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
+import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -208,24 +216,36 @@ public class Main {
         return STATUS_OK;
     }
 
-    private static int runFamilyBased(Config config, Args args) {
+    private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
+
+    private static int runFamilyBased(@NotNull Config config, @NotNull Args args) {
         // TODO
+        String sugarlyzerCommand = Optional.ofNullable(config.getSugarlyzerConfig())
+                .map(SugarlyzerConfig::getSugarlyzerPath)
+                .map(Path::toAbsolutePath)
+                .map(Object::toString)
+                .orElse("tester");
+
+        ProgramConfig programConfig = config.getProgramConfig();
+        String programSourcePath = programConfig.getProgramPath().toAbsolutePath().toString();
+
+        AnalyzerConfig analyzerConfig = config.getAnalyzerConfig();
+        String analyzerName = analyzerConfig.getName();
+
+        // TODO Analyzer path required?
+
         Process sugarlyzerProcess = null;
         try {
-            sugarlyzerProcess = new ProcessBuilder(
-                    "tester", config.getAnalyzerConfig().getName()
-                    //"--param", String.format("cpgPath=%s", cpgLocation),
-                    //"--param", String.format("outFile=%s", outFile)
-            )
+            sugarlyzerProcess = new ProcessBuilder(sugarlyzerCommand, analyzerName, "axtls")
                     .directory(Paths.get(System.getProperty("user.home")).toFile())
                     .start();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        //StreamGobbler stdoutGobbler = new StreamGobbler(sugarlyzerProcess.getInputStream(), STREAM_LOGGER);
-        //StreamGobbler stderrGobbler = new StreamGobbler(sugarlyzerProcess.getErrorStream(), STREAM_LOGGER);
-        //stdoutGobbler.start();
-        //stderrGobbler.start();
+        StreamGobbler stdoutGobbler = new StreamGobbler(sugarlyzerProcess.getInputStream(), STREAM_LOGGER);
+        StreamGobbler stderrGobbler = new StreamGobbler(sugarlyzerProcess.getErrorStream(), STREAM_LOGGER);
+        stdoutGobbler.start();
+        stderrGobbler.start();
         int joernExitCode;
         try {
             joernExitCode = sugarlyzerProcess.waitFor();
@@ -233,8 +253,8 @@ public class Main {
             sugarlyzerProcess.destroy();
             throw new RuntimeException(e);
         }
-        //stdoutGobbler.waitFor();
-        //stderrGobbler.waitFor();
+        stdoutGobbler.waitFor();
+        stderrGobbler.waitFor();
         if (joernExitCode != 0)
             System.err.println(String.format("joern exited with %d", joernExitCode));
 
