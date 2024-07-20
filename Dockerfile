@@ -72,10 +72,10 @@ RUN apt-get install -y \
 
 ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
-    && /joern-install.sh --version 2.0.400 \
+    && /joern-install.sh --version=v2.0.400 \
     && rm /joern-install.sh /joern-cli.zip
 ENV PATH="/opt/joern/joern-cli:${PATH}"
-RUN joern-scan --updatedb
+RUN joern-scan --updatedb --dbversion 2.0.400
 
 RUN pipx install --python=$(which python3.11) kmax
 
