@@ -6,6 +6,7 @@ import edu.kit.varijoern.KconfigTestCasePreparer;
 import edu.kit.varijoern.PresenceConditionExpectation;
 import edu.kit.varijoern.composers.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
+import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -183,16 +184,14 @@ class KbuildComposerTest {
     private static Stream<Arguments> fiascoTestCases() {
         List<Path> standardSystemIncludePaths = List.of(getGCCIncludePath());
         List<Path> standardIncludePaths = List.of(Path.of("build"), Path.of("build/auto"));
-        FileContentVerifier mainVerifier = new FileContentVerifier(new InclusionInformation(
-                Path.of("build/auto/main.cc"),
+        Verifier mainVerifier = new FiascoFileContentVerifier(new InclusionInformation(
+                Path.of("src/sample/main.cpp"),
                 Set.of(),
                 Map.of(),
                 standardIncludePaths,
                 standardSystemIncludePaths
-        ), true); // The build/* files aren't in the original source, so they must be read from the
+        )); // The build/* files aren't in the original source, so they must be read from the
         // composer's tmp dir, which will run fiasco's preprocessor to generate them
-        FileContentVerifier mainHVerifier = new FileContentVerifier(Path.of("build/auto/main.h"), true);
-        FileContentVerifier mainIHVerifier = new FileContentVerifier(Path.of("build/auto/main_i.h"), true);
         Stream<TestCase> testCases = Stream.of(
                 new TestCase(
                         "fiasco-sample",
@@ -203,14 +202,13 @@ class KbuildComposerTest {
                                 "__VISIBILITY__CONFIG_CXX",
                                 "__VISIBILITY__CONFIG_LD",
                                 "__VISIBILITY__CONFIG_HOST_CC",
-                                "__VISIBILITY__CONFIG_HOST_CXX"
+                                "__VISIBILITY__CONFIG_HOST_CXX",
+                                "DEFINE_USELESS_FUNCTION"
                         ),
                         List.of(
                                 new FileAbsentVerifier(".*\\.o"),
                                 FileAbsentVerifier.fiascoPreprocessorArtifacts("io_file"),
-                                mainVerifier,
-                                mainHVerifier,
-                                mainIHVerifier
+                                mainVerifier
                         )
                 ),
                 new TestCase(
@@ -221,6 +219,7 @@ class KbuildComposerTest {
                                 "PERFORM_RENAME",
                                 "PERFORM_CHMOD",
                                 "USE_GETS",
+                                "DEFINE_USELESS_FUNCTION",
                                 "AMD64",
                                 "__VISIBILITY__CONFIG_CC",
                                 "__VISIBILITY__CONFIG_CXX",
@@ -230,24 +229,48 @@ class KbuildComposerTest {
                         ),
                         List.of(
                                 new FileAbsentVerifier(".*\\.o"),
-                                new FileContentVerifier(new InclusionInformation(
-                                        Path.of("build/auto/io_file.cc"),
+                                new FiascoFileContentVerifier(new InclusionInformation(
+                                        Path.of("src/sample/io_file.cpp"),
                                         Set.of(),
                                         Map.of(),
                                         standardIncludePaths,
                                         standardSystemIncludePaths
-                                ), true),
-                                new FileContentVerifier(Path.of("build/auto/io_file.h"), true),
-                                new FileContentVerifier(Path.of("build/auto/io_file_i.h"), true),
-                                mainVerifier,
-                                mainHVerifier,
-                                mainIHVerifier
+                                )),
+                                mainVerifier
                         )
                 )
         );
-        return testCases.flatMap(
-                testCase -> STANDARD_PREPARERS.stream()
-                        .map(preparer -> Arguments.of(testCase, preparer))
+
+        // This test case does not set DEFINE_USELESS_FUNCTION, in order to test that the composer generates correct
+        // source maps even when fiasco's preprocessor drops some lines
+        TestCase noUselessFunction = new TestCase(
+                "fiasco-sample",
+                "fiasco",
+                List.of(
+                        "AMD64",
+                        "__VISIBILITY__CONFIG_CC",
+                        "__VISIBILITY__CONFIG_CXX",
+                        "__VISIBILITY__CONFIG_LD",
+                        "__VISIBILITY__CONFIG_HOST_CC",
+                        "__VISIBILITY__CONFIG_HOST_CXX"
+                ),
+                List.of(
+                        new FileAbsentVerifier(".*\\.o"),
+                        FileAbsentVerifier.fiascoPreprocessorArtifacts("io_file"),
+                        mainVerifier
+                )
+        );
+
+        return Stream.concat(
+                testCases.flatMap(
+                        testCase -> STANDARD_PREPARERS.stream()
+                                .map(preparer -> Arguments.of(testCase, preparer))
+                ),
+                Stream.of(Arguments.of(
+                        noUselessFunction,
+                        (KconfigTestCasePreparer) ((path) -> {
+                        })
+                ))
         );
     }
 
@@ -406,7 +429,7 @@ class KbuildComposerTest {
         }
 
         /**
-         * Returns a verifier that checks that there are no files generated by Fiasco's C++ preprocessor.
+         * Returns a verifier that checks that there are no files generated by fiasco's C++ preprocessor.
          * Forbidden files are:
          * <ul>
          *     <li>{@code build/auto/name.cc}</li>
@@ -581,7 +604,7 @@ class KbuildComposerTest {
             verifyIncludePaths(compositionInformation);
         }
 
-        private void verifySourceMap(CompositionInformation compositionInformation) {
+        protected void verifySourceMap(CompositionInformation compositionInformation) {
             assertEquals(1,
                     compositionInformation.getSourceMap()
                             .getOriginalLocation(
@@ -658,6 +681,131 @@ class KbuildComposerTest {
                     this.expectedSystemIncludePaths,
                     ccppLanguageInformation.getSystemIncludePaths().get(this.composedRelativePath)
             );
+        }
+    }
+
+    private static class FiascoFileContentVerifier implements Verifier {
+        private final InclusionInformation inclusionInformation;
+        private final Path mainCCPath;
+        private final Path mainHPath;
+        private final Path mainIHPath;
+        private final List<Verifier> fileContentVerifiers;
+
+        /**
+         * Creates a new verifier for the files in the composition created from the files the fiasco preprocessor
+         * generates.
+         *
+         * @param inclusionInformation the inclusion information for original source file (i.e., the *.cpp file). This
+         *                             is a slight abuse of {@link InclusionInformation} since the file is not directly
+         *                             included in the composition but rather its preprocessed output is.
+         */
+        public FiascoFileContentVerifier(InclusionInformation inclusionInformation) {
+            this.inclusionInformation = inclusionInformation;
+            this.mainCCPath = getBuildPath(inclusionInformation.filePath(), ".cc");
+            this.mainHPath = getBuildPath(inclusionInformation.filePath(), ".h");
+            this.mainIHPath = getBuildPath(inclusionInformation.filePath(), "_i.h");
+            this.fileContentVerifiers = List.of(
+                    new FileContentVerifier(
+                            new InclusionInformation(
+                                    this.mainCCPath,
+                                    inclusionInformation.includedFiles(),
+                                    inclusionInformation.defines(),
+                                    inclusionInformation.includePaths(),
+                                    inclusionInformation.systemIncludePaths()
+                            ),
+                            true
+                    ),
+                    new FileContentVerifier(this.mainHPath, true),
+                    new FileContentVerifier(this.mainIHPath, true)
+            );
+        }
+
+        private static Path getBuildPath(Path originalPath, String ending) {
+            Path originalFileName = originalPath.getFileName();
+            int dotIndex = originalFileName.toString().lastIndexOf('.');
+            Path buildFileName = Path.of(originalFileName.toString().substring(0, dotIndex) + ending);
+            return Path.of("build/auto").resolve(buildFileName);
+        }
+
+        @Override
+        public void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
+                           Path originalDirectory, Path compositionDirectory, Path composerTmpDirectory)
+                throws IOException {
+            for (Verifier verifier : this.fileContentVerifiers) {
+                verifier.verify(compositionInformation, testCaseManager, originalDirectory, compositionDirectory,
+                        composerTmpDirectory);
+            }
+
+            this.verifySourceMaps(compositionInformation, originalDirectory, compositionDirectory);
+        }
+
+        private void verifySourceMaps(CompositionInformation compositionInformation, Path originalDirectory,
+                                      Path compositionDirectory) throws IOException {
+            List<String> originalLines = Files.readAllLines(
+                    originalDirectory.resolve(this.inclusionInformation.filePath())
+            );
+            Map<String, List<Integer>> originalLineNumbers = new HashMap<>();
+            for (int i = 0; i < originalLines.size(); i++) {
+                String line = originalLines.get(i);
+                originalLineNumbers.computeIfAbsent(line, k -> new ArrayList<>()).add(i + 1);
+            }
+            this.verifySourceMapOfFile(compositionInformation, new InclusionInformation(
+                            this.mainCCPath,
+                            this.inclusionInformation.includedFiles(),
+                            this.inclusionInformation.defines(),
+                            this.inclusionInformation.includePaths(),
+                            this.inclusionInformation.systemIncludePaths()
+                    ).getComposedFilePath(), compositionDirectory,
+                    originalLineNumbers, false);
+            this.verifySourceMapOfFile(compositionInformation, this.mainHPath, compositionDirectory,
+                    originalLineNumbers, true);
+            this.verifySourceMapOfFile(compositionInformation, this.mainIHPath, compositionDirectory,
+                    originalLineNumbers, true);
+        }
+
+        private void verifySourceMapOfFile(CompositionInformation compositionInformation, Path path,
+                                           Path compositionDirectory, Map<String, List<Integer>> originalLineNumbers,
+                                           boolean isHeader) throws IOException {
+            // Number of lines prepended by the composer. These lines don't have source map information, so we'll ignore
+            // them.
+            int addedLines = isHeader ? this.inclusionInformation.defines().size()
+                    + this.inclusionInformation.includedFiles().size()
+                    : 0;
+
+            List<String> compositionLines = Files.readAllLines(compositionDirectory.resolve(path));
+            SourceMap sourceMap = compositionInformation.getSourceMap();
+            for (int i = 0; i < compositionLines.size(); i++) {
+                String line = compositionLines.get(i);
+                if (i < addedLines) {
+                    continue;
+                }
+
+                if (line.isBlank()) {
+                    // Blank lines are generated by fiasco's preprocessor. We don't know if this line is generated or
+                    // not, but in any case it is very unlikely that a blank line is mapped incorrectly while other
+                    // lines are mapped correctly.
+                    continue;
+                }
+
+                if (!originalLineNumbers.containsKey(line)) {
+                    // This line was (hopefully) generated by fiasco's preprocessor. We don't have source map
+                    // information for it, so we'll ignore it.
+                    continue;
+                }
+
+                SourceLocation reportedOriginalLocation = sourceMap.getOriginalLocation(new SourceLocation(path, i + 1))
+                        .orElseThrow();
+                assertEquals(this.inclusionInformation.filePath(), reportedOriginalLocation.file(),
+                        "Original path of line %d of %s should be %s but was %s"
+                                .formatted(i + 1, this.inclusionInformation.filePath(), path,
+                                        reportedOriginalLocation.file())
+                );
+                List<Integer> originalLineNumbersList = originalLineNumbers.get(line);
+                assertTrue(originalLineNumbersList.contains(reportedOriginalLocation.line()),
+                        "Original line number %d not found in potential locations for line %d of %s"
+                                .formatted(reportedOriginalLocation.line(), i + 1, path)
+                );
+            }
         }
     }
 }

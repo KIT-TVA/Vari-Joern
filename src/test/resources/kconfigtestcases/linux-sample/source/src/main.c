@@ -10,7 +10,4 @@ int main(void) {
         fgets(buf, BUF_SIZE, stdin);
 #endif
         printf("Text: %s", buf);
-#ifdef CONFIG_USE_CPP_FILE
-	sayHello();
-#endif
 }

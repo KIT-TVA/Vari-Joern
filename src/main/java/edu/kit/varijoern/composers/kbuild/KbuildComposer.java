@@ -168,7 +168,7 @@ public class KbuildComposer implements Composer {
                 features,
                 new KbuildPresenceConditionMapper(this.filePresenceConditionMapper, linePresenceConditionMappers,
                         generationInformation),
-                new KbuildComposerSourceMap(generationInformation),
+                new KbuildComposerSourceMap(generationInformation, tmpSourcePath),
                 List.of(new CCPPLanguageInformation(
                         includedFiles.stream()
                                 .filter(dependency -> dependency instanceof CompiledDependency)

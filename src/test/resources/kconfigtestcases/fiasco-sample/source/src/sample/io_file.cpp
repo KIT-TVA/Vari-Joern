@@ -1,7 +1,5 @@
 INTERFACE:
 
-void insecure_race(char *path);
-
 IMPLEMENTATION:
 
 #include <sys/stat.h>

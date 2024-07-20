@@ -3,15 +3,16 @@
 	<struct>
 		<and mandatory="true" name="Root">
 			<feature name="AMD64"/>
-			<feature name="__VISIBILITY__CONFIG_HOST_CXX"/>
-			<feature name="__VISIBILITY__CONFIG_LD"/>
 			<feature name="__VISIBILITY__CONFIG_CXX"/>
 			<feature name="INCLUDE_IO_FILE"/>
-			<feature name="PERFORM_CHMOD"/>
 			<feature name="PERFORM_RENAME"/>
+			<feature name="__VISIBILITY__CONFIG_LD"/>
 			<feature name="__VISIBILITY__CONFIG_HOST_CC"/>
+			<feature name="__VISIBILITY__CONFIG_HOST_CXX"/>
+			<feature name="PERFORM_CHMOD"/>
 			<feature name="__VISIBILITY__CONFIG_CC"/>
 			<feature name="USE_GETS"/>
+			<feature name="DEFINE_USELESS_FUNCTION"/>
 		</and>
 	</struct>
 	<constraints>
@@ -19,34 +20,7 @@
 			<var>AMD64</var>
 		</rule>
 		<rule>
-			<var>__VISIBILITY__CONFIG_HOST_CXX</var>
-		</rule>
-		<rule>
-			<var>__VISIBILITY__CONFIG_LD</var>
-		</rule>
-		<rule>
 			<var>__VISIBILITY__CONFIG_CXX</var>
-		</rule>
-		<rule>
-			<disj>
-				<conj>
-					<var>INCLUDE_IO_FILE</var>
-					<disj>
-						<var>INCLUDE_IO_FILE</var>
-						<not>
-							<var>PERFORM_CHMOD</var>
-						</not>
-					</disj>
-				</conj>
-				<conj>
-					<not>
-						<var>INCLUDE_IO_FILE</var>
-					</not>
-					<not>
-						<var>PERFORM_CHMOD</var>
-					</not>
-				</conj>
-			</disj>
 		</rule>
 		<rule>
 			<disj>
@@ -70,7 +44,34 @@
 			</disj>
 		</rule>
 		<rule>
+			<var>__VISIBILITY__CONFIG_LD</var>
+		</rule>
+		<rule>
 			<var>__VISIBILITY__CONFIG_HOST_CC</var>
+		</rule>
+		<rule>
+			<var>__VISIBILITY__CONFIG_HOST_CXX</var>
+		</rule>
+		<rule>
+			<disj>
+				<conj>
+					<var>INCLUDE_IO_FILE</var>
+					<disj>
+						<var>INCLUDE_IO_FILE</var>
+						<not>
+							<var>PERFORM_CHMOD</var>
+						</not>
+					</disj>
+				</conj>
+				<conj>
+					<not>
+						<var>INCLUDE_IO_FILE</var>
+					</not>
+					<not>
+						<var>PERFORM_CHMOD</var>
+					</not>
+				</conj>
+			</disj>
 		</rule>
 		<rule>
 			<var>__VISIBILITY__CONFIG_CC</var>

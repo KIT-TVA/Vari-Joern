@@ -2,7 +2,11 @@ INTERFACE:
 
 #define BUF_SIZE 25
 
-int main(void);
+IMPLEMENTATION[define_useless_function]:
+
+void iAmUseless() {
+        printf("I am useless!\n");
+}
 
 IMPLEMENTATION:
 
@@ -21,7 +25,4 @@ int main(void) {
         fgets(buf, BUF_SIZE, stdin);
 #endif
         printf("Text: %s", buf);
-#ifdef CONFIG_USE_CPP_FILE
-	sayHello();
-#endif
 }

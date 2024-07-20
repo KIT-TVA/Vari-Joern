@@ -56,6 +56,10 @@ config USE_GETS
     bool "Have fun with gets"
     default false
 
+config DEFINE_USELESS_FUNCTION
+    bool "Define a useless function"
+    default false
+
 config INCLUDE_IO_FILE
    bool "Include a file that contains a method performing I/O operations"
    default true
