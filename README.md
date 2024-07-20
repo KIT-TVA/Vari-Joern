@@ -25,4 +25,8 @@ docker run -it -v /path/to/source:/subject -v /path/to/docker.sock:/var/run/dock
 ```
 Replace `/path/to/source` with the path to the source code that you want to analyze and `/path/to/docker.sock` with the
 path to the Docker socket on the host system. It is usually located at `/var/run/docker.sock` or
-`$XDG_RUNTIME_DIR/docker.sock`.
+`$XDG_RUNTIME_DIR/docker.sock`. This command will start a shell in the container. From there, you can run Vari-Joern as
+follows:
+```shell
+Vari-Joern [options] path/to/config.toml
+```
