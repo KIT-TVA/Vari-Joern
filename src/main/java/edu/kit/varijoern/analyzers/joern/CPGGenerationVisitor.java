@@ -69,12 +69,13 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
         extraArguments.add("--language");
         extraArguments.add("newc");
         extraArguments.add("--frontend-args");
-        Set<String> includePaths = languageInformation.getIncludePaths().values().stream()
+        Set<Path> includePaths = Stream.concat(languageInformation.getIncludePaths().values().stream(),
+                        languageInformation.getSystemIncludePaths().values().stream())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
-        for (String includePath : includePaths) {
+        for (Path includePath : includePaths) {
             extraArguments.add("--include");
-            extraArguments.add(includePath);
+            extraArguments.add(includePath.toString());
         }
         generateCPG(extraArguments);
     }

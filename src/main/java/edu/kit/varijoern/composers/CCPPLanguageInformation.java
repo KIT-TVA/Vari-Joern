@@ -12,15 +12,19 @@ import java.util.Objects;
  * Contains information about how to handle C/C++ code in a composition.
  */
 public class CCPPLanguageInformation extends LanguageInformation {
-    private final @NotNull Map<Path, List<String>> includePaths;
+    private final @NotNull Map<Path, List<Path>> includePaths;
+    private final @NotNull Map<Path, List<Path>> systemIncludePaths;
 
     /**
      * Creates a new {@link CCPPLanguageInformation} instance.
      *
-     * @param includePaths the include paths for the C/C++ code
+     * @param includePaths       the include paths for the C/C++ code
+     * @param systemIncludePaths the system include paths for the C/C++ code
      */
-    public CCPPLanguageInformation(@NotNull Map<Path, List<String>> includePaths) {
+    public CCPPLanguageInformation(@NotNull Map<Path, List<Path>> includePaths,
+                                   @NotNull Map<Path, List<Path>> systemIncludePaths) {
         this.includePaths = includePaths;
+        this.systemIncludePaths = systemIncludePaths;
     }
 
     @Override
@@ -39,8 +43,17 @@ public class CCPPLanguageInformation extends LanguageInformation {
      *
      * @return the include paths for the C/C++ code
      */
-    public @NotNull Map<Path, List<String>> getIncludePaths() {
+    public @NotNull Map<Path, List<Path>> getIncludePaths() {
         return includePaths;
+    }
+
+    /**
+     * Returns the system include paths for the C/C++ code.
+     *
+     * @return the system include paths for the C/C++ code
+     */
+    public @NotNull Map<Path, List<Path>> getSystemIncludePaths() {
+        return systemIncludePaths;
     }
 
     @Override

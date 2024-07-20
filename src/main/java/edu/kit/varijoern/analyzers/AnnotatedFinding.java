@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import org.prop4j.Node;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Contains information about a finding, its evidence in the original source code and, if available, its presence
@@ -19,4 +20,13 @@ import java.util.Set;
 public record AnnotatedFinding(@NotNull Finding finding,
                                @JsonGetter("evidence") @NotNull Set<SourceLocation> originalEvidenceLocations,
                                @Nullable Node condition) {
+    @Override
+    public String toString() {
+        return "%s at %s; condition: %s"
+                .formatted(this.finding,
+                        this.originalEvidenceLocations.stream()
+                                .map(SourceLocation::toString)
+                                .collect(Collectors.joining(", ")),
+                        this.condition == null ? "unknown" : this.condition.toString());
+    }
 }

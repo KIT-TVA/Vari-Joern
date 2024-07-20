@@ -34,7 +34,7 @@ public class Config {
     private final @NotNull FeatureModelReaderConfig featureModelReaderConfig;
     private final @NotNull SamplerConfig samplerConfig;
     private final @NotNull ComposerConfig composerConfig;
-    private final @NotNull AnalyzerConfig analyzerConfig;
+    private final @NotNull AnalyzerConfig<?> analyzerConfig;
 
     /**
      * Parses the configuration file at the specified location. The file format is assumed to be TOML.
@@ -126,7 +126,7 @@ public class Config {
      *
      * @return the analyzer configuration
      */
-    public @NotNull AnalyzerConfig getAnalyzerConfig() {
+    public @NotNull AnalyzerConfig<?> getAnalyzerConfig() {
         return analyzerConfig;
     }
 }

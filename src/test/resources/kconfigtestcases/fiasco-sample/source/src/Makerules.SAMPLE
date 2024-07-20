@@ -1,0 +1,6 @@
+# -*- makefile -*-
+
+$(SAMPLE): $(OBJ_SAMPLE)
+	$(AR_MESSAGE)
+	$(VERBOSE)$(RM) $@
+	$(VERBOSE)$(AR) $(ARFLAGS) $@ $^

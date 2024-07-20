@@ -15,7 +15,7 @@ import java.util.List;
  * This class is used for parsing the analyzer section of a configuration file. It uses its {@code name} field to
  * determine which {@link AnalyzerConfig} subclass to use.
  */
-public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<AnalyzerConfig> {
+public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<AnalyzerConfig<?>> {
     private static final AnalyzerConfigFactory INSTANCE = new AnalyzerConfigFactory();
     private static final JoernArgs JOERN_ARGS = new JoernArgs();
 
@@ -27,7 +27,7 @@ public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<Ana
      *
      * @return the instance
      */
-    public static @NotNull NamedComponentConfigFactory<AnalyzerConfig> getInstance() {
+    public static @NotNull NamedComponentConfigFactory<AnalyzerConfig<?>> getInstance() {
         return INSTANCE;
     }
 
@@ -42,7 +42,7 @@ public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<Ana
     }
 
     @Override
-    protected @NotNull AnalyzerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
+    protected @NotNull AnalyzerConfig<?> newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
                                                         @NotNull Path configPath)
             throws InvalidConfigException {
         return switch (componentName) {

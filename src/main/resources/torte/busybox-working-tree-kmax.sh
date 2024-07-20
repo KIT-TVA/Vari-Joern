@@ -10,7 +10,6 @@ export OUTPUT_DIRECTORY=$TORTE_OUTPUT_DIRECTORY
 # This experiment extracts and transforms a single feature model from a recent revision of the Linux kernel.
 
 experiment-subjects() {
-    add-system --system busybox
     add-revision --system busybox --revision vari-joern-auto-tag
     add-kconfig --system busybox --revision vari-joern-auto-tag --kconfig-file Config.in \
         --kconfig-binding-files scripts/kconfig/*.o
