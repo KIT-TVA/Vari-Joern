@@ -10,9 +10,14 @@ import java.nio.file.Paths;
 import java.util.Optional;
 
 public class ProgramConfig {
+    private final @NotNull String programName;
     private final @NotNull Path programPath;
 
     public ProgramConfig(@NotNull TomlTable toml) throws InvalidConfigException {
+        this.programName = Optional.ofNullable(toml.getString("name"))
+                .filter(name -> !name.isEmpty())
+                .orElseThrow(() -> new InvalidConfigException("Program name was not specified"));
+
         String programPath = Optional.ofNullable(toml.getString("source_path"))
                 .filter(path -> !path.isEmpty())
                 .orElseThrow(() -> new InvalidConfigException("Program path was not specified"));
@@ -26,6 +31,10 @@ public class ProgramConfig {
         } catch (InvalidPathException invalidPathException){
             throw new InvalidConfigException(invalidPathException.getMessage());
         }
+    }
+
+    public @NotNull String getProgramName() {
+        return programName;
     }
 
     public @NotNull Path getProgramPath() {
