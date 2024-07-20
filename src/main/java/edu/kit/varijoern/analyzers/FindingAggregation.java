@@ -7,6 +7,7 @@ import org.prop4j.Node;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Contains information about a finding and the variants in which it was found. Findings are aggregated into one finding
@@ -77,7 +78,10 @@ public class FindingAggregation {
 
     @Override
     public String toString() {
-        return "Finding: %s%nAnalyzed affected variants: %s%nPossible conditions: %s"
-                .formatted(finding, affectedAnalyzedVariants, getPossibleConditions());
+        return "Finding: %s at %s%nAnalyzed affected variants: %s%nPossible conditions: %s"
+                .formatted(finding, this.originalEvidenceLocations.stream()
+                                .map(SourceLocation::toString)
+                                .collect(Collectors.joining(", ")),
+                        affectedAnalyzedVariants, getPossibleConditions());
     }
 }

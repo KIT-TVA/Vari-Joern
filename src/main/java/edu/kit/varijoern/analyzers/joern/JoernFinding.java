@@ -2,12 +2,9 @@ package edu.kit.varijoern.analyzers.joern;
 
 import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.Finding;
-import edu.kit.varijoern.composers.PresenceConditionMapper;
-import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Contains information about a finding Joern found.
@@ -90,28 +87,6 @@ public class JoernFinding implements Finding {
 
     @Override
     public String toString() {
-        return "%s: %s at %s".formatted(this.title,
-                this.score,
-                this.evidence.stream().map(Evidence::toString).collect(Collectors.joining(", "))
-        );
-    }
-
-    /**
-     * Converts this finding to a string containing information about conditions under which evidence lines are included
-     * in the composed code.
-     *
-     * @param presenceConditionMapper the presence condition mapper to be used
-     * @param sourceMap               the source map to be used to determine the location of the evidences in the
-     *                                original source
-     * @return a string representing this finding
-     */
-    public @NotNull String toString(@NotNull PresenceConditionMapper presenceConditionMapper,
-                                    @NotNull SourceMap sourceMap) {
-        return "%s: %s at %s".formatted(this.title,
-                this.score,
-                this.evidence.stream()
-                        .map(evidence -> evidence.toString(presenceConditionMapper, sourceMap))
-                        .collect(Collectors.joining(", "))
-        );
+        return "%s: %s".formatted(this.title, this.score);
     }
 }
