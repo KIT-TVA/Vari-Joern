@@ -53,6 +53,7 @@ public class Main {
     public static final int STATUS_INVALID_CONFIG = 78;
     public static final int STATUS_INTERRUPTED = 130;
     private static final Logger LOGGER = LogManager.getLogger();
+    private static final OutputStream SUGARLYZER_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
     private static final CountDownLatch EXITED_LATCH = new CountDownLatch(1);
 
@@ -216,10 +217,8 @@ public class Main {
         return STATUS_OK;
     }
 
-    private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
-
     private static int runFamilyBased(@NotNull Config config, @NotNull Args args) {
-        // TODO
+        // Gather information for Sugarlyzer call.
         String sugarlyzerCommand = Optional.ofNullable(config.getSugarlyzerConfig())
                 .map(SugarlyzerConfig::getSugarlyzerPath)
                 .map(Path::toAbsolutePath)
@@ -227,36 +226,54 @@ public class Main {
                 .orElse("tester");
 
         ProgramConfig programConfig = config.getProgramConfig();
-        String programSourcePath = programConfig.getProgramPath().toAbsolutePath().toString();
-
         AnalyzerConfig analyzerConfig = config.getAnalyzerConfig();
-        String analyzerName = analyzerConfig.getName();
+        Path analyzerPath = analyzerConfig.getPath(); // Optional.
 
-        // TODO Analyzer path required?
+        List<String> sugarlyzerCommandList = new ArrayList<>();
+        sugarlyzerCommandList.add(sugarlyzerCommand);
+        sugarlyzerCommandList.add(analyzerConfig.getName());
+        sugarlyzerCommandList.add(programConfig.getProgramName());
+        sugarlyzerCommandList.add(programConfig.getProgramPath().toAbsolutePath().toString());
 
+        if (analyzerPath != null) {
+            sugarlyzerCommandList.add("--tool-path");
+            sugarlyzerCommandList.add(analyzerPath.toAbsolutePath().toString());
+        }
+        if(args.isVerbose()){
+            sugarlyzerCommandList.add("-v");
+        }
+        if(args.getResultOutputArgs() != null){
+
+        }
+
+        // Call Sugarlyzer.
         Process sugarlyzerProcess = null;
         try {
-            sugarlyzerProcess = new ProcessBuilder(sugarlyzerCommand, analyzerName, "axtls")
+            LOGGER.info("Running Sugarlyzer with command: {}", String.join(" ", sugarlyzerCommandList));
+            sugarlyzerProcess = new ProcessBuilder(sugarlyzerCommandList)
                     .directory(Paths.get(System.getProperty("user.home")).toFile())
                     .start();
+
+            // StreamGobblers for handling the output produced by sugarlyzerProcess.
+            StreamGobbler stdoutGobbler = new StreamGobbler(sugarlyzerProcess.getInputStream(), SUGARLYZER_LOGGER);
+            StreamGobbler stderrGobbler = new StreamGobbler(sugarlyzerProcess.getErrorStream(), SUGARLYZER_LOGGER);
+            // Start Gobbler threads.
+            stdoutGobbler.start();
+            stderrGobbler.start();
+
+            int joernExitCode = sugarlyzerProcess.waitFor();
+
+            stdoutGobbler.waitFor();
+            stderrGobbler.waitFor();
+            if (joernExitCode != 0) {
+                System.err.println(String.format("sugarlyzer exited with %d", joernExitCode));
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-        StreamGobbler stdoutGobbler = new StreamGobbler(sugarlyzerProcess.getInputStream(), STREAM_LOGGER);
-        StreamGobbler stderrGobbler = new StreamGobbler(sugarlyzerProcess.getErrorStream(), STREAM_LOGGER);
-        stdoutGobbler.start();
-        stderrGobbler.start();
-        int joernExitCode;
-        try {
-            joernExitCode = sugarlyzerProcess.waitFor();
         } catch (InterruptedException e) {
             sugarlyzerProcess.destroy();
             throw new RuntimeException(e);
         }
-        stdoutGobbler.waitFor();
-        stderrGobbler.waitFor();
-        if (joernExitCode != 0)
-            System.err.println(String.format("joern exited with %d", joernExitCode));
 
         return 0;
     }
