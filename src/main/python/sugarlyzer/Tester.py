@@ -34,13 +34,12 @@ logger = logging.getLogger(__name__)
 
 
 class Tester:
-    def __init__(self, tool: str, program: str, baselines: bool, no_recommended_space: bool, jobs: int = None,
-                 validate: bool = False):
+    def __init__(self, tool: str, program: str, program_path: str, baselines: bool, no_recommended_space: bool,
+                 jobs: int = None, validate: bool = False):
         self.baselines = baselines
         self.no_recommended_space = no_recommended_space
-        self.jobs: int = jobs
+        self.jobs: int = jobs if jobs is not None else os.cpu_count()
         self.validate = validate
-
         def read_json_and_validate(file: str) -> Dict[str, Any]:
             """
             Given a JSON file that corresponds to a program specification,
@@ -59,7 +58,7 @@ class Tester:
 
         program_as_json = read_json_and_validate(
             importlib.resources.path(f'resources.sugarlyzer.programs.{program}', 'program.json'))
-        self.program: ProgramSpecification = ProgramSpecification(program, **program_as_json)
+        self.program: ProgramSpecification = ProgramSpecification(program, **program_as_json, source_dir=program_path)
         self.tool: AbstractTool = AnalysisToolFactory().get_tool(tool)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
@@ -116,20 +115,22 @@ class Tester:
 
         logger.info(f"Current environment is {os.environ}")
 
-        output_folder = Path("/results") / Path(self.tool.name) / Path(self.program.name)
+        # TODO Path for sugarlyzer output should be controllable by Vari-Joern.
+        output_folder = Path.home() / Path("sugarlyzer_results") / Path(self.tool.name) / Path(self.program.name)
         output_folder.mkdir(exist_ok=True, parents=True)
 
         # 1. Download target program.
-        logger.info(f"Downloading target program {self.program}")
-        if (returnCode := self.program.download()) != 0:
-            raise RuntimeError(f"Tried building program but got return code of {returnCode}")
-        logger.info(f"Finished downloading target program.")
+        #logger.info(f"Downloading target program {self.program}")
+        #if (returnCode := self.program.download()) != 0:
+        #    raise RuntimeError(f"Tried building program but got return code of {returnCode}")
+        #logger.info(f"Finished downloading target program.")
 
         if not self.baselines:
             # 2. Run SugarC
             logger.info(f"Desugaring the source code in {self.program.source_directory}")
 
             def desugar(file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
+                # TODO Debug line below
                 included_directories, included_files, cmd_decs, recommended_space = self.get_inc_files_and_dirs_for_file(
                     file)
                 start = time.monotonic()
@@ -148,12 +149,15 @@ class Tester:
 
                 return desugared_file_location, log_file, file, time.monotonic() - start
 
-            logger.info(f"Source files are {list(self.program.get_source_files())}")
-            input_files: List[Tuple] = []
+            source_files = list(self.program.get_source_files())
+            logger.info(f"Source files (total {len(source_files)}) are {source_files}")
             logger.info("Desugaring files....")
+
+            input_files: List[Tuple] = []
             for result in tqdm(ProcessPool(self.jobs).imap(desugar, self.program.get_source_files()),
-                               total=len(list(self.program.get_source_files()))):
+                               total=len(source_files)):
                 input_files.append(result)
+
             logger.info(f"Finished desugaring the source code.")
             # 3/4. Run analysis tool, and read its results
             logger.info(f"Collected {len([c for c in self.program.get_source_files()])} .c files to analyze.")
@@ -365,6 +369,8 @@ def get_arguments() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("tool", help="The tool to run.")
     p.add_argument("program", help="The target program.")
+    p.add_argument("program_path", help="The absolute path to the target program.")
+    p.add_argument("--tool-path", help="The absolute path to the tool executable.")
     p.add_argument("-v", dest="verbosity", action="store_true", help="""Print debug messages.""")
     p.add_argument("--baselines", action="store_true",
                    help="""Run the baseline experiments. In these, we configure each 
@@ -402,7 +408,7 @@ def main():
     start = time.monotonic()
     args = get_arguments()
     set_up_logging(args)
-    t = Tester(args.tool, args.program, args.baselines, True, args.jobs, args.validate)
+    t = Tester(args.tool, args.program, args.program_path, args.baselines, True, args.jobs, args.validate)
     t.execute()
     print(f'total time: {time.monotonic() - start}')
 

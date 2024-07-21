@@ -45,7 +45,7 @@ class ProgramSpecification:
         self.inc_dirs_and_files = [] if included_files_and_directories is None else included_files_and_directories
         self.__sample_directory = sample_dir
         self.__makefile_location = makefile_location
-        self.__search_context = "/targets"
+        self.__search_context = "/"
         self.__oldconfig_location = "config/.config" if oldconfig_location is None else oldconfig_location
 
     @property
