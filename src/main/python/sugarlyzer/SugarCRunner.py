@@ -154,7 +154,8 @@ def desugar_file(file_to_desugar: Path,
                  make_main: bool = False,
                  included_files: Optional[Iterable[Path]] = None,
                  included_directories: Optional[Iterable[Path]] = None,
-                 commandline_declarations: Optional[Iterable[str]] = None) -> tuple[Path, Path]:
+                 commandline_declarations: Optional[Iterable[str]] = None,
+                 superc_path: str = None) -> tuple[Path, Path]:
     """
     Runs the SugarC command.
     :param file_to_desugar: The C source code file to desugar.
@@ -197,12 +198,28 @@ def desugar_file(file_to_desugar: Path,
             log_file = file_to_desugar.with_suffix('.log')
         case _:
             log_file = Path(log_file)
-    if config_prefix != None:
-        cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', 'superc.SugarC', '-showActions', '-useBDD', '-restrictConfigToPrefix', config_prefix, *commandline_args, *included_files, *included_directories,file_to_desugar]
-    elif whitelist != None:
-        cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', 'superc.SugarC', '-showActions', '-useBDD', '-restrictConfigToWhitelist', whitelist, *commandline_args, *included_files, *included_directories,file_to_desugar]
+
+    classpath = ''
+    if superc_path is not None and Path(superc_path).exists():
+        classpath = (f'{Path(superc_path)}/classes'
+                     f':{Path(superc_path)}/bin/junit.jar'
+                     f':{Path(superc_path)}/bin/antlr.jar'
+                     f':{Path(superc_path)}/bin/javabdd.jar'
+                     f':{Path(superc_path)}bin/json-simple-1.1.1.jar'
+                     ':/usr/share/java/org.sat4j.core.jar'
+                     ':/usr/share/java/com.microsoft.z3.jar'
+                     ':/usr/share/java/json-lib.jar')
+
+    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', classpath, 'superc.SugarC', '-showActions',
+           '-useBDD']
+    if config_prefix is not None:
+        cmd.extend(['-restrictConfigToPrefix', config_prefix, *commandline_args, *included_files, *included_directories,
+                    file_to_desugar])
+    elif whitelist is not None:
+        cmd.extend(['-restrictConfigToWhitelist', whitelist, *commandline_args, *included_files, *included_directories,
+                    file_to_desugar])
     else:
-        cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', 'superc.SugarC', '-showActions', '-useBDD', *commandline_args, *included_files, *included_directories,file_to_desugar]
+        cmd.extend([*commandline_args, *included_files, *included_directories, file_to_desugar])
     cmd = [str(s) for s in cmd]
 
     to_append = None
@@ -256,7 +273,8 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file)
         else:
             logger.debug("Cache miss")
             logger.debug("Cmd string is " + cmd_str)
-            ps = subprocess.run(cmd_str, capture_output=True, text=True, shell=True, executable='/bin/bash', env=os.environ)
+            ps = subprocess.run(cmd_str, capture_output=True, text=True, shell=True, executable='/bin/bash',
+                                env=os.environ)
             try:
                 times = "\n".join(ps.stderr.split("\n")[-30:])
                 usr_time, sys_time, max_memory = parse_bash_time(times)
@@ -279,12 +297,15 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file)
     finally:
         if (not desugared_output.exists()) or (os.path.getsize(desugared_output) == 0):
             try:
-                logger.error(f"Could not desugar file {file_to_desugar}")  # \n\tSugarC stdout: {ps.stdout}\n\tSugarC stderr: {ps.stderr}")
+                logger.error(
+                    f"Could not desugar file {file_to_desugar}")  # \n\tSugarC stdout: {ps.stdout}\n\tSugarC stderr: {ps.stderr}")
             except UnboundLocalError:
-                logger.error(f"Could not desugar file {file_to_desugar}. Tried to output what went wrong but couldn't access subprocess output.")
+                logger.error(
+                    f"Could not desugar file {file_to_desugar}. Tried to output what went wrong but couldn't access subprocess output.")
         os.chdir(current_directory)
-    logger.info(f"{desugared_output} desugared in time:{time.monotonic()-start} (cpu time {usr_time + sys_time}) to file size:{desugared_output.stat().st_size}")
-        
+    logger.info(
+        f"{desugared_output} desugared in time:{time.monotonic() - start} (cpu time {usr_time + sys_time}) to file size:{desugared_output.stat().st_size}")
+
 
 def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Alarm]:
     """
@@ -311,7 +332,8 @@ def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Al
         s = Solver()
         missingCondition = False
         for a in w.static_condition_results:
-            if a['var'] == '' or not a['var'] in condition_mapping.replacers.keys() or condition_mapping.replacers[a['var']] == '':
+            if a['var'] == '' or not a['var'] in condition_mapping.replacers.keys() or condition_mapping.replacers[
+                a['var']] == '':
                 missingCondition = True
                 break
             if a['val']:
@@ -345,6 +367,7 @@ def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Al
             # Use None and make correNum an Optional type
             # w.correNum = '-1'
     return alarms
+
 
 def find_condition_scope(start, fpa, goingUp):
     """
@@ -408,7 +431,7 @@ def calculate_asserts(w: Alarm, fpa):
         line -= 1
         fl = lines[line]
         if 'static_condition_default' in fl:
-            if line != w.line_in_input_file-1:
+            if line != w.line_in_input_file - 1:
                 start = line
                 end = find_condition_scope(line, fpa, False)
                 if end == -1:
@@ -418,9 +441,9 @@ def calculate_asserts(w: Alarm, fpa):
                     if start < x - 1 <= end:
                         found = True
                         break
-                #if not found:
-                    #asrt = {'var': fl.split("(")[1].split(')')[0], 'val': False}
-                    #result.append(asrt)
+                # if not found:
+                # asrt = {'var': fl.split("(")[1].split(')')[0], 'val': False}
+                # result.append(asrt)
 
         else:
             top = find_condition_scope(line, fpa, True)
@@ -487,7 +510,7 @@ def get_bad_constraints(desugared_file: Path) -> List[str]:
     solver = Solver()
     while line_index > 0:
         if lines[line_index].startswith('__static_type_error'):
-            errorLine = find_condition_scope(line_index,desugared_file,True)
+            errorLine = find_condition_scope(line_index, desugared_file, True)
             condition = re.match('if \((__static_condition_default_\d+)\(\)\).*', lines[errorLine])
             if condition:
                 to_eval = condition_mapping.replacers[condition.group(1)]
@@ -514,6 +537,7 @@ def get_bad_constraints(desugared_file: Path) -> List[str]:
                 condition_mapping.constraints.append('#define ' + key[len('defined '):])
             solver.pop()
     return condition_mapping.constraints
+
 
 @dataclass
 class ConditionMapping:
@@ -554,8 +578,8 @@ def get_condition_mapping(line, current_result: ConditionMapping = ConditionMapp
     # Remove the tailend of the presence condition
     conds = re.search('(.*").*?$', cc[1]).group(1)
     logger.debug(f"Conds is {cc[1]} -> {conds}")
-    #Replace bit shift with something python friendly
-    conds = re.sub(r'<<',r'*2**',conds)
+    # Replace bit shift with something python friendly
+    conds = re.sub(r'<<', r'*2**', conds)
     # We make some substitutions to enforce format consistency
     conds = re.sub(r'(&&|\|\|) !([a-zA-Z_0-9]+)( |")', r'\1 !(\2)\3', conds)
     conds = re.sub(r'(&&|\|\|) ([a-zA-Z_0-9]+)( |")', r'\1 (\2)\3', conds)
@@ -601,7 +625,7 @@ def get_condition_mapping(line, current_result: ConditionMapping = ConditionMapp
                 current_result.varis[v] = Int(v)
             else:
                 for segment in splits:
-                    if re.match(r'\(?^[A-Za-z_][A-Za-z0-9_]+\)?$',segment):
+                    if re.match(r'\(?^[A-Za-z_][A-Za-z0-9_]+\)?$', segment):
                         snipped = segment if segment[-1] != ")" else segment[:-1]
                         v = 'USE_' + snipped
                         current_result.ids[snipped] = 'varis["' + v + '"]'

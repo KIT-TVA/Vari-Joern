@@ -12,27 +12,39 @@ import java.util.Optional;
 
 public class SugarlyzerConfig {
     private final @Nullable Path sugarlyzerPath;
+    private final @Nullable Path supercPath;
 
     public SugarlyzerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
-        Optional<String> programPath = Optional.ofNullable(toml.getString("path"))
-                .filter(path -> !path.isEmpty());
-
-        if (programPath.isPresent()) {
-            try {
-                this.sugarlyzerPath = Paths.get(programPath.get());
-
-                if (!Files.exists(this.sugarlyzerPath)) {
-                    throw new InvalidConfigException("Specified sugarlyzer path \"" + this.sugarlyzerPath + "\" does not exist.");
-                }
-            } catch (InvalidPathException invalidPathException) {
-                throw new InvalidConfigException(invalidPathException.getMessage());
-            }
-        } else {
-            this.sugarlyzerPath = null;
-        }
+        this.sugarlyzerPath = this.validateAndGetPath(toml, "path");
+        this.supercPath = this.validateAndGetPath(toml, "superc_path");
     }
 
     public @Nullable Path getSugarlyzerPath() {
         return this.sugarlyzerPath;
+    }
+
+    public @Nullable Path getSupercPath() {
+        return this.supercPath;
+    }
+
+    private @Nullable Path validateAndGetPath(@NotNull TomlTable toml, @NotNull String dottedKey) throws InvalidConfigException {
+        Optional<String> supercPath = Optional.ofNullable(toml.getString(dottedKey))
+                .filter(path -> !path.isEmpty());
+
+        if (supercPath.isPresent()) {
+            try {
+                Path path = Paths.get(supercPath.get());
+
+                if (!Files.exists(path)) {
+                    throw new InvalidConfigException("Specified path \"" + this.supercPath + "\" for key \"" + dottedKey + "\" does not exist.");
+                }
+
+                return path;
+            } catch (InvalidPathException invalidPathException) {
+                throw new InvalidConfigException(invalidPathException.getMessage());
+            }
+        }
+
+        return null;
     }
 }

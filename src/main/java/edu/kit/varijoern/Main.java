@@ -231,20 +231,24 @@ public class Main {
 
         List<String> sugarlyzerCommandList = new ArrayList<>();
         sugarlyzerCommandList.add(sugarlyzerCommand);
-        sugarlyzerCommandList.add(analyzerConfig.getName());
-        sugarlyzerCommandList.add(programConfig.getProgramName());
-        sugarlyzerCommandList.add(programConfig.getProgramPath().toAbsolutePath().toString());
 
+        // Add options.
         if (analyzerPath != null) {
             sugarlyzerCommandList.add("--tool-path");
             sugarlyzerCommandList.add(analyzerPath.toAbsolutePath().toString());
         }
+        if(config.getSugarlyzerConfig() != null && config.getSugarlyzerConfig().getSupercPath() != null){
+            sugarlyzerCommandList.add("--superc-path");
+            sugarlyzerCommandList.add(config.getSugarlyzerConfig().getSupercPath().toAbsolutePath().toString());
+        }
         if(args.isVerbose()){
             sugarlyzerCommandList.add("-v");
         }
-        if(args.getResultOutputArgs() != null){
 
-        }
+        // Add mandatory arguments.
+        sugarlyzerCommandList.add(analyzerConfig.getName());
+        sugarlyzerCommandList.add(programConfig.getProgramName());
+        sugarlyzerCommandList.add(programConfig.getProgramPath().toAbsolutePath().toString());
 
         // Call Sugarlyzer.
         Process sugarlyzerProcess = null;

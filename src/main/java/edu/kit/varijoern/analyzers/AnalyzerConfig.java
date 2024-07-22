@@ -35,7 +35,6 @@ public abstract class AnalyzerConfig<T extends AnalysisResult> extends NamedComp
                 .map(Path::of)
                 .filter(Files::exists)
                 .orElse(null);
-
         this.resultAggregator = resultAggregator;
     }
 

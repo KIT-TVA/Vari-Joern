@@ -128,7 +128,7 @@ public class Config {
 
     private void initializeFamilyBasedConfig(@NotNull TomlParseResult parsedConfig) throws InvalidConfigException {
         if (!parsedConfig.isTable(FAMILY_FIELD_NAME)) {
-            return;
+            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FAMILY_FIELD_NAME));
         }
 
         var familyTable = Objects.requireNonNull(parsedConfig.getTable(FAMILY_FIELD_NAME));

@@ -35,11 +35,13 @@ logger = logging.getLogger(__name__)
 
 class Tester:
     def __init__(self, tool: str, program: str, program_path: str, baselines: bool, no_recommended_space: bool,
-                 jobs: int = None, validate: bool = False):
+                 superc_path: str = None, jobs: int = None, validate: bool = False):
         self.baselines = baselines
         self.no_recommended_space = no_recommended_space
-        self.jobs: int = jobs if jobs is not None else os.cpu_count()
+        self.jobs: int = jobs if jobs is not None else os.cpu_count() or 1
         self.validate = validate
+        self.superc_path = superc_path
+
         def read_json_and_validate(file: str) -> Dict[str, Any]:
             """
             Given a JSON file that corresponds to a program specification,
@@ -119,12 +121,6 @@ class Tester:
         output_folder = Path.home() / Path("sugarlyzer_results") / Path(self.tool.name) / Path(self.program.name)
         output_folder.mkdir(exist_ok=True, parents=True)
 
-        # 1. Download target program.
-        #logger.info(f"Downloading target program {self.program}")
-        #if (returnCode := self.program.download()) != 0:
-        #    raise RuntimeError(f"Tried building program but got return code of {returnCode}")
-        #logger.info(f"Finished downloading target program.")
-
         if not self.baselines:
             # 2. Run SugarC
             logger.info(f"Desugaring the source code in {self.program.source_directory}")
@@ -145,7 +141,8 @@ class Tester:
                                                                               included_directories=included_directories,
                                                                               commandline_declarations=cmd_decs,
                                                                               keep_mem=self.tool.keep_mem,
-                                                                              make_main=self.tool.make_main)
+                                                                              make_main=self.tool.make_main,
+                                                                              superc_path=self.superc_path)
 
                 return desugared_file_location, log_file, file, time.monotonic() - start
 
@@ -153,6 +150,7 @@ class Tester:
             logger.info(f"Source files (total {len(source_files)}) are {source_files}")
             logger.info("Desugaring files....")
 
+            # TODO Debug problem relating to value of self.jobs (ValueError: Number of processes must be at least 1)
             input_files: List[Tuple] = []
             for result in tqdm(ProcessPool(self.jobs).imap(desugar, self.program.get_source_files()),
                                total=len(source_files)):
@@ -371,6 +369,7 @@ def get_arguments() -> argparse.Namespace:
     p.add_argument("program", help="The target program.")
     p.add_argument("program_path", help="The absolute path to the target program.")
     p.add_argument("--tool-path", help="The absolute path to the tool executable.")
+    p.add_argument("--superc-path", help="The absolute path to the source directory of the local SuperC installation.")
     p.add_argument("-v", dest="verbosity", action="store_true", help="""Print debug messages.""")
     p.add_argument("--baselines", action="store_true",
                    help="""Run the baseline experiments. In these, we configure each 
