@@ -62,7 +62,7 @@ class ProgramSpecification:
 
     @property
     def project_root(self):
-        return self.try_resolve_path(self.__project_root, self.search_context)
+        return self.try_resolve_path(self.__project_root, self.source_directory)
 
     @property
     def source_directory(self):
