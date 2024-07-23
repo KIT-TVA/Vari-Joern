@@ -34,13 +34,17 @@ logger = logging.getLogger(__name__)
 
 
 class Tester:
-    def __init__(self, tool: str, program: str, program_path: str, baselines: bool, no_recommended_space: bool,
-                 superc_path: str = None, jobs: int = None, validate: bool = False):
-        self.baselines = baselines
-        self.no_recommended_space = no_recommended_space
-        self.jobs: int = jobs if jobs is not None else os.cpu_count() or 1
-        self.validate = validate
-        self.superc_path = superc_path
+    def __init__(self, args: argparse.Namespace):
+        # args.tool, args.program, args.program_path, args.baselines, True, args.jobs, args.validate
+        #
+        # tool: str, program: str, program_path: str, baselines: bool, no_recommended_space: bool,
+        # superc_path: str = None, jobs: int = None, validate: bool = False):
+
+        self.baselines = args.baselines
+        self.no_recommended_space = True
+        self.jobs: int = max(args.jobs if args.jobs is not None else os.cpu_count() or 1, 1)
+        self.validate = args.validate if args.validate is not None else False
+        self.superc_path = args.superc_path
 
         def read_json_and_validate(file: str) -> Dict[str, Any]:
             """
@@ -59,9 +63,10 @@ class Tester:
             return result
 
         program_as_json = read_json_and_validate(
-            importlib.resources.path(f'resources.sugarlyzer.programs.{program}', 'program.json'))
-        self.program: ProgramSpecification = ProgramSpecification(program, **program_as_json, source_dir=program_path)
-        self.tool: AbstractTool = AnalysisToolFactory().get_tool(tool)
+            importlib.resources.path(f'resources.sugarlyzer.programs.{args.program}', 'program.json'))
+        self.program: ProgramSpecification = ProgramSpecification(args.program, **program_as_json,
+                                                                  source_dir=args.program_path)
+        self.tool: AbstractTool = AnalysisToolFactory().get_tool(args.tool)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
         self.whitelist = self.program.whitelist
@@ -150,7 +155,6 @@ class Tester:
             logger.info(f"Source files (total {len(source_files)}) are {source_files}")
             logger.info("Desugaring files....")
 
-            # TODO Debug problem relating to value of self.jobs (ValueError: Number of processes must be at least 1)
             input_files: List[Tuple] = []
             for result in tqdm(ProcessPool(self.jobs).imap(desugar, self.program.get_source_files()),
                                total=len(source_files)):
@@ -165,14 +169,15 @@ class Tester:
                 included_directories, included_files, cmd_decs, user_defined_space = self.get_inc_files_and_dirs_for_file(
                     original_file)
                 alarms = process_alarms(self.tool.analyze_and_read(desugared_file, included_files=included_files,
-                                                                   included_dirs=included_directories),
-                                        desugared_file)
+                                                                   included_dirs=included_directories), desugared_file)
+
                 for a in alarms:
                     a.desugaring_time = desugaring_time
                 return alarms
 
             alarms = []
             logger.info("Running analysis....")
+            # TODO Investigate what goes wrong here.
             with ProcessPool(self.jobs) as p:
                 for result in tqdm(
                         p.imap(lambda x: analyze_read_and_process(*x), ((d, o, dt) for d, _, o, dt in input_files)),
@@ -407,7 +412,7 @@ def main():
     start = time.monotonic()
     args = get_arguments()
     set_up_logging(args)
-    t = Tester(args.tool, args.program, args.program_path, args.baselines, True, args.jobs, args.validate)
+    t = Tester(args)
     t.execute()
     print(f'total time: {time.monotonic() - start}')
 

@@ -199,19 +199,19 @@ def desugar_file(file_to_desugar: Path,
         case _:
             log_file = Path(log_file)
 
-    classpath = ''
+    classpath_option = ''
     if superc_path is not None and Path(superc_path).exists():
-        classpath = (f'{Path(superc_path)}/classes'
-                     f':{Path(superc_path)}/bin/junit.jar'
-                     f':{Path(superc_path)}/bin/antlr.jar'
-                     f':{Path(superc_path)}/bin/javabdd.jar'
-                     f':{Path(superc_path)}bin/json-simple-1.1.1.jar'
-                     ':/usr/share/java/org.sat4j.core.jar'
-                     ':/usr/share/java/com.microsoft.z3.jar'
-                     ':/usr/share/java/json-lib.jar')
+        classpath_option = (f'-classpath {Path(superc_path)}/classes'
+                            f':{Path(superc_path)}/bin/junit.jar'
+                            f':{Path(superc_path)}/bin/antlr.jar'
+                            f':{Path(superc_path)}/bin/javabdd.jar'
+                            f':{Path(superc_path)}bin/json-simple-1.1.1.jar'
+                            ':/usr/share/java/org.sat4j.core.jar'
+                            ':/usr/share/java/com.microsoft.z3.jar'
+                            ':/usr/share/java/json-lib.jar')
 
-    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', classpath, 'superc.SugarC', '-showActions',
-           '-useBDD']
+    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', classpath_option, 'superc.SugarC',
+           '-showActions', '-useBDD']
     if config_prefix is not None:
         cmd.extend(['-restrictConfigToPrefix', config_prefix, *commandline_args, *included_files, *included_directories,
                     file_to_desugar])

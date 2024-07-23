@@ -82,11 +82,12 @@ class ProgramSpecification:
 
     def get_source_files(self) -> Iterable[Path]:
         """
-        :return: All .c or .i files that are in the program's source locations.
+        :return: All .c or .i files that are in the program's source locations but have not been produced by earlier
+        desugaring.
         """
         for root, dirs, files in os.walk(self.source_directory):
             for f in files:
-                if f.endswith(".c") or f.endswith(".i"):
+                if (f.endswith(".c") or f.endswith(".i")) and not f.endswith(".desugared.c"):
                     yield Path(root) / f
 
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
