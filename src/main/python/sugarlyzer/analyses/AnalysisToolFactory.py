@@ -10,7 +10,7 @@ class AnalysisToolFactory:
 
     # noinspection PyTypeChecker
     @classmethod
-    def get_tool(cls, tool) -> AbstractTool:
+    def get_tool(cls, tool, tool_path) -> AbstractTool:
         """
         Given the name of the tool, return the appropriate tool class.
         :param tool:
@@ -22,5 +22,5 @@ class AnalysisToolFactory:
             case "testtool": return TestTool()
             case "infer": return Infer()
             case "phasar": return Phasar()
-            case "joern": return Joern()
+            case "joern": return Joern(tool_path)
             case _: raise ValueError(f"No tool for {tool}")

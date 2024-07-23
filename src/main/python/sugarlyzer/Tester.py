@@ -9,6 +9,7 @@ import os
 import shutil
 import tempfile
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Dict, Any, Tuple
 
@@ -54,7 +55,8 @@ class Tester:
             :param file: The program file to read.
             :return: The JSON representation of the program file. Throws an exception if the file is malformed.
             """
-            with open(importlib.resources.path(f'resources.sugarlyzer.programs', 'program_schema.json'), 'r') as schema_file:
+            with open(importlib.resources.path(f'resources.sugarlyzer.programs', 'program_schema.json'),
+                      'r') as schema_file:
                 resolver = RefResolver.from_schema(schema := json.load(schema_file))
                 validator = Draft7Validator(schema, resolver)
             with open(file, 'r') as program_file:
@@ -66,7 +68,7 @@ class Tester:
             importlib.resources.path(f'resources.sugarlyzer.programs.{args.program}', 'program.json'))
         self.program: ProgramSpecification = ProgramSpecification(args.program, **program_as_json,
                                                                   source_dir=args.program_path)
-        self.tool: AbstractTool = AnalysisToolFactory().get_tool(args.tool)
+        self.tool: AbstractTool = AnalysisToolFactory().get_tool(args.tool, args.tool_path)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
         self.whitelist = self.program.whitelist
@@ -101,7 +103,7 @@ class Tester:
         os.system('yes "" | make oldconfig')
         logger.debug("make finished.")
         os.chdir(cwd)
-        #if cp.returncode != 0:
+        # if cp.returncode != 0:
         #    logger.warning(f"Running command {' '.join(make_cmd)} resulted in a non-zero error code.\n"
         #                   f"Output was:\n" + cp.stdout)
 
@@ -156,14 +158,15 @@ class Tester:
             logger.info("Desugaring files....")
 
             input_files: List[Tuple] = []
-            for result in tqdm(ProcessPool(self.jobs).imap(desugar, self.program.get_source_files()),
-                               total=len(source_files)):
-                input_files.append(result)
+            with ProcessPool(self.jobs) as pool:
+                for result in tqdm(pool.imap(desugar, self.program.get_source_files()), total=len(source_files)):
+                    input_files.append(result)
+                pool.close()
 
             logger.info(f"Finished desugaring the source code.")
-            # 3/4. Run analysis tool, and read its results
             logger.info(f"Collected {len([c for c in self.program.get_source_files()])} .c files to analyze.")
 
+            # 3/4. Run analysis tool, and read its results
             def analyze_read_and_process(desugared_file: Path, original_file: Path, desugaring_time: float = None) -> \
                     Iterable[Alarm]:
                 included_directories, included_files, cmd_decs, user_defined_space = self.get_inc_files_and_dirs_for_file(
@@ -177,7 +180,7 @@ class Tester:
 
             alarms = []
             logger.info("Running analysis....")
-            # TODO Investigate what goes wrong here.
+
             with ProcessPool(self.jobs) as p:
                 for result in tqdm(
                         p.imap(lambda x: analyze_read_and_process(*x), ((d, o, dt) for d, _, o, dt in input_files)),
@@ -185,7 +188,6 @@ class Tester:
                     alarms.extend(result)
 
             logger.info(f"Got {len(alarms)} unique alarms.")
-
             buckets: List[List[Alarm]] = [[]]
 
             def alarm_match(a: Alarm, b: Alarm):
@@ -222,8 +224,10 @@ class Tester:
         else:
             alarms = self.run_baseline_experiments()
 
-        logger.debug("Writing alarms to file.")
-        with open("/results.json", 'w') as f:
+        date_string = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
+        alarm_file: Path = Path().home() / Path(f"vari_joern_family_results_{date_string}.json")
+        logger.debug(f"Writing alarms to file \"{alarm_file}\"")
+        with open(alarm_file, 'w') as f:
             json.dump([a.as_dict() for a in alarms], f)
 
     def verify_alarm(self, alarm):
@@ -403,7 +407,7 @@ def set_up_logging(args: argparse.Namespace) -> None:
                           logging.StreamHandler(),
                           logging.FileHandler(os.path.join(logging_dir, "logfile.log"), 'w')
                       ]
-    }
+                      }
 
     logging.basicConfig(**logging_kwargs)
 

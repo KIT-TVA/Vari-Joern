@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 
 class Joern(AbstractTool):
 
-    def __init__(self):
-        super().__init__(JoernReader(), name='joern', make_main=True, keep_mem=True, remove_errors=True)
+    def __init__(self, tool_path: str):
+        super().__init__(JoernReader(), name='joern', make_main=True, keep_mem=True, remove_errors=True,
+                         tool_path=tool_path)
 
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,
@@ -43,10 +44,12 @@ class Joern(AbstractTool):
         #        *command_line_defs,
         #        "-nostdinc", "-c", file.absolute()]
 
-        logger.debug(f"Running joern with cmd {cmd}")
-        ps = subprocess.run(" ".join([str(s) for s in cmd]), text=True, shell=True, capture_output=True, executable='/bin/bash')
+        logger.debug(f"Running joern on \"{file.absolute()}\" and writing the result to \"{dest_file}\"")
+        ps = subprocess.run(" ".join([str(s) for s in cmd]), text=True, shell=True, capture_output=True,
+                            executable='/bin/bash')
         if (ps.returncode != 0):
-            logger.warning(f"Running joern on file {str(file)} with command {' '.join(str(s) for s in cmd)} potentially failed (exit code {ps.returncode}).")
+            logger.warning(
+                f"Running joern on file {str(file)} with command {' '.join(str(s) for s in cmd)} potentially failed (exit code {ps.returncode}).")
             logger.warning(ps.stdout)
         if ps.returncode == 0:
             try:
