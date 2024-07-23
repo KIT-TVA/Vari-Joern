@@ -29,8 +29,13 @@ class Joern(AbstractTool):
             command_line_defs = []
 
         output_location = tempfile.mkdtemp()
-        destFile = os.path.join(output_location, "joern_report.txt")
-        cmd = ["joern-scan", file.absolute(), "--overwrite", ">", destFile]
+        dest_file = os.path.join(output_location, "joern_report.txt")
+
+        joern_command: str = "joern-scan"
+        if self.tool_path is not None and Path(self.tool_path).exists():
+            joern_command = str(Path(self.tool_path) / joern_command)
+
+        cmd = [joern_command, file.absolute(), "--overwrite", ">", dest_file]
 
         # cmd = ["/usr/bin/time", "-v", "infer", "--pulse-only", '-o', output_location, '--', "clang",
         #        *list(itertools.chain(*zip(itertools.cycle(["-I"]), included_dirs))),
@@ -38,7 +43,7 @@ class Joern(AbstractTool):
         #        *command_line_defs,
         #        "-nostdinc", "-c", file.absolute()]
 
-        logger.debug(f"Running cmd {cmd}")
+        logger.debug(f"Running joern with cmd {cmd}")
         ps = subprocess.run(" ".join([str(s) for s in cmd]), text=True, shell=True, capture_output=True, executable='/bin/bash')
         if (ps.returncode != 0):
             logger.warning(f"Running joern on file {str(file)} with command {' '.join(str(s) for s in cmd)} potentially failed (exit code {ps.returncode}).")
@@ -52,5 +57,5 @@ class Joern(AbstractTool):
             except Exception as ve:
                 logger.exception("Could not parse time in string " + times)
 
-        report = destFile
+        report = dest_file
         yield report
