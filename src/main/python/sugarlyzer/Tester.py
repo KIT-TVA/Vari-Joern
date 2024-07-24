@@ -124,7 +124,8 @@ class Tester:
         logger.info(f"Current environment is {os.environ}")
 
         # TODO Path for sugarlyzer output should be controllable by Vari-Joern.
-        output_folder = Path.home() / Path("vari-joern-family-results") / Path(self.tool.name) / Path(self.program.name)
+        output_folder: Path = Path.home() / Path("vari-joern-family-analysis") / Path("results") / Path(
+            self.tool.name) / Path(self.program.name)
         output_folder.mkdir(exist_ok=True, parents=True)
 
         if not self.baselines:
@@ -168,12 +169,6 @@ class Tester:
                     except Exception as e:
                         logger.exception(f"Error during analysis: {e}")
 
-            #with ProcessPool(self.jobs) as p:
-            #    for result in tqdm(
-            #            p.imap(lambda x: self.analyze_read_and_process(*x), ((d, o, dt) for d, _, o, dt in desugared_files)),
-            #            total=len(desugared_files)):
-            #        alarms.extend(result)
-
             logger.info(f"Got {len(alarms)} unique alarms.")
             buckets: List[List[Alarm]] = [[]]
 
@@ -212,7 +207,7 @@ class Tester:
             alarms = self.run_baseline_experiments()
 
         date_string = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
-        alarm_file: Path = Path().home() / Path(f"vari_joern_family_results_{date_string}.json")
+        alarm_file: Path = output_folder / Path(f"vari_joern_family_results_{date_string}.json")
         logger.debug(f"Writing alarms to file \"{alarm_file}\"")
         with open(alarm_file, 'w') as f:
             json.dump([a.as_dict() for a in alarms], f)
@@ -239,9 +234,11 @@ class Tester:
 
     def analyze_read_and_process(self, desugared_file: Path, original_file: Path, desugaring_time: float = None) -> \
             Iterable[Alarm]:
-        included_directories, included_files, cmd_decs, user_defined_space = self.get_inc_files_and_dirs_for_file(
-            original_file)
-        alarms = process_alarms(self.tool.analyze_and_read(desugared_file, included_files=included_files,
+        included_directories, included_files, cmd_decs, user_defined_space = (
+            self.get_inc_files_and_dirs_for_file(original_file))
+
+        alarms = process_alarms(self.tool.analyze_and_read(desugared_file,
+                                                           included_files=included_files,
                                                            included_dirs=included_directories), desugared_file)
 
         for a in alarms:

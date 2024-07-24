@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
@@ -29,10 +30,12 @@ class Joern(AbstractTool):
         if command_line_defs is None:
             command_line_defs = []
 
-        # TODO Adjust.
-        output_location = tempfile.mkdtemp(prefix="vari-joern-family-based-")
+        # TODO Adjust --> Let abstract tool handle this (should also do the cleanup).
+        date_string = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
+        output_location = tempfile.mkdtemp(prefix=f"{file.absolute()}_{date_string}_", dir=self.results_dir)
         dest_file = os.path.join(output_location, "joern_report.txt")
 
+        # TODO Adjust Joern call (see product-based JoernAnalyzer).
         joern_command: str = "joern-scan"
         if self.tool_path is not None and Path(self.tool_path).exists():
             joern_command = str(Path(self.tool_path) / joern_command)

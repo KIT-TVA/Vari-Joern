@@ -264,8 +264,8 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file)
     usr_time = 0
     sys_time = 0
     try:
-        digestPath = Path.home() / Path("cached_desugared")
-        if (digest_file := (digestPath / Path((digest + desugared_output.name)))).exists():
+        digest_path = Path.home() / Path("vari-joern-family-analysis") / Path("cached_desugared")
+        if (digest_file := (digest_path / Path((digest + desugared_output.name)))).exists():
             logger.debug("Cache hit!")
             with open(desugared_output, 'wb') as outfile:
                 with open(digest_file, 'rb') as infile:
@@ -286,8 +286,8 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file)
             with open(desugared_output, 'w') as f:
                 f.write(ps.stdout)
 
-            if not os.path.exists(digestPath):
-                os.makedirs(digestPath)
+            if not os.path.exists(digest_path):
+                os.makedirs(digest_path)
             with open(digest_file, 'w') as f:
                 f.write(ps.stdout)
 

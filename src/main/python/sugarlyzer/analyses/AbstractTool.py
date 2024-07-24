@@ -1,6 +1,7 @@
 import functools
 import logging
 import operator
+import os
 import tempfile
 import time
 from abc import ABC, abstractmethod
@@ -23,6 +24,10 @@ class AbstractTool(ABC):
         self.remove_errors = remove_errors
         self.name = name
         self.tool_path = tool_path
+
+        dest_directory = Path.home() / Path("vari-joern-family-analysis") / Path(f"{self.name}-analysis-output")
+        os.makedirs(dest_directory, exist_ok=True)
+        self.results_dir = dest_directory
 
     def analyze_and_read(self, source_file: Path, command_line_defs: Iterable[str] = None,
                          included_dirs: Iterable[Path] = None, included_files: Iterable[Path] = None,
