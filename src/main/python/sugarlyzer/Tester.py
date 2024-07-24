@@ -9,6 +9,7 @@ import os
 import shutil
 import tempfile
 import time
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Dict, Any, Tuple
@@ -30,7 +31,6 @@ from python.sugarlyzer.analyses.AnalysisToolFactory import AnalysisToolFactory
 from python.sugarlyzer.models.Alarm import Alarm
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
-multiprocessing.set_start_method("spawn")
 logger = logging.getLogger(__name__)
 
 
@@ -121,71 +121,58 @@ class Tester:
         return ps_copy
 
     def execute(self):
-
         logger.info(f"Current environment is {os.environ}")
 
         # TODO Path for sugarlyzer output should be controllable by Vari-Joern.
-        output_folder = Path.home() / Path("sugarlyzer_results") / Path(self.tool.name) / Path(self.program.name)
+        output_folder = Path.home() / Path("vari-joern-family-results") / Path(self.tool.name) / Path(self.program.name)
         output_folder.mkdir(exist_ok=True, parents=True)
 
         if not self.baselines:
-            # 2. Run SugarC
-            logger.info(f"Desugaring the source code in {self.program.source_directory}")
+            ###################################
+            # Run SugarC.
+            ###################################
+            logger.info(f"Desugaring the source code in {self.program.source_directory} with {self.jobs} jobs...")
+            desugared_files: List[Tuple] = []
 
-            def desugar(file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
-                # TODO Debug line below
-                included_directories, included_files, cmd_decs, recommended_space = self.get_inc_files_and_dirs_for_file(
-                    file)
-                start = time.monotonic()
-                # noinspection PyTypeChecker
-                desugared_file_location, log_file = SugarCRunner.desugar_file(file,
-                                                                              recommended_space=None,
-                                                                              remove_errors=self.remove_errors,
-                                                                              config_prefix=self.config_prefix,
-                                                                              whitelist=self.whitelist,
-                                                                              no_stdlibs=True,
-                                                                              included_files=included_files,
-                                                                              included_directories=included_directories,
-                                                                              commandline_declarations=cmd_decs,
-                                                                              keep_mem=self.tool.keep_mem,
-                                                                              make_main=self.tool.make_main,
-                                                                              superc_path=self.superc_path)
+            with ProcessPoolExecutor(max_workers=self.jobs) as executor:
+                # Submit tasks.
+                desugar_tasks = [executor.submit(self.desugar, file) for file in self.program.get_source_files()]
 
-                return desugared_file_location, log_file, file, time.monotonic() - start
-
-            source_files = list(self.program.get_source_files())
-            logger.info(f"Source files (total {len(source_files)}) are {source_files}")
-            logger.info("Desugaring files....")
-
-            input_files: List[Tuple] = []
-            with ProcessPool(self.jobs) as pool:
-                for result in tqdm(pool.imap(desugar, self.program.get_source_files()), total=len(source_files)):
-                    input_files.append(result)
-                pool.close()
+                # Collect results.
+                for desugar_task in tqdm(desugar_tasks, total=len(list(self.program.get_source_files()))):
+                    try:
+                        desugared_file = desugar_task.result()
+                        desugared_files.append(desugared_file)
+                    except Exception as e:
+                        logger.exception(f"Error during desugaring: {e}")
 
             logger.info(f"Finished desugaring the source code.")
-            logger.info(f"Collected {len([c for c in self.program.get_source_files()])} .c files to analyze.")
+            logger.info(f"Collected {len(desugared_files)} desugared .c files to analyze.")
 
-            # 3/4. Run analysis tool, and read its results
-            def analyze_read_and_process(desugared_file: Path, original_file: Path, desugaring_time: float = None) -> \
-                    Iterable[Alarm]:
-                included_directories, included_files, cmd_decs, user_defined_space = self.get_inc_files_and_dirs_for_file(
-                    original_file)
-                alarms = process_alarms(self.tool.analyze_and_read(desugared_file, included_files=included_files,
-                                                                   included_dirs=included_directories), desugared_file)
-
-                for a in alarms:
-                    a.desugaring_time = desugaring_time
-                return alarms
-
+            ###################################
+            # Run analysis tool.
+            ###################################
             alarms = []
-            logger.info("Running analysis....")
+            logger.info(f"Running analysis with tool {self.tool.name}...")
 
-            with ProcessPool(self.jobs) as p:
-                for result in tqdm(
-                        p.imap(lambda x: analyze_read_and_process(*x), ((d, o, dt) for d, _, o, dt in input_files)),
-                        total=len(input_files)):
-                    alarms.extend(result)
+            with ProcessPoolExecutor(max_workers=self.jobs) as executor:
+                # Submit tasks.
+                analysis_tasks = [executor.submit(self.analyze_read_and_process, *(d, o, dt))
+                                  for d, _, o, dt in desugared_files]
+
+                # Collect results.
+                for analysis_task in tqdm(analysis_tasks, total=len(desugared_files)):
+                    try:
+                        results = analysis_task.result()
+                        alarms.extend(results)
+                    except Exception as e:
+                        logger.exception(f"Error during analysis: {e}")
+
+            #with ProcessPool(self.jobs) as p:
+            #    for result in tqdm(
+            #            p.imap(lambda x: self.analyze_read_and_process(*x), ((d, o, dt) for d, _, o, dt in desugared_files)),
+            #            total=len(desugared_files)):
+            #        alarms.extend(result)
 
             logger.info(f"Got {len(alarms)} unique alarms.")
             buckets: List[List[Alarm]] = [[]]
@@ -229,6 +216,37 @@ class Tester:
         logger.debug(f"Writing alarms to file \"{alarm_file}\"")
         with open(alarm_file, 'w') as f:
             json.dump([a.as_dict() for a in alarms], f)
+
+    def desugar(self, file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
+        included_directories, included_files, cmd_decs, recommended_space = self.get_inc_files_and_dirs_for_file(
+            file)
+        start = time.monotonic()
+        # noinspection PyTypeChecker
+        desugared_file_location, log_file = SugarCRunner.desugar_file(file,
+                                                                      recommended_space=None,
+                                                                      remove_errors=self.remove_errors,
+                                                                      config_prefix=self.config_prefix,
+                                                                      whitelist=self.whitelist,
+                                                                      no_stdlibs=True,
+                                                                      included_files=included_files,
+                                                                      included_directories=included_directories,
+                                                                      commandline_declarations=cmd_decs,
+                                                                      keep_mem=self.tool.keep_mem,
+                                                                      make_main=self.tool.make_main,
+                                                                      superc_path=self.superc_path)
+
+        return desugared_file_location, log_file, file, time.monotonic() - start
+
+    def analyze_read_and_process(self, desugared_file: Path, original_file: Path, desugaring_time: float = None) -> \
+            Iterable[Alarm]:
+        included_directories, included_files, cmd_decs, user_defined_space = self.get_inc_files_and_dirs_for_file(
+            original_file)
+        alarms = process_alarms(self.tool.analyze_and_read(desugared_file, included_files=included_files,
+                                                           included_dirs=included_directories), desugared_file)
+
+        for a in alarms:
+            a.desugaring_time = desugaring_time
+        return alarms
 
     def verify_alarm(self, alarm):
         alarm = copy.deepcopy(alarm)

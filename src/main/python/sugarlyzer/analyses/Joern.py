@@ -29,7 +29,8 @@ class Joern(AbstractTool):
         if command_line_defs is None:
             command_line_defs = []
 
-        output_location = tempfile.mkdtemp()
+        # TODO Adjust.
+        output_location = tempfile.mkdtemp(prefix="vari-joern-family-based-")
         dest_file = os.path.join(output_location, "joern_report.txt")
 
         joern_command: str = "joern-scan"
