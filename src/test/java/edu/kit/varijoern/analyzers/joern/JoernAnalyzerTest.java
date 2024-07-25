@@ -16,7 +16,9 @@ import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.prop4j.And;
 import org.prop4j.Literal;
 import org.prop4j.Node;
@@ -37,7 +39,7 @@ class JoernAnalyzerTest {
      * Tests the analysis of the BusyBox sample with two different configurations.
      */
     @Test
-    void analyze()
+    void analyzeBusybox(@TempDir Path tempDirectory)
             throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("busybox-sample");
 
@@ -79,14 +81,81 @@ class JoernAnalyzerTest {
                 )
         );
 
-        Path tempDirectory = Files.createTempDirectory("vari-joern-test-joern");
+        analyze(tempDirectory, testCaseManager, "busybox", configurations, expectedFindings);
+    }
+
+    /**
+     * Tests the analysis of the fiasco sample with two different configurations.
+     */
+    @Test
+    void analyzeFiasco(@TempDir Path tempDirectory)
+            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException {
+        KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("fiasco-sample");
+
+        List<Map<String, Boolean>> configurations = Stream.of(
+                        List.of("USE_GETS",
+                                "INCLUDE_IO_FILE",
+                                "PERFORM_CHMOD",
+                                "DEFINE_USELESS_FUNCTION",
+                                "AMD64",
+                                "__VISIBILITY__CONFIG_CC",
+                                "__VISIBILITY__CONFIG_CXX",
+                                "__VISIBILITY__CONFIG_LD",
+                                "__VISIBILITY__CONFIG_HOST_CC",
+                                "__VISIBILITY__CONFIG_HOST_CXX"),
+                        List.of("USE_GETS",
+                                "INCLUDE_IO_FILE",
+                                "PERFORM_CHMOD",
+                                "PERFORM_RENAME",
+                                "AMD64",
+                                "__VISIBILITY__CONFIG_CC",
+                                "__VISIBILITY__CONFIG_CXX",
+                                "__VISIBILITY__CONFIG_LD",
+                                "__VISIBILITY__CONFIG_HOST_CC",
+                                "__VISIBILITY__CONFIG_HOST_CXX")
+                )
+                .map(configuration -> {
+                    Sampler sampler = new FixedSampler(List.of(configuration),
+                            testCaseManager.getCorrectFeatureModel());
+                    try {
+                        return sampler.sample(null).get(0);
+                    } catch (SamplerException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .toList();
+
+        List<ExpectedFinding> expectedFindings = List.of(
+                new ExpectedFinding("call-to-gets",
+                        Set.of(new SourceLocation(Path.of("src/sample/main.cpp"), 23)),
+                        null,
+                        configurations
+                ),
+                new ExpectedFinding("file-operation-race",
+                        Set.of(new SourceLocation(Path.of("src/sample/io_file.cpp"), 11)),
+                        null,
+                        List.of(configurations.get(1))
+                ),
+                new ExpectedFinding("file-operation-race",
+                        Set.of(new SourceLocation(Path.of("src/sample/io_file.cpp"), 14)),
+                        null,
+                        List.of(configurations.get(1))
+                )
+        );
+
+        analyze(tempDirectory, testCaseManager, "fiasco", configurations, expectedFindings);
+    }
+
+    private void analyze(Path tempDirectory, KconfigTestCaseManager testCaseManager, String system,
+                         List<Map<String, Boolean>> configurations, List<ExpectedFinding> expectedFindings)
+            throws IOException, ComposerException, InterruptedException, AnalyzerFailureException {
         Path workspaceDirectory = tempDirectory.resolve("workspace");
         Files.createDirectory(workspaceDirectory);
         ResultAggregator<JoernAnalysisResult> resultAggregator = new JoernResultAggregator();
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
-        Composer composer = new KbuildComposer(testCaseManager.getPath(), "busybox", composerTempDirectory);
+        Composer composer = new KbuildComposer(testCaseManager.getPath(), system, composerTempDirectory);
 
         for (int i = 0; i < configurations.size(); i++) {
             Map<String, Boolean> configuration = configurations.get(i);
@@ -123,10 +192,10 @@ class JoernAnalyzerTest {
             if (!finding.originalEvidenceLocations().equals(expectedFinding.evidence)) {
                 return false;
             }
-            return ConditionUtils.areEquivalent(finding.condition(),
-                    expectedFinding.presenceCondition);
+            return finding.condition() == null && expectedFinding.presenceCondition == null
+                    || ConditionUtils.areEquivalent(finding.condition(), expectedFinding.presenceCondition);
         };
-        verifyFindingCollection(
+        this.verifyFindingCollection(
                 findings.stream()
                         .filter(finding -> finding.originalEvidenceLocations().stream().findAny()
                                 .map(location -> location.file().startsWith("src"))
@@ -161,11 +230,12 @@ class JoernAnalyzerTest {
                     if (!finding.getOriginalEvidenceLocations().equals(expectedFinding.evidence))
                         return false;
 
-                    // In our test case, we know that there is only one possible condition
-                    if (finding.getPossibleConditions().size() != 1)
+                    // In our test cases, we know that there is at most one possible condition
+                    if (finding.getPossibleConditions().size() > 1)
                         return false;
 
-                    return ConditionUtils.areEquivalent(
+                    return finding.getPossibleConditions().isEmpty() && expectedFinding.presenceCondition == null
+                            || ConditionUtils.areEquivalent(
                             finding.getPossibleConditions().stream().iterator().next(),
                             expectedFinding.presenceCondition
                     );
@@ -195,7 +265,7 @@ class JoernAnalyzerTest {
                 "Unexpected findings were reported: %s".formatted(findings));
     }
 
-    private record ExpectedFinding(String name, Set<SourceLocation> evidence, Node presenceCondition,
+    private record ExpectedFinding(String name, Set<SourceLocation> evidence, @Nullable Node presenceCondition,
                                    List<Map<String, Boolean>> affectedVariants) {
     }
 }

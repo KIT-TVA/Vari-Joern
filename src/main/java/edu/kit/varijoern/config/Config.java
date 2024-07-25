@@ -41,7 +41,7 @@ public class Config {
 
     // General config.
     private final long iterations;
-    private final @NotNull AnalyzerConfig analyzerConfig;
+    private final @NotNull AnalyzerConfig<?> analyzerConfig;
     private final @NotNull ProgramConfig programConfig;
     private final @NotNull FeatureModelReaderConfig featureModelReaderConfig;
 
@@ -155,7 +155,7 @@ public class Config {
      *
      * @return the analyzer configuration
      */
-    public @NotNull AnalyzerConfig getAnalyzerConfig() {
+    public @NotNull AnalyzerConfig<?> getAnalyzerConfig() {
         return analyzerConfig;
     }
 

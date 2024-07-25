@@ -35,17 +35,10 @@ RUN apt-get install -y \
     # Required for building SuperC
     libjson-java \
     # Required for building SuperC
-    sat4j \
-    # Required for cloning SuperC
-    git
+    sat4j
 
-
-# Clone SuperC/SugarC.
-RUN git clone https://github.com/KIT-TVA/superc.git /superc
+ADD https://github.com/KIT-TVA/superc.git#merge-with-upstream-mergingParseErrors /superc
 WORKDIR /superc
-RUN git checkout merge-with-upstream-mergingParseErrors
-
-# Build SuperC/SugarC.
 RUN JAVA_DEV_ROOT=/superc \
     && CLASSPATH=$CLASSPATH:$JAVA_DEV_ROOT/classes:$JAVA_DEV_ROOT/bin/junit.jar:$JAVA_DEV_ROOT/bin/antlr.jar:$JAVA_DEV_ROOT/bin/javabdd.jar:$JAVA_DEV_ROOT/bin/json-simple-1.1.1.jar \
     && CLASSPATH=$CLASSPATH:/usr/share/java/org.sat4j.core.jar:/usr/share/java/com.microsoft.z3.jar:/usr/share/java/json-lib.jar \
@@ -93,10 +86,10 @@ RUN apt-get install -y \
 
 ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
-    && /joern-install.sh --version 2.0.400 \
+    && /joern-install.sh --version=v2.0.400 \
     && rm /joern-install.sh /joern-cli.zip
 ENV PATH="/opt/joern/joern-cli:${PATH}"
-RUN joern-scan --updatedb
+RUN joern-scan --updatedb --dbversion 2.0.400
 
 RUN pipx install --python=$(which python3.11) kmax
 

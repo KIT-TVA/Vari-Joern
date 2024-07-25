@@ -1,0 +1,8 @@
+# -*- makefile -*-
+# vi:se ft=make.
+
+SUBSYSTEMS = SAMPLE VERSION
+
+LD_EMULATION_CHOICE             := elf_x86_64 elf_x86_64_fbsd
+
+VERSION                         := version.h

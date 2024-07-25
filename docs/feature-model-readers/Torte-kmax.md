@@ -22,7 +22,7 @@ This reader takes the following options:
       Relative paths are relative to the location of the configuration file.
     - Optional: no
 - `system`
-    - Specifies the used Kconfig implementation. Currently, `busybox` and `linux` are supported.
+    - Specifies the used Kconfig implementation. Currently, `busybox`, `linux` and `fiasco` are supported.
     - Optional: no
 
 For example, the reader could be configured as follows:

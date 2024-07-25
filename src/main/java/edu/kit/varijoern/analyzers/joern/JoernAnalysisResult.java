@@ -52,8 +52,7 @@ public class JoernAnalysisResult extends AnalysisResult {
                             : evidenceForConditionCalculation.getCondition(this.getPresenceConditionMapper())
                             .orElse(null);
                     Set<SourceLocation> originalLocations = finding.getEvidence().stream()
-                            .map(currentEvidence -> currentEvidence.getLocation()
-                                    .flatMap(location -> this.getSourceMap().getOriginalLocation(location))
+                            .map(currentEvidence -> currentEvidence.resolveLocation(this.getSourceMap())
                                     .orElse(null)
                             )
                             .filter(Objects::nonNull)
@@ -66,9 +65,9 @@ public class JoernAnalysisResult extends AnalysisResult {
     @Override
     public @NotNull String toString() {
         StringBuilder sb = new StringBuilder(super.toString());
-        for (JoernFinding finding : this.findings) {
+        for (AnnotatedFinding finding : this.getFindings()) {
             sb.append(System.lineSeparator());
-            sb.append(finding.toString(this.getPresenceConditionMapper(), this.getSourceMap()));
+            sb.append(finding.toString());
         }
         return sb.toString();
     }

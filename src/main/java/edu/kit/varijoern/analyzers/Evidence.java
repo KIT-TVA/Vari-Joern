@@ -54,25 +54,6 @@ public class Evidence {
     }
 
     /**
-     * Converts this evidence to a string containing information about when the represented line of code is included in
-     * the composed code. To determine the condition, the specified presence condition mapper is used.
-     *
-     * @param presenceConditionMapper the presence condition mapper to be used
-     * @param sourceMap               the source map to be used to determine the location of this evidence in the
-     *                                original source
-     * @return a string representation of this evidence
-     */
-    public @NotNull String toString(@NotNull PresenceConditionMapper presenceConditionMapper,
-                                    @NotNull SourceMap sourceMap) {
-        Optional<Node> condition = getCondition(presenceConditionMapper);
-        String conditionMessage = condition.map(Node::toString).orElse("unknown");
-        return "%s; condition: %s".formatted(
-                this.resolveLocation(sourceMap).map(SourceLocation::toString).orElse("unknown"),
-                conditionMessage
-        );
-    }
-
-    /**
      * Resolves the location of this evidence using the specified source map.
      *
      * @param sourceMap the source map to be used
