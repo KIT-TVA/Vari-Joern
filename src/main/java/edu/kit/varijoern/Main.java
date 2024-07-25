@@ -11,7 +11,7 @@ import edu.kit.varijoern.cli.Args;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
-import edu.kit.varijoern.config.ProgramConfig;
+import edu.kit.varijoern.config.SubjectConfig;
 import edu.kit.varijoern.config.SugarlyzerConfig;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfigFactory;
@@ -93,7 +93,7 @@ public class Main {
 
             Config config;
             try {
-                config = new Config(parsedArgs.getConfig(), parsedArgs.getAnalysisStrategy());
+                config = new Config(parsedArgs.getConfig());
             } catch (IOException e) {
                 LOGGER.atFatal().withThrowable(e).log("The configuration file could not be read");
                 EXITED_LATCH.countDown();
@@ -225,7 +225,7 @@ public class Main {
                 .map(Object::toString)
                 .orElse("tester");
 
-        ProgramConfig programConfig = config.getProgramConfig();
+        SubjectConfig subjectConfig = config.getProgramConfig();
         AnalyzerConfig analyzerConfig = config.getAnalyzerConfig();
         Path analyzerPath = analyzerConfig.getPath(); // Optional.
 
@@ -247,8 +247,8 @@ public class Main {
 
         // Add mandatory arguments.
         sugarlyzerCommandList.add(analyzerConfig.getName());
-        sugarlyzerCommandList.add(programConfig.getProgramName());
-        sugarlyzerCommandList.add(programConfig.getProgramPath().toAbsolutePath().toString());
+        sugarlyzerCommandList.add(subjectConfig.getSubjectName());
+        sugarlyzerCommandList.add(subjectConfig.getRootPath().toAbsolutePath().toString());
 
         // Call Sugarlyzer.
         Process sugarlyzerProcess = null;
