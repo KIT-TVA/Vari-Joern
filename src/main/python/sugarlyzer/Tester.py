@@ -45,7 +45,10 @@ class Tester:
         self.no_recommended_space = True
         self.jobs: int = max(args.jobs if args.jobs is not None else os.cpu_count() or 1, 1)
         self.validate = args.validate if args.validate is not None else False
-        self.superc_path = args.superc_path
+        self.tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
+            suffix="vari-joern-sugarlyzer-")
+        self.output_path = args.output_path if args.output_path is not None else Path.home() / Path(
+            "sugarlyzer-results.json")
 
         def read_json_and_validate(file: str) -> Dict[str, Any]:
             """
@@ -123,7 +126,7 @@ class Tester:
     def execute(self):
         logger.info(f"Current environment is {os.environ}")
 
-        # TODO Path for sugarlyzer output should be controllable by Vari-Joern.
+        # TODO Path for sugarlyzer output should be controllable by Vari-Joern (see self#output_path and self#tmp_path).
         output_folder: Path = Path.home() / Path("vari-joern-family-analysis") / Path("results") / Path(
             self.tool.name) / Path(self.program.name)
         output_folder.mkdir(exist_ok=True, parents=True)
@@ -392,14 +395,17 @@ def get_arguments() -> argparse.Namespace:
     p.add_argument("tool", help="The tool to run.")
     p.add_argument("program", help="The target program.")
     p.add_argument("program_path", help="The absolute path to the target program.")
-    p.add_argument("--tool-path", help="The absolute path to the tool executable.")
-    p.add_argument("--superc-path", help="The absolute path to the source directory of the local SuperC installation.")
-    p.add_argument("-v", dest="verbosity", action="store_true", help="""Print debug messages.""")
+
+    p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
+    p.add_argument("--output-path", help="The path to the file in which the output is going to be written.")
+    p.add_argument("--tmp-path", help="The path to the tmp directory that will be used for storing intermediary "
+                                      "results.")
+    p.add_argument("--jobs", help="The number of jobs to use. If None, will use all CPUs", type=int)
+
     p.add_argument("--baselines", action="store_true",
                    help="""Run the baseline experiments. In these, we configure each 
                    file with every possible configuration, and then run the experiments.""")
     p.add_argument("--no-recommended-space", help="""Do not generate a recommended space.""", action='store_true')
-    p.add_argument("--jobs", help="The number of jobs to use. If None, will use all CPUs", type=int)
     p.add_argument("--validate",
                    help="""Try running desugared alarms with Z3's configuration to see if they are retained.""",
                    action='store_true')
@@ -430,6 +436,7 @@ def set_up_logging(args: argparse.Namespace) -> None:
 def main():
     start = time.monotonic()
     args = get_arguments()
+
     set_up_logging(args)
     t = Tester(args)
     t.execute()

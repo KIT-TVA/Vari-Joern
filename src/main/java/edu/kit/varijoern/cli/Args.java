@@ -3,7 +3,6 @@ package edu.kit.varijoern.cli;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.PathConverter;
-import edu.kit.varijoern.ResultOutputArgs;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;

@@ -21,7 +21,7 @@ public class SubjectConfig {
      */
     private final @NotNull String subjectName;
     /**
-     * {@link Path} to the root directory of the subject system.
+     * The absolute {@link Path} to the root directory of the subject system.
      */
     private final @NotNull Path sourceRoot;
 
@@ -29,7 +29,7 @@ public class SubjectConfig {
      * Constructor initializing the {@link SubjectConfig} with the fields contained in the subject table passed in as parameter.
      *
      * @param subjectTable the subject table whose fields should be used to initialize the {@link SubjectConfig}.
-     * @param configPath   the path to the path to the configuration file. Must be absolute.
+     * @param configPath   the path to the path to the configuration file. Can be relative (will be interpreted relative to the configPath).
      * @throws InvalidConfigException if a mandatory field of the {@link SubjectConfig} could not be initialized.
      */
     public SubjectConfig(@NotNull TomlTable subjectTable, @NotNull Path configPath) throws InvalidConfigException {
@@ -63,9 +63,9 @@ public class SubjectConfig {
     }
 
     /**
-     * Gets the root path of the subject system specified by this {@link SubjectConfig}
+     * Gets the absolute root path of the subject system specified by this {@link SubjectConfig}
      *
-     * @return the root path of the subject system.
+     * @return the absolute root path of the subject system.
      */
     public @NotNull Path getSourceRoot() {
         return sourceRoot;
