@@ -43,7 +43,7 @@ public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<Ana
 
     @Override
     protected @NotNull AnalyzerConfig<?> newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
-                                                        @NotNull Path configPath)
+                                                        @NotNull Path resolvePath)
             throws InvalidConfigException {
         return switch (componentName) {
             case JoernAnalyzer.NAME -> new JoernAnalyzerConfig(toml, JOERN_ARGS);

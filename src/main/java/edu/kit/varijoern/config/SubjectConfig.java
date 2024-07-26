@@ -6,13 +6,16 @@ import org.tomlj.TomlTable;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Optional;
+
+// TODO Consider inheriting from NamedComponentConfig
 
 /**
  * Class encapsulating configuration of the subject system to be used for the analysis.
  */
 public class SubjectConfig {
+    private static final @NotNull String NAME_KEY = "name";
+    private static final @NotNull String SOURCE_ROOT_KEY = "source_root";
+
     /**
      * The name of the subject system.
      */
@@ -20,28 +23,30 @@ public class SubjectConfig {
     /**
      * {@link Path} to the root directory of the subject system.
      */
-    private final @NotNull Path rootPath;
+    private final @NotNull Path sourceRoot;
 
     /**
      * Constructor initializing the {@link SubjectConfig} with the fields contained in the subject table passed in as parameter.
      *
      * @param subjectTable the subject table whose fields should be used to initialize the {@link SubjectConfig}.
+     * @param configPath   the path to the path to the configuration file. Must be absolute.
      * @throws InvalidConfigException if a mandatory field of the {@link SubjectConfig} could not be initialized.
      */
-    public SubjectConfig(@NotNull TomlTable subjectTable) throws InvalidConfigException {
-        this.subjectName = Optional.ofNullable(subjectTable.getString("name"))
-                .filter(name -> !name.isEmpty())
-                .orElseThrow(() -> new InvalidConfigException("Subject system name was not specified"));
-
-        String programPath = Optional.ofNullable(subjectTable.getString("root_path"))
-                .filter(path -> !path.isEmpty())
-                .orElseThrow(() -> new InvalidConfigException("Path to the root directory of the subject system was not specified"));
+    public SubjectConfig(@NotNull TomlTable subjectTable, @NotNull Path configPath) throws InvalidConfigException {
+        this.subjectName = TomlUtils.getMandatoryString(SubjectConfig.NAME_KEY, subjectTable, "Subject system name was not specified");
+        String sourceRoot = TomlUtils.getMandatoryString(SubjectConfig.SOURCE_ROOT_KEY, subjectTable, "Path to the root directory of the subject system was not specified");
 
         try {
-            this.rootPath = Paths.get(programPath);
+            Path sourceRootPath = Path.of(sourceRoot);
 
-            if (!Files.exists(this.rootPath)) {
-                throw new InvalidConfigException("Specified root path \"" + this.rootPath + "\" does not exist.");
+            if (!sourceRootPath.isAbsolute()) {
+                sourceRootPath = configPath.getParent().resolve(sourceRootPath);
+            }
+
+            this.sourceRoot = sourceRootPath;
+
+            if (!Files.exists(this.sourceRoot)) {
+                throw new InvalidConfigException("Specified root path \"" + this.sourceRoot + "\" does not exist.");
             }
         } catch (InvalidPathException invalidPathException) {
             throw new InvalidConfigException(invalidPathException.getMessage());
@@ -62,7 +67,7 @@ public class SubjectConfig {
      *
      * @return the root path of the subject system.
      */
-    public @NotNull Path getRootPath() {
-        return rootPath;
+    public @NotNull Path getSourceRoot() {
+        return sourceRoot;
     }
 }

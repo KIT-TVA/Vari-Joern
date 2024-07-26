@@ -24,13 +24,13 @@ public class KbuildComposerConfig extends ComposerConfig {
 
     /**
      * Creates a new {@link KbuildComposerConfig} by extracting data from the specified TOML section.
-     * Relative paths are assumed to be relative to the specified path of the configuration file.
+     * Relative paths are assumed to be relative to the specified resolve path.
      *
      * @param toml       the TOML section
-     * @param configPath the path to the configuration file. Must be absolute.
+     * @param resolvePath the path with which to resolve relative paths. Must be absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public KbuildComposerConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
+    public KbuildComposerConfig(@NotNull TomlTable toml, @NotNull Path resolvePath) throws InvalidConfigException {
         super(toml);
         String sourceLocation = TomlUtils.getMandatoryString(
                 SOURCE_FIELD_NAME,
@@ -44,7 +44,7 @@ public class KbuildComposerConfig extends ComposerConfig {
             throw new InvalidConfigException("Source location for Kbuild composer is not a valid path", e);
         }
         if (!sourcePath.isAbsolute()) {
-            sourcePath = configPath.getParent().resolve(sourcePath);
+            sourcePath = resolvePath.resolve(sourcePath);
         }
         this.sourceLocation = sourcePath;
 

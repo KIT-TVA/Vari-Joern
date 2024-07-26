@@ -58,46 +58,44 @@ Analyzers are used to scan a composed software variant. Only [Joern](analyzers/J
 A complete configuration file might look like this:
 
 ```toml
-# Optional
+# Optional.
 iterations = 2
 
-# Mandatory
+# Mandatory table.
 [subject]
-# Mandatory
-name = "axtls"
-# Mandatory
-source_root = "/home/tim/Downloads/axTLS-2.1.4"
+name = "busybox"
+# Either absolute or relative to the config file.
+source_root = "path/to/busybox"
 
-# Mandatory
+# Mandatory table.
 [feature-model-reader]
 name = "featureide"
+# Either absolute or relative to subject.source_root.
 path = "path/to/feature-model.xml"
 
-# Only checked if strategy is product-based.
+# Only checked if product-based strategy is chosen.
 [product]
 
-# Mandatory
+# Mandatory table for product-based strategy.
 [product.analyzer]
-# Mandatory
 name = "joern"
 
-# Mandatory
+# Mandatory table for product-based strategy.
 [product.sampler]
 name = "fixed"
 features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
 
-# Mandatory
+# Mandatory table for product-based strategy.
 [product.composer]
 name = "kbuild"
+# Either absolute or relative to subject.source_root.
 source = "path/to/source-code"
 system = "busybox"
 
-# Only checked if strategy is family-based.
+# Only checked if family-based strategy is chosen.
 [family]
 
-# Optional
+# Mandatory table for family-based strategy.
 [family.sugarlyzer]
-# path = "/home/tim/.pyenv/shims/tester"
-# superc_path = "/home/tim/Desktop/MA_Workspace/tva-superc/"
 analyzer_name = "joern"
 ```

@@ -12,7 +12,6 @@ import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.SubjectConfig;
-import edu.kit.varijoern.config.SugarlyzerConfig;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfigFactory;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
@@ -41,7 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -94,6 +92,7 @@ public class Main {
             Config config;
             try {
                 config = new Config(parsedArgs.getConfig());
+                config.checkForCompleteness(parsedArgs.getAnalysisStrategy());
             } catch (IOException e) {
                 LOGGER.atFatal().withThrowable(e).log("The configuration file could not be read");
                 EXITED_LATCH.countDown();
@@ -134,6 +133,7 @@ public class Main {
     private static int runProductBased(@NotNull Config config, @NotNull Args args) {
         Path tmpDir;
         Path featureModelReaderTmpDirectory;
+
         try {
             tmpDir = Files.createTempDirectory("vari-joern");
             featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
@@ -219,28 +219,15 @@ public class Main {
 
     private static int runFamilyBased(@NotNull Config config, @NotNull Args args) {
         // Gather information for Sugarlyzer call.
-        String sugarlyzerCommand = Optional.ofNullable(config.getSugarlyzerConfig())
-                .map(SugarlyzerConfig::getSugarlyzerPath)
-                .map(Path::toAbsolutePath)
-                .map(Object::toString)
-                .orElse("tester");
+        String sugarlyzerCommand = "tester";
 
         SubjectConfig subjectConfig = config.getProgramConfig();
-        AnalyzerConfig analyzerConfig = config.getAnalyzerConfig();
-        Path analyzerPath = analyzerConfig.getPath(); // Optional.
+        AnalyzerConfig<?> analyzerConfig = config.getAnalyzerConfig();
 
         List<String> sugarlyzerCommandList = new ArrayList<>();
         sugarlyzerCommandList.add(sugarlyzerCommand);
 
         // Add options.
-        if (analyzerPath != null) {
-            sugarlyzerCommandList.add("--tool-path");
-            sugarlyzerCommandList.add(analyzerPath.toAbsolutePath().toString());
-        }
-        if(config.getSugarlyzerConfig() != null && config.getSugarlyzerConfig().getSupercPath() != null){
-            sugarlyzerCommandList.add("--superc-path");
-            sugarlyzerCommandList.add(config.getSugarlyzerConfig().getSupercPath().toAbsolutePath().toString());
-        }
         if(args.isVerbose()){
             sugarlyzerCommandList.add("-v");
         }
@@ -248,7 +235,7 @@ public class Main {
         // Add mandatory arguments.
         sugarlyzerCommandList.add(analyzerConfig.getName());
         sugarlyzerCommandList.add(subjectConfig.getSubjectName());
-        sugarlyzerCommandList.add(subjectConfig.getRootPath().toAbsolutePath().toString());
+        sugarlyzerCommandList.add(subjectConfig.getSourceRoot().toAbsolutePath().toString());
 
         // Call Sugarlyzer.
         Process sugarlyzerProcess = null;

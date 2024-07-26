@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * This utility class contains methods that are used for parsing TOML files.
@@ -25,10 +26,9 @@ public final class TomlUtils {
     public static @NotNull String getMandatoryString(@NotNull String dottedName, @NotNull TomlTable toml,
                                                      @NotNull String exceptionMessage)
             throws InvalidConfigException {
-        if (!toml.isString(dottedName)) {
-            throw new InvalidConfigException(exceptionMessage);
-        }
-        return Objects.requireNonNull(toml.getString(dottedName));
+        return Optional.ofNullable(toml.getString(dottedName))
+                .filter(value -> !value.isEmpty())
+                .orElseThrow(() -> new InvalidConfigException(exceptionMessage));
     }
 
     /**

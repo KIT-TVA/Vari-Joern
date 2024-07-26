@@ -2,6 +2,7 @@ package edu.kit.varijoern.config;
 
 import edu.kit.varijoern.analyzers.AnalyzerConfig;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
+import edu.kit.varijoern.cli.AnalysisStrategy;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfig;
@@ -25,11 +26,11 @@ import java.util.stream.Collectors;
  */
 public class Config {
     private static final String ITERATIONS_FIELD_NAME = "iterations";
-    private static final String PROGRAM_FIELD_NAME = "program";
-    private static final String ANALYZER_FIELD_NAME = "analyzer";
+    private static final String SUBJECT_SYSTEM_FIELD_NAME = "subject";
     private static final String FEATURE_MODEL_READER_FIELD_NAME = "feature-model-reader";
 
     private static final String PRODUCT_FIELD_NAME = "product";
+    private static final String ANALYZER_FIELD_NAME = "analyzer";
     private static final String SAMPLER_FIELD_NAME = "sampler";
     private static final String COMPOSER_FIELD_NAME = "composer";
 
@@ -40,11 +41,11 @@ public class Config {
 
     // General config.
     private final long iterations;
-    private final @NotNull AnalyzerConfig<?> analyzerConfig;
     private final @NotNull SubjectConfig subjectConfig;
     private final @NotNull FeatureModelReaderConfig featureModelReaderConfig;
 
     // Product-based config.
+    private @Nullable AnalyzerConfig<?> analyzerConfig;
     private @Nullable SamplerConfig samplerConfig;
     private @Nullable ComposerConfig composerConfig;
 
@@ -79,20 +80,18 @@ public class Config {
             throw new InvalidConfigException("Invalid type of option `iterations`", e);
         }
 
-        if (!parsedConfig.isTable(PROGRAM_FIELD_NAME))
-            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, PROGRAM_FIELD_NAME));
-        this.subjectConfig = new SubjectConfig(Objects.requireNonNull(parsedConfig.getTable(PROGRAM_FIELD_NAME)));
+        // Subject.
+        if (!parsedConfig.isTable(SUBJECT_SYSTEM_FIELD_NAME))
+            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SUBJECT_SYSTEM_FIELD_NAME));
+        this.subjectConfig = new SubjectConfig(Objects.requireNonNull(parsedConfig.getTable(SUBJECT_SYSTEM_FIELD_NAME)),
+                absoluteConfigLocation);
 
-        if (!parsedConfig.isTable(ANALYZER_FIELD_NAME))
-            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
-        this.analyzerConfig = AnalyzerConfigFactory.getInstance()
-                .readConfig(Objects.requireNonNull(parsedConfig.getTable(ANALYZER_FIELD_NAME)), absoluteConfigLocation);
-
+        // Feature model reader.
         if (!parsedConfig.isTable(FEATURE_MODEL_READER_FIELD_NAME))
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FEATURE_MODEL_READER_FIELD_NAME));
         this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
                 .readConfig(Objects.requireNonNull(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
-                        absoluteConfigLocation);
+                        this.subjectConfig.getSourceRoot());
 
         // Try to collect optional strategy-related configurations.
         this.initializeProductBasedConfig(parsedConfig, absoluteConfigLocation);
@@ -104,22 +103,26 @@ public class Config {
             return;
         }
 
-        // Try to read the mandatory components of the product table.
+        // Try to read the components of the product table.
         var productTable = Objects.requireNonNull(parsedConfig.getTable(PRODUCT_FIELD_NAME));
 
-        // Sampler.
-        if (!productTable.isTable(SAMPLER_FIELD_NAME)) {
-            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
+        // Analyzer.
+        if (productTable.isTable(ANALYZER_FIELD_NAME)) {
+            this.analyzerConfig = AnalyzerConfigFactory.getInstance()
+                    .readConfig(Objects.requireNonNull(productTable.getTable(ANALYZER_FIELD_NAME)), absoluteConfigLocation.getParent());
         }
-        this.samplerConfig = SamplerConfigFactory.getInstance()
-                .readConfig(Objects.requireNonNull(productTable.getTable(SAMPLER_FIELD_NAME)), absoluteConfigLocation);
+
+        // Sampler.
+        if (productTable.isTable(SAMPLER_FIELD_NAME)) {
+            this.samplerConfig = SamplerConfigFactory.getInstance()
+                    .readConfig(Objects.requireNonNull(productTable.getTable(SAMPLER_FIELD_NAME)), absoluteConfigLocation.getParent());
+        }
 
         // Composer.
-        if (!productTable.isTable(COMPOSER_FIELD_NAME)) {
-            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, COMPOSER_FIELD_NAME));
+        if (productTable.isTable(COMPOSER_FIELD_NAME)) {
+            this.composerConfig = ComposerConfigFactory.getInstance()
+                    .readConfig(Objects.requireNonNull(productTable.getTable(COMPOSER_FIELD_NAME)), this.subjectConfig.getSourceRoot());
         }
-        this.composerConfig = ComposerConfigFactory.getInstance()
-                .readConfig(Objects.requireNonNull(productTable.getTable(COMPOSER_FIELD_NAME)), absoluteConfigLocation);
     }
 
     private void initializeFamilyBasedConfig(@NotNull TomlParseResult parsedConfig) throws InvalidConfigException {
@@ -127,12 +130,33 @@ public class Config {
             return;
         }
 
-        // Try to read the mandatory components of the family table.
+        // Try to read the components of the family table.
         var familyTable = Objects.requireNonNull(parsedConfig.getTable(FAMILY_FIELD_NAME));
 
-        // Try to read the optional components of the family table.
+        // Sugarlyzer.
         if (familyTable.isTable(SUGARLYZER_FIELD_NAME)) {
             this.sugarlyzerConfig = new SugarlyzerConfig(Objects.requireNonNull(familyTable.getTable(SUGARLYZER_FIELD_NAME)));
+        }
+    }
+
+    public void checkForCompleteness(AnalysisStrategy analysisStrategy) throws InvalidConfigException {
+        switch (analysisStrategy) {
+            case PRODUCT:
+                if (this.analyzerConfig == null) {
+                    throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
+                }
+                if (this.samplerConfig == null) {
+                    throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
+                }
+                if (this.composerConfig == null) {
+                    throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, COMPOSER_FIELD_NAME));
+                }
+                break;
+            case FAMILY:
+                if (this.getSugarlyzerConfig() == null) {
+                    throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SUGARLYZER_FIELD_NAME));
+                }
+                break;
         }
     }
 
@@ -154,7 +178,7 @@ public class Config {
      *
      * @return the analyzer configuration
      */
-    public @NotNull AnalyzerConfig<?> getAnalyzerConfig() {
+    public @Nullable AnalyzerConfig<?> getAnalyzerConfig() {
         return analyzerConfig;
     }
 

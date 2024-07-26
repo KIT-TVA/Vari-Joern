@@ -32,31 +32,30 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
 
     /**
      * Creates a new configuration instance by parsing the specified component section of the configuration file.
-     * Relative paths are resolved against the parent directory of the specified configuration file path.
+     * Relative paths are resolved against the specified resolve path.
      *
-     * @param toml       the component section
-     * @param configPath the path to the configuration file. Must be absolute.
+     * @param toml        the component section
+     * @param resolvePath the path with which to resolve relative paths. Must be absolute.
      * @return the parsed configuration
      * @throws InvalidConfigException if the TOML section did not represent a valid configuration
      */
-    public @NotNull C readConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
+    public @NotNull C readConfig(@NotNull TomlTable toml, @NotNull Path resolvePath) throws InvalidConfigException {
         String componentName = getComponentName(toml, getComponentType());
-        return newConfigFromName(componentName, toml, configPath);
+        return newConfigFromName(componentName, toml, resolvePath);
     }
 
     /**
      * Creates a new configuration instance for the component implementation with the specified name by parsing the
-     * specified component section of the configuration file. Relative paths are resolved against the parent directory
-     * of the specified configuration file path.
+     * specified component section of the configuration file. Relative paths are resolved against the specified resolve path.
      *
      * @param componentName the name of the implementation of the component
      * @param toml          the component section
-     * @param configPath    the path to the configuration file. Must be absolute.
+     * @param resolvePath   the path with which to resolve relative paths. Must be absolute.
      * @return the parsed configuration
      * @throws InvalidConfigException if the TOML section did not represent a valid configuration
      */
     protected abstract @NotNull C newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
-                                                    @NotNull Path configPath)
+                                                    @NotNull Path resolvePath)
             throws InvalidConfigException;
 
     /**

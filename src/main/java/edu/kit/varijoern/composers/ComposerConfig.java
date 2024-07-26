@@ -12,10 +12,21 @@ import java.nio.file.Path;
  * The base class for all composer configurations.
  */
 public abstract class ComposerConfig extends NamedComponentConfig {
+    /**
+     * Creates a new {@link ComposerConfig} by extracting data from the specified TOML section.
+     *
+     * @param toml the TOML section
+     * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
+     */
     protected ComposerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
     }
 
+    /**
+     * Creates a new {@link ComposerConfig} with the specified name.
+     *
+     * @param name the name of the component
+     */
     protected ComposerConfig(@NotNull String name) {
         super(name);
     }

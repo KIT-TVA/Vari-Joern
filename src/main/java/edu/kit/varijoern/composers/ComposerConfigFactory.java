@@ -43,11 +43,11 @@ public final class ComposerConfigFactory extends NamedComponentConfigFactory<Com
 
     @Override
     protected @NotNull ComposerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
-                                                        @NotNull Path configPath)
+                                                        @NotNull Path resolvePath)
             throws InvalidConfigException {
         return switch (componentName) {
-            case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath);
-            case KbuildComposer.NAME -> new KbuildComposerConfig(toml, configPath);
+            case AntennaComposer.NAME -> new AntennaComposerConfig(toml, resolvePath);
+            case KbuildComposer.NAME -> new KbuildComposerConfig(toml, resolvePath);
             default -> throw new InvalidConfigException(String.format("Unknown composer \"%s\"", componentName));
         };
     }
