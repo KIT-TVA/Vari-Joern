@@ -30,9 +30,7 @@ class Joern(AbstractTool):
         if command_line_defs is None:
             command_line_defs = []
 
-        dest_file = self.results_dir / Path(f"joern_report_{file.absolute()}.txt")
-
-        # TODO Debug error arising from JoernReader no being able to find dest_file.
+        dest_file = self.results_dir / Path(f"joern_report_{file.name}.txt")
 
         # TODO Adjust Joern call (see product-based JoernAnalyzer).
         cmd = ["joern-scan", file.absolute(), "--overwrite", ">", dest_file]
