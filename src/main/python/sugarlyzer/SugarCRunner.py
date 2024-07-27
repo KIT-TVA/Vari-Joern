@@ -146,6 +146,7 @@ def desugar_file(file_to_desugar: Path,
                  recommended_space: str,
                  output_file: str = '',
                  log_file: str = '',
+                 cache_dir_path: Path = None,
                  remove_errors: bool = False,
                  config_prefix: str = None,
                  whitelist: str = None,
@@ -154,8 +155,7 @@ def desugar_file(file_to_desugar: Path,
                  make_main: bool = False,
                  included_files: Optional[Iterable[Path]] = None,
                  included_directories: Optional[Iterable[Path]] = None,
-                 commandline_declarations: Optional[Iterable[str]] = None,
-                 superc_path: str = None) -> tuple[Path, Path]:
+                 commandline_declarations: Optional[Iterable[str]] = None) -> tuple[Path, Path]:
     """
     Runs the SugarC command.
     :param file_to_desugar: The C source code file to desugar.
@@ -199,18 +199,7 @@ def desugar_file(file_to_desugar: Path,
         case _:
             log_file = Path(log_file)
 
-    classpath_option = ''
-    if superc_path is not None and Path(superc_path).exists():
-        classpath_option = (f'-classpath {Path(superc_path)}/classes'
-                            f':{Path(superc_path)}/bin/junit.jar'
-                            f':{Path(superc_path)}/bin/antlr.jar'
-                            f':{Path(superc_path)}/bin/javabdd.jar'
-                            f':{Path(superc_path)}bin/json-simple-1.1.1.jar'
-                            ':/usr/share/java/org.sat4j.core.jar'
-                            ':/usr/share/java/com.microsoft.z3.jar'
-                            ':/usr/share/java/json-lib.jar')
-
-    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', classpath_option, 'superc.SugarC',
+    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', 'superc.SugarC',
            '-showActions', '-useBDD']
     if config_prefix is not None:
         cmd.extend(['-restrictConfigToPrefix', config_prefix, *commandline_args, *included_files, *included_directories,
@@ -224,7 +213,7 @@ def desugar_file(file_to_desugar: Path,
 
     to_append = None
     if remove_errors:
-        run_sugarc(" ".join(cmd), file_to_desugar, desugared_file, log_file)
+        run_sugarc(" ".join(cmd), file_to_desugar, desugared_file, log_file, cache_dir_path)
         logger.debug(f"Created desugared file {desugared_file}")
         to_append = get_bad_constraints(desugared_file)
         for d in to_append:
@@ -234,13 +223,13 @@ def desugar_file(file_to_desugar: Path,
 
     logger.debug(f"Cmd is {' '.join(cmd)}")
     if not remove_errors or remove_errors and len(to_append) > 0:
-        run_sugarc(" ".join(cmd), file_to_desugar, desugared_file, log_file)
+        run_sugarc(" ".join(cmd), file_to_desugar, desugared_file, log_file, cache_dir_path)
     logger.debug(f"Wrote to {log_file}")
     outfile.close()
     return desugared_file, log_file
 
 
-def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file):
+def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file, cache_dir_path: Path):
     current_directory = os.curdir
     os.chdir(file_to_desugar.parent)
     logger.debug(f"In run_sugarc, running cmd {cmd_str} from directory {os.curdir}")
@@ -264,11 +253,10 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file)
     usr_time = 0
     sys_time = 0
     try:
-        digest_path = Path.home() / Path("vari-joern-family-analysis") / Path("cached_desugared")
-        if (digest_file := (digest_path / Path((digest + desugared_output.name)))).exists():
+        if (cached_file := (cache_dir_path / Path((digest + desugared_output.name)))).exists():
             logger.debug("Cache hit!")
             with open(desugared_output, 'wb') as outfile:
-                with open(digest_file, 'rb') as infile:
+                with open(cached_file, 'rb') as infile:
                     outfile.write(infile.read())
         else:
             logger.debug("Cache miss")
@@ -286,9 +274,9 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file)
             with open(desugared_output, 'w') as f:
                 f.write(ps.stdout)
 
-            if not os.path.exists(digest_path):
-                os.makedirs(digest_path)
-            with open(digest_file, 'w') as f:
+            if not os.path.exists(cache_dir_path):
+                os.makedirs(cache_dir_path)
+            with open(cached_file, 'w') as f:
                 f.write(ps.stdout)
 
             logger.debug(f"Wrote to {desugared_output}")

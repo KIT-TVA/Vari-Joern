@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 class Joern(AbstractTool):
 
-    def __init__(self, tool_path: str):
+    def __init__(self, intermediary_results_path: Path):
         super().__init__(JoernReader(), name='joern', make_main=True, keep_mem=True, remove_errors=True,
-                         tool_path=tool_path)
+                         intermediary_results_path=intermediary_results_path)
 
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,
@@ -30,17 +30,12 @@ class Joern(AbstractTool):
         if command_line_defs is None:
             command_line_defs = []
 
-        # TODO Adjust --> Let abstract tool handle this (should also do the cleanup).
-        date_string = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
-        output_location = tempfile.mkdtemp(prefix=f"{file.absolute()}_{date_string}_", dir=self.results_dir)
-        dest_file = os.path.join(output_location, "joern_report.txt")
+        dest_file = self.results_dir / Path(f"joern_report_{file.absolute()}.txt")
+
+        # TODO Debug error arising from JoernReader no being able to find dest_file.
 
         # TODO Adjust Joern call (see product-based JoernAnalyzer).
-        joern_command: str = "joern-scan"
-        if self.tool_path is not None and Path(self.tool_path).exists():
-            joern_command = str(Path(self.tool_path) / joern_command)
-
-        cmd = [joern_command, file.absolute(), "--overwrite", ">", dest_file]
+        cmd = ["joern-scan", file.absolute(), "--overwrite", ">", dest_file]
 
         # cmd = ["/usr/bin/time", "-v", "infer", "--pulse-only", '-o', output_location, '--', "clang",
         #        *list(itertools.chain(*zip(itertools.cycle(["-I"]), included_dirs))),

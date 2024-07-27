@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 
 class Clang(AbstractTool):
 
-    def __init__(self):
-        super().__init__(ClangReader(), name='clang', keep_mem=True, make_main=True, remove_errors=False)
+    def __init__(self, intermediary_results_path: Path):
+        super().__init__(ClangReader(), name='clang', keep_mem=True, make_main=True, remove_errors=False,
+                         intermediary_results_path=intermediary_results_path)
 
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,
@@ -31,7 +32,7 @@ class Clang(AbstractTool):
         if included_files is None:
             included_files = []
 
-        output_location = tempfile.mkdtemp()
+        output_location = self.results_dir
         cmd = ["/usr/bin/time", "-v", "clang-11", '--analyze', "-Xanalyzer", "-analyzer-output=text",
                *list(itertools.chain(*zip(itertools.cycle(["-I"]), included_dirs))),
                *list(itertools.chain(*zip(itertools.cycle(["--include"]), included_files))),
@@ -40,7 +41,8 @@ class Clang(AbstractTool):
                "-c", file.absolute()]
         logger.info(f"Running cmd {' '.join(str(s) for s in cmd)}")
 
-        ps = subprocess.run(" ".join(str(s) for s in cmd), capture_output=True, shell=True, text=True, executable="/bin/bash")
+        ps = subprocess.run(" ".join(str(s) for s in cmd), capture_output=True, shell=True, text=True,
+                            executable="/bin/bash")
         if ps.returncode == 0:
             try:
                 times = "\n".join(ps.stderr.split("\n")[-30:])
@@ -54,12 +56,12 @@ class Clang(AbstractTool):
             logger.warning(f"Running clang on file {str(file)} potentially failed.")
             logger.warning(ps.stdout)
 
-        with open(output_location + '/report.report','w') as o:
+        with open(output_location + '/report.report', 'w') as o:
             o.write(ps.stderr)
 
         lines = ps.stdout.split("\n")
         logger.critical(f"Analysis time: {lines[-1]}")
-            
+
         for root, dirs, files in os.walk(output_location):
             for fil in files:
                 if fil.startswith("report") and fil.endswith(".report"):

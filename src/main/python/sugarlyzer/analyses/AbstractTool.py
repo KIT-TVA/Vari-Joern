@@ -17,17 +17,13 @@ logger = logging.getLogger(__name__)
 class AbstractTool(ABC):
 
     def __init__(self, reader: AbstractReader, name: str, keep_mem: bool, make_main: bool, remove_errors: bool,
-                 tool_path: str = None):
+                 intermediary_results_path: Path):
         self.reader = reader
         self.keep_mem = keep_mem,
         self.make_main = make_main
         self.remove_errors = remove_errors
         self.name = name
-        self.tool_path = tool_path
-
-        dest_directory = Path.home() / Path("vari-joern-family-analysis") / Path(f"{self.name}-analysis-output")
-        os.makedirs(dest_directory, exist_ok=True)
-        self.results_dir = dest_directory
+        self.results_dir = intermediary_results_path
 
     def analyze_and_read(self, source_file: Path, command_line_defs: Iterable[str] = None,
                          included_dirs: Iterable[Path] = None, included_files: Iterable[Path] = None,

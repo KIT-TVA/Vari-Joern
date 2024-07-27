@@ -4,13 +4,11 @@ import functools
 import importlib
 import json
 import logging
-import multiprocessing
 import os
 import shutil
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Dict, Any, Tuple
 
@@ -20,7 +18,6 @@ from jsonschema.validators import RefResolver, Draft7Validator
 from pathos.pools import ProcessPool
 # noinspection PyUnresolvedReferences
 from tqdm import tqdm
-
 # noinspection PyUnresolvedReferences
 from z3.z3 import Solver, sat, Bool, Int, Not, And, Or
 
@@ -45,10 +42,20 @@ class Tester:
         self.no_recommended_space = True
         self.jobs: int = max(args.jobs if args.jobs is not None else os.cpu_count() or 1, 1)
         self.validate = args.validate if args.validate is not None else False
-        self.tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
-            suffix="vari-joern-sugarlyzer-")
-        self.output_path = args.output_path if args.output_path is not None else Path.home() / Path(
+        self.verbosity = args.verbosity
+
+        # Set paths.
+        tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
+            suffix="vari-joern-")
+        self.intermediary_results_path = tmp_path / Path("family-based-analysis")
+        self.intermediary_results_path.mkdir(exist_ok=True, parents=True)
+
+        self.cache_dir_path = Path.home() / Path(".vari-joern-sugarlyzer-cache")
+        self.cache_dir_path.mkdir(exist_ok=True, parents=True)
+
+        self.output_file_path = args.output_path if args.output_path is not None else Path.home() / Path(
             "sugarlyzer-results.json")
+        self.output_file_path.parent.mkdir(exist_ok=True, parents=True)
 
         def read_json_and_validate(file: str) -> Dict[str, Any]:
             """
@@ -71,7 +78,7 @@ class Tester:
             importlib.resources.path(f'resources.sugarlyzer.programs.{args.program}', 'program.json'))
         self.program: ProgramSpecification = ProgramSpecification(args.program, **program_as_json,
                                                                   source_dir=args.program_path)
-        self.tool: AbstractTool = AnalysisToolFactory().get_tool(args.tool, args.tool_path)
+        self.tool: AbstractTool = AnalysisToolFactory().get_tool(args.tool, self.intermediary_results_path)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
         self.whitelist = self.program.whitelist
@@ -126,11 +133,6 @@ class Tester:
     def execute(self):
         logger.info(f"Current environment is {os.environ}")
 
-        # TODO Path for sugarlyzer output should be controllable by Vari-Joern (see self#output_path and self#tmp_path).
-        output_folder: Path = Path.home() / Path("vari-joern-family-analysis") / Path("results") / Path(
-            self.tool.name) / Path(self.program.name)
-        output_folder.mkdir(exist_ok=True, parents=True)
-
         if not self.baselines:
             ###################################
             # Run SugarC.
@@ -173,14 +175,20 @@ class Tester:
                         logger.exception(f"Error during analysis: {e}")
 
             logger.info(f"Got {len(alarms)} unique alarms.")
+
+            ###################################
+            # Post processing of alarms..
+            ###################################
             buckets: List[List[Alarm]] = [[]]
 
             def alarm_match(a: Alarm, b: Alarm):
-                return a.line_in_input_file == b.line_in_input_file and a.sanitized_message == b.sanitized_message and a.input_file == b.input_file and a.feasible == b.feasible
+                return (a.line_in_input_file == b.line_in_input_file
+                        and a.sanitized_message == b.sanitized_message
+                        and a.input_file == b.input_file and a.feasible == b.feasible)
 
             # Collect alarms into "buckets" based on equivalence.
-            # Then, for each bucket, we will return one alarm, combining all of the
-            #  models into a list.
+            # Then, for each bucket, we will return one alarm, combining all the
+            # models into a list.
             logger.debug("Now deduplicating results.")
             for ba in alarms:
                 for bucket in buckets:
@@ -190,11 +198,12 @@ class Tester:
                         break
 
                 # If we get here, then there wasn't a bucket that this could fit into,
-                #  So it gets its own bucket and we add a new one to the end of the list.
+                # So it gets its own bucket and we add a new one to the end of the list.
                 logger.debug("Creating a new bucket.")
                 buckets[-1].append(ba)
                 buckets.append([])
 
+            # Aggregate alarms and join their presence conditions via disjunctions.
             logger.debug("Now aggregating alarms.")
             alarms = []
             for bucket in (b for b in buckets if len(b) > 0):
@@ -209,11 +218,12 @@ class Tester:
         else:
             alarms = self.run_baseline_experiments()
 
-        date_string = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
-        alarm_file: Path = output_folder / Path(f"vari_joern_family_results_{date_string}.json")
-        logger.debug(f"Writing alarms to file \"{alarm_file}\"")
-        with open(alarm_file, 'w') as f:
-            json.dump([a.as_dict() for a in alarms], f)
+        logger.debug(f"Writing alarms to file \"{self.output_file_path}\"")
+        with open(self.output_file_path, 'w') as f:
+            json.dump([a.as_dict() for a in alarms], f, indent=4)
+
+        # TODO Clean desugared and log files
+        # if not self.verbosity:
 
     def desugar(self, file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
         included_directories, included_files, cmd_decs, recommended_space = self.get_inc_files_and_dirs_for_file(
@@ -231,7 +241,7 @@ class Tester:
                                                                       commandline_declarations=cmd_decs,
                                                                       keep_mem=self.tool.keep_mem,
                                                                       make_main=self.tool.make_main,
-                                                                      superc_path=self.superc_path)
+                                                                      cache_dir_path=self.cache_dir_path)
 
         return desugared_file_location, log_file, file, time.monotonic() - start
 

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from python.sugarlyzer.analyses.Clang import Clang
 from python.sugarlyzer.analyses.Infer import Infer
@@ -10,7 +12,7 @@ class AnalysisToolFactory:
 
     # noinspection PyTypeChecker
     @classmethod
-    def get_tool(cls, tool, tool_path) -> AbstractTool:
+    def get_tool(cls, tool, intermediary_results_path: Path) -> AbstractTool:
         """
         Given the name of the tool, return the appropriate tool class.
         :param tool:
@@ -18,9 +20,9 @@ class AnalysisToolFactory:
         """
 
         match tool.lower():
-            case "clang": return Clang()
-            case "testtool": return TestTool()
-            case "infer": return Infer()
-            case "phasar": return Phasar()
-            case "joern": return Joern(tool_path)
+            case "clang": return Clang(intermediary_results_path)
+            case "testtool": return TestTool(intermediary_results_path)
+            case "infer": return Infer(intermediary_results_path)
+            case "phasar": return Phasar(intermediary_results_path)
+            case "joern": return Joern(intermediary_results_path)
             case _: raise ValueError(f"No tool for {tool}")

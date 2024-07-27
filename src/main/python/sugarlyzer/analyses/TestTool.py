@@ -6,8 +6,10 @@ from python.sugarlyzer.readers.TestReader import TestReader
 
 class TestTool(AbstractTool):
 
-    def __init__(self):
-        super().__init__(TestReader(), name='testTool', keep_mem=True, make_main=True, remove_errors=False)
+    def __init__(self, intermediary_results_path: Path):
+        super().__init__(TestReader(), name='testTool', keep_mem=True, make_main=True, remove_errors=False,
+                         intermediary_results_path=intermediary_results_path)
+
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,
                 included_files: Iterable[Path] = None,
