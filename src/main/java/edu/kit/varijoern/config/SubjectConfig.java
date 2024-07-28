@@ -7,8 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
-// TODO Consider inheriting from NamedComponentConfig
-
 /**
  * Class encapsulating configuration of the subject system to be used for the analysis.
  */

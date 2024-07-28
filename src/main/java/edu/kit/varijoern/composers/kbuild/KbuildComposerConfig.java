@@ -20,6 +20,7 @@ public class KbuildComposerConfig extends ComposerConfig {
     private static final String SYSTEM_FIELD_NAME = "system";
 
     private final @NotNull Path sourceLocation;
+    // TODO Reuse name found in subject table.
     private final @NotNull String system;
 
     /**
