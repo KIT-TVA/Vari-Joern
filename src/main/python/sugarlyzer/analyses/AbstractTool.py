@@ -6,12 +6,24 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
+from subprocess import CompletedProcess
 from typing import Iterable
 
 from python.sugarlyzer.models.Alarm import Alarm
 from python.sugarlyzer.readers.AbstractReader import AbstractReader
+from python.sugarlyzer.util.ParseBashTime import parse_bash_time
 
 logger = logging.getLogger(__name__)
+
+# TODO Refactor
+def log_resource_usage(ps: CompletedProcess, file: Path):
+    try:
+        times = "\n".join(ps.stderr.split("\n")[-30:])
+        usr_time, sys_time, max_memory = parse_bash_time(times)
+        logger.info(f"CPU time to analyze {file} was {usr_time + sys_time}s")
+        logger.info(f"Max memory to analyze {file} was {max_memory}kb")
+    except Exception as ve:
+        logger.exception("Could not parse time in string " + times)
 
 
 class AbstractTool(ABC):

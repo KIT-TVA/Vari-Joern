@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 from typing import Iterable
@@ -12,22 +13,17 @@ class JoernReader(AbstractReader):
 
     def read_output(self, report_file: Path) -> Iterable[Alarm]:
         res = []
-        with open(report_file, 'r') as rf:
-            currentalarm = None
-            for line in rf:
-                line = line.lstrip().rstrip()
-                if line.startswith('Result:'):
-                    if currentalarm != None:
-                        res.append(currentalarm)
-                    alarmInfo = line.split(':')
 
-                    file = alarmInfo[3]
-                    linenum = int(alarmInfo[4])
-                    message = ':'.join([alarmInfo[5], alarmInfo[2]])
-                    logger.debug(f"line={line}; lineNumber={linenum}; message={message}")
-                    currentalarm = Alarm(input_file=file,
-                                         line_in_input_file=linenum,
-                                         message=message)
-        if currentalarm is not None:
-            res.append(currentalarm)
+        with open(report_file, 'r') as rf:
+            try:
+                warnings = json.load(rf)
+                for warning in warnings:
+                    name = warning["name"]
+                    evidence_list = warning["evidence"]
+                    for evidence in evidence_list:
+                        res.append(Alarm(input_file=evidence["filename"],
+                                         line_in_input_file=evidence["lineNumber"],
+                                         message=name))
+            except json.JSONDecodeError as e:
+                logger.exception(f"Error during parse of Joern report file \"{report_file.name}\": {e}")
         return res

@@ -4,9 +4,8 @@ import subprocess
 from pathlib import Path
 from typing import Iterable
 
-from python.sugarlyzer.analyses.AbstractTool import AbstractTool
+from python.sugarlyzer.analyses.AbstractTool import AbstractTool, log_resource_usage
 from python.sugarlyzer.readers.JoernReader import JoernReader
-from python.sugarlyzer.util.ParseBashTime import parse_bash_time
 
 logger = logging.getLogger(__name__)
 
@@ -32,18 +31,12 @@ class Joern(AbstractTool):
             command_line_defs = []
 
         cpg_file = self.results_dir / Path(f"cpg_{file.name}.bin")
-        dest_file = self.results_dir / Path(f"joern_report_{file.name}.txt")
+        dest_file = self.results_dir / Path(f"joern_report_{file.name}.json")
+        self.results_dir.mkdir(exist_ok=True, parents=True)
+
         includes = " ".join(f"--include {file}" for file in included_files)
 
-        # TODO Adjust Joern call (see product-based JoernAnalyzer).
-        # cmd = ["joern-scan", file.absolute(), "--overwrite", ">", dest_file]
-        # ps = subprocess.run(" ".join([str(s) for s in cmd]), text=True, shell=True, capture_output=True,
-        #                    executable='/bin/bash')
-        # cmd = ["/usr/bin/time", "-v", "infer", "--pulse-only", '-o', output_location, '--', "clang",
-        #        *list(itertools.chain(*zip(itertools.cycle(["-I"]), included_dirs))),
-        #        *list(itertools.chain(*zip(itertools.cycle(["--include"]), included_files))),
-        #        *command_line_defs,
-        #        "-nostdinc", "-c", file.absolute()]
+        # TODO What about included_dirs and command_line_defs?
 
         # Generate CPG.
         parse_cmd = Joern.joern_parse_command.format(input=file.absolute(),
@@ -59,17 +52,12 @@ class Joern(AbstractTool):
                                                              cpg_path=cpg_file,
                                                              report_path=dest_file)
             logger.debug(f"Analyzing CPG \"{cpg_file.absolute()}\" and writing analysis report to \"{dest_file}\"")
+            logger.debug(f"Command for analysis: \"{analyze_cmd}\"")
             ps = subprocess.run(analyze_cmd, text=True, shell=True, capture_output=True,
-                                executable='/bin/bash')
+                                executable='/bin/bash', cwd=self.results_dir)
 
             if ps.returncode == 0:
-                try:
-                    times = "\n".join(ps.stderr.split("\n")[-30:])
-                    usr_time, sys_time, max_memory = parse_bash_time(times)
-                    logger.info(f"CPU time to analyze {file} was {usr_time + sys_time}s")
-                    logger.info(f"Max memory to analyze {file} was {max_memory}kb")
-                except Exception as ve:
-                    logger.exception("Could not parse time in string " + times)
+                log_resource_usage(ps, file)
             else:
                 logger.warning(
                     f"Running joern on file {str(file)} with command {analyze_cmd} potentially failed (exit code {ps.returncode}).")
@@ -79,5 +67,8 @@ class Joern(AbstractTool):
                 f"Running joern on file {str(file)} with command {parse_cmd} potentially failed (exit code {ps.returncode}).")
             logger.warning(ps.stdout)
 
-        report = dest_file
-        yield report
+        # Ensure that dest_file exists for JoernReader.
+        with open(dest_file, "a"):
+            pass
+
+        yield dest_file
