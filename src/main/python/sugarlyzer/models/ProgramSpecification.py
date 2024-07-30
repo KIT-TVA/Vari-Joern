@@ -140,7 +140,6 @@ class ProgramSpecification:
         if path is None:
             raise ValueError("Supplied path is None")
 
-        logger.debug(f'Trying to resolve {path} in {root}')
         if path.name == root.name:
             return root
         if path.is_absolute():

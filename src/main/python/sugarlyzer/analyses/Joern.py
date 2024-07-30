@@ -4,15 +4,20 @@ import subprocess
 from pathlib import Path
 from typing import Iterable
 
-from python.sugarlyzer.analyses.AbstractTool import AbstractTool, log_resource_usage
+from python.sugarlyzer.analyses.AbstractTool import AbstractTool
+from python.sugarlyzer.util.Subprocessing import get_resource_usage_of_process
 from python.sugarlyzer.readers.JoernReader import JoernReader
 
 logger = logging.getLogger(__name__)
 
 
 class Joern(AbstractTool):
-    joern_parse_command = "joern-parse {input} -o {output} --language c --frontend-args {includes}"
-    joern_analyze_command = "joern --script {script} --param cpgPath={cpg_path} --param outFile={report_path}"
+    joern_parse_command = ["/usr/bin/time", "-v",
+                           "joern-parse", "{input}", "-o", "{output}", "--language", "c",
+                           "--frontend-args", "{file_includes}", "{dir_includes}"]
+    joern_analyze_command = ["/usr/bin/time", "-v",
+                             "joern", "--script", "{script}",
+                             "--param", "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
     joern_script_path = importlib.resources.path(f'resources.joern', "scan.sc")
 
     def __init__(self, intermediary_results_path: Path):
@@ -34,37 +39,48 @@ class Joern(AbstractTool):
         dest_file = self.results_dir / Path(f"joern_report_{file.name}.json")
         self.results_dir.mkdir(exist_ok=True, parents=True)
 
-        includes = " ".join(f"--include {file}" for file in included_files)
+        file_includes = " ".join(f"--include {file}" for file in included_files)
+        dir_includes = " ".join(f"--include {included_dir}" for included_dir in included_dirs)
 
         # TODO What about included_dirs and command_line_defs?
 
         # Generate CPG.
-        parse_cmd = Joern.joern_parse_command.format(input=file.absolute(),
-                                                     output=cpg_file,
-                                                     includes=includes)
+        cmd = " ".join(str(s) for s in Joern.joern_parse_command)
+        cmd = cmd.format(input=file.absolute(),
+                         output=cpg_file,
+                         file_includes=file_includes,
+                         dir_includes=dir_includes)
         logger.debug(f"Building CPG for file \"{file.absolute()}\" and writing result to \"{cpg_file}\"")
-        ps = subprocess.run(parse_cmd, text=True, shell=True, capture_output=True,
+        logger.debug(f"Command for building CPG: \"{cmd}\"")
+        ps = subprocess.run(cmd, text=True, shell=True, capture_output=True,
                             executable='/bin/bash')
 
         if ps.returncode == 0:
+            logger.debug(f"Successfully built CPG for file \"{file.absolute()}\"")
             # Analyze CPG.
-            analyze_cmd = Joern.joern_analyze_command.format(script=Joern.joern_script_path,
-                                                             cpg_path=cpg_file,
-                                                             report_path=dest_file)
+            cmd = " ".join(str(s) for s in Joern.joern_analyze_command)
+            cmd = cmd.format(script=Joern.joern_script_path,
+                             cpg_path=cpg_file,
+                             report_path=dest_file)
             logger.debug(f"Analyzing CPG \"{cpg_file.absolute()}\" and writing analysis report to \"{dest_file}\"")
-            logger.debug(f"Command for analysis: \"{analyze_cmd}\"")
-            ps = subprocess.run(analyze_cmd, text=True, shell=True, capture_output=True,
+            logger.debug(f"Command for analysis: \"{cmd}\"")
+            ps = subprocess.run(cmd, text=True, shell=True,
+                                capture_output=True,
                                 executable='/bin/bash', cwd=self.results_dir)
 
-            if ps.returncode == 0:
-                log_resource_usage(ps, file)
-            else:
+            if ps.returncode != 0:
                 logger.warning(
-                    f"Running joern on file {str(file)} with command {analyze_cmd} potentially failed (exit code {ps.returncode}).")
+                    f"Running joern on file \"{str(file)}\" with command \"{cmd}\" potentially failed "
+                    f"(exit code {ps.returncode}).")
                 logger.warning(ps.stdout)
+            if (resource_stats := get_resource_usage_of_process(ps)) is not None:
+                logger.info(f"Resource usage for analyzing cpg of {file}: "
+                            f"CPU time {resource_stats.usr_time + resource_stats.sys_time}s "
+                            f"max memory {resource_stats.max_memory}kb")
         else:
             logger.warning(
-                f"Running joern on file {str(file)} with command {parse_cmd} potentially failed (exit code {ps.returncode}).")
+                f"Running joern on file {str(file)} with command {cmd} potentially failed "
+                f"(exit code {ps.returncode}).")
             logger.warning(ps.stdout)
 
         # Ensure that dest_file exists for JoernReader.

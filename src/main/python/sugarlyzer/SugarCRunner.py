@@ -14,7 +14,7 @@ from typing import List, Optional, Dict, Iterable
 from z3.z3 import Solver, sat, Bool, Int, Not, And, Or
 
 from python.sugarlyzer.models.Alarm import Alarm
-from python.sugarlyzer.util.ParseBashTime import parse_bash_time
+from python.sugarlyzer.util.Subprocessing import parse_bash_time
 
 USER_DEFS = '/tmp/__sugarlyzerPredefs.h'
 
@@ -557,7 +557,7 @@ def get_condition_mapping(line, current_result: ConditionMapping = ConditionMapp
     # Example line:
     # ---Renaming text------------Static Condition ID we map to---Presence Condition
     # __static_condition_renaming("__static_condition_default_5", "(defined READ_X)");
-    logger.debug("In get_condition_mapping")
+
     # All conditions start with the renaming, if the line doesn't have this text, we aren't interested
     if not line.startswith('__static_condition_renaming('):
         return current_result

@@ -9,7 +9,7 @@ from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 import os
 
 from python.sugarlyzer.readers.InferReader import InferReader
-from python.sugarlyzer.util.ParseBashTime import parse_bash_time
+from python.sugarlyzer.util.Subprocessing import parse_bash_time
 
 logger = logging.getLogger(__name__)
 

@@ -1,15 +1,13 @@
 import itertools
 import logging
+import os
 import subprocess
-import tempfile
 from pathlib import Path
 from typing import Iterable
 
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
-import os
-
 from python.sugarlyzer.readers.ClangReader import ClangReader
-from python.sugarlyzer.util.ParseBashTime import parse_bash_time
+from python.sugarlyzer.util.Subprocessing import parse_bash_time
 
 logger = logging.getLogger(__name__)
 
