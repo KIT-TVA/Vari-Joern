@@ -90,6 +90,20 @@ class ProgramSpecification:
                 if (f.endswith(".c") or f.endswith(".i")) and not f.endswith(".desugared.c"):
                     yield Path(root) / f
 
+    def clean_desugaring_files(self):
+        for root, dirs, files in os.walk(self.source_directory):
+            for f in files:
+                if f.endswith(".desugared.c") or f.endswith(".sugarc.log"):
+                    file_to_delete = Path(root) / f
+                    try:
+                        file_to_delete.unlink()
+                    except FileNotFoundError:
+                        logger.warning(f"Tried to clean up {file_to_delete} but could not find file.")
+                    except PermissionError:
+                        logger.warning(f"Tried to clean up {file_to_delete} but did not have sufficient permissions.")
+                    except Exception as e:
+                        logger.exception(f"Tried to clean up {file_to_delete} but encountered unexpected exception: {e}")
+
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
         Iterates through the program.json's get_recommended_space field,

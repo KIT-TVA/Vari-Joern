@@ -195,10 +195,11 @@ def desugar_file(file_to_desugar: Path,
 
     match log_file:
         case '' | None:
-            log_file = file_to_desugar.with_suffix('.log')
+            log_file = file_to_desugar.with_suffix('.sugarc.log')
         case _:
             log_file = Path(log_file)
 
+    # TODO Make JVM heap size configurable or read the available RAM from the system.
     cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', 'superc.SugarC',
            '-showActions', '-useBDD']
     if config_prefix is not None:

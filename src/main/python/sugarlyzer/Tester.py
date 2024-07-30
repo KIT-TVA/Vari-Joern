@@ -43,6 +43,7 @@ class Tester:
         self.jobs: int = max(args.jobs if args.jobs is not None else os.cpu_count() or 1, 1)
         self.validate = args.validate if args.validate is not None else False
         self.verbosity = args.verbosity
+        self.keep_desugaring_files: bool = True if args.keep_desugared_files is not None else False
 
         # Set paths.
         tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
@@ -222,8 +223,9 @@ class Tester:
         with open(self.output_file_path, 'w') as f:
             json.dump([a.as_dict() for a in alarms], f, indent=4)
 
-        # TODO Clean desugared and log files
-        # if not self.verbosity:
+        # Clean desugared source files and associated log files.
+        if not self.keep_desugaring_files:
+            self.program.clean_desugaring_files()
 
     def desugar(self, file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
         included_directories, included_files, cmd_decs, recommended_space = self.get_inc_files_and_dirs_for_file(
@@ -411,6 +413,8 @@ def get_arguments() -> argparse.Namespace:
     p.add_argument("--tmp-path", help="The path to the tmp directory that will be used for storing intermediary "
                                       "results.")
     p.add_argument("--jobs", help="The number of jobs to use. If None, will use all CPUs", type=int)
+    p.add_argument("--keep-desugared-files", help="Keep the desugared source files (.desugared.c) and associated log "
+                                                  "files (.sugarc.log) alongside the original source files.")
 
     p.add_argument("--baselines", action="store_true",
                    help="""Run the baseline experiments. In these, we configure each 
