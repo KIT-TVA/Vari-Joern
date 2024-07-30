@@ -38,6 +38,7 @@ public class LinePresenceConditionMapper {
     private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN
             = Pattern.compile("(?:CONFIG_|ENABLE_)([A-Za-z0-9_]+)");
     private static final Logger LOGGER = LogManager.getLogger();
+    private static Builtins builtins;
 
     private final Map<Integer, Node> linePresenceConditions = new HashMap<>();
     private final int addedLines;
@@ -58,8 +59,14 @@ public class LinePresenceConditionMapper {
      */
     public LinePresenceConditionMapper(@NotNull InclusionInformation inclusionInformation, @NotNull Path sourcePath,
                                        int addedLines, @NotNull Set<String> knownFeatures, @NotNull String system)
-            throws IOException {
+            throws IOException, InterruptedException {
         if (!isSupportedSystem(system)) throw new UnsupportedOperationException("Only busybox is supported");
+
+        synchronized (LOCK) {
+            if (builtins == null) {
+                builtins = new Builtins();
+            }
+        }
 
         this.addedLines = addedLines;
         this.totalLines = Files.readAllLines(sourcePath.resolve(inclusionInformation.filePath())).size();
@@ -95,7 +102,7 @@ public class LinePresenceConditionMapper {
                     inclusionInformation.includePaths().stream()
                             .map(p -> p.isAbsolute() ? p.toString() : sourcePath.resolve(p).toString())
                             .toList(),
-                    Arrays.asList(Builtins.sysdirs),
+                    builtins.getSysdirs(),
                     lexerCreator,
                     tokenCreator,
                     new StopWatch(),
@@ -182,7 +189,7 @@ public class LinePresenceConditionMapper {
                                      @NotNull PresenceConditionManager presenceConditionManager,
                                      @NotNull ConditionEvaluator conditionEvaluator, @NotNull LexerCreator lexerCreator,
                                      @NotNull TokenCreator tokenCreator, @NotNull Path sourceRoot) {
-        injectSource(Builtins.builtin, macroTable, presenceConditionManager, conditionEvaluator, lexerCreator,
+        injectSource(builtins.getBuiltin(), macroTable, presenceConditionManager, conditionEvaluator, lexerCreator,
                 tokenCreator, inclusionInformation, sourceRoot);
 
         StringBuilder commandLineDirectives = new StringBuilder();
@@ -213,7 +220,7 @@ public class LinePresenceConditionMapper {
                 inclusionInformation.includePaths().stream()
                         .map(p -> p.isAbsolute() ? p.toString() : sourceRoot.resolve(p).toString())
                         .toList(),
-                Arrays.asList(Builtins.sysdirs),
+                builtins.getSysdirs(),
                 lexerCreator,
                 tokenCreator,
                 new StopWatch()

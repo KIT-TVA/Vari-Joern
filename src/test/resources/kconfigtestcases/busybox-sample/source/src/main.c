@@ -20,3 +20,7 @@ int main(void) {
 	sayHello();
 #endif
 }
+
+#ifdef __INT8_MAX__
+// This should always be present
+#endif

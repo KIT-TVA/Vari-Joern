@@ -6,7 +6,7 @@ file: src/main.c, 1|-1 # FeatureIDE's formula parser doesn't support a "true" va
 16-17!  -USE_GETS
 18-19!  1|-1
 20-21!  USE_CPP_FILE
-22-23!  1|-1
+22-27!  1|-1
 
 file: src/io-file.c, INCLUDE_IO_FILE
 1-21!   1|-1
