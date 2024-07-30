@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import subprocess
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
@@ -14,7 +15,7 @@ from python.sugarlyzer.util.MacroDiscoveryPreprocessor import MacroDiscoveryPrep
 logger = logging.getLogger(__name__)
 
 
-class ProgramSpecification:
+class ProgramSpecification(ABC):
 
     def __init__(self,
                  name: str,
@@ -132,6 +133,10 @@ class ProgramSpecification:
                     cmd_decs.extend(spec['macro_definitions'])
 
         return inc_files, inc_dirs, cmd_decs
+
+    @abstractmethod
+    def determine_includes_and_macros_for_file(self, file: Path) -> (List[Path], List[Path], List[str]):
+        pass
 
     def download(self) -> int:
         """

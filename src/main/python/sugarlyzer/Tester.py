@@ -27,6 +27,7 @@ from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from python.sugarlyzer.analyses.AnalysisToolFactory import AnalysisToolFactory
 from python.sugarlyzer.models.Alarm import Alarm
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
+from python.sugarlyzer.models.ProgramSpecificationFactory import ProgramSpecificationFactory
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +78,10 @@ class Tester:
 
         program_as_json = read_json_and_validate(
             importlib.resources.path(f'resources.sugarlyzer.programs.{args.program}', 'program.json'))
-        self.program: ProgramSpecification = ProgramSpecification(args.program, **program_as_json,
-                                                                  source_dir=args.program_path)
+        self.program: ProgramSpecification = ProgramSpecificationFactory.get_program_specification(
+            name=args.program,
+            program_json=program_as_json,
+            source_dir=args.program_path)
         self.tool: AbstractTool = AnalysisToolFactory().get_tool(args.tool, self.intermediary_results_path)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
