@@ -13,9 +13,11 @@ class Axtlsspecification(ProgramSpecification):
         dir_includes = []
         macros = []
 
-        # Collect information from make call.
-        make_info = []
+        # TODO Refactor and try to replace program.json with the dynamically resolved data.
 
+        included_files_and_directories = []
+
+        # Collect information from make call.
         cmd = ["make", "linuxconf", ">", "make_output.sugarlyzer.txt", "2>&1"]
         ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True,
                             executable='/bin/bash', cwd=self.project_root)
@@ -29,14 +31,28 @@ class Axtlsspecification(ProgramSpecification):
                         file_name_match = re.search(r' (\S+\.c)', line)
                         if file_name_match is not None:
                             file_name = file_name_match.group(1)
-                            make_entry = {'file_pattern': file_name.replace('.', r'\.') + '$',
-                                          'included_files': re.findall(r'-include ?\S+', line),
-                                          'included_directories': re.findall(r'-I ?\S+', line),
-                                          'build_location': current_building_directory}
-                            make_info.append(make_entry)
 
-        print("#1:")
-        print(make_info)
+                            # Resolve full paths of the included files.
+                            included_files = []
+                            for included_file in re.findall(r'-include ?\S+', line):
+                                included_file = included_file.lstrip("-include").strip()
+                                full_file_path = (Path(self.project_root) / Path(current_building_directory)
+                                                  / Path(included_file)).resolve()
+                                included_files.append(full_file_path)
+
+                            # Resolve full paths of the included dirs.
+                            included_dirs = []
+                            for included_dir in re.findall(r'-I ?\S+', line):
+                                included_dir = included_dir.lstrip("-I").strip()
+                                full_dir_path = (Path(self.project_root) / Path(current_building_directory)
+                                                 / Path(included_dir)).resolve()
+                                included_dirs.append(full_dir_path)
+
+                            make_entry = {'file_pattern': file_name.replace('.', r'\.') + '$',
+                                          'included_files': included_files,
+                                          'included_directories': included_dirs,
+                                          'build_location': current_building_directory}
+                            included_files_and_directories.append(make_entry)
 
         # Collect locations of system headers.
         standard_include_paths = []
@@ -56,9 +72,6 @@ class Axtlsspecification(ProgramSpecification):
                     elif inside_search_list and os.path.isdir(line.strip()):
                         standard_include_paths.append(Path(line.strip()))
 
-        print("#2:")
-        print(standard_include_paths)
-
         # Collect default macro definitions.
         standard_macro_defs = []
 
@@ -70,12 +83,12 @@ class Axtlsspecification(ProgramSpecification):
                 for line in standard_includes_output:
                     if line.startswith("#define"):
                         define_split = line.split(" ")
-                        standard_macro_defs.append({
-                            'macro_name': define_split[1],
-                            'value': define_split[2].strip()
-                        })
+                        standard_macro_defs.append(f"-D {define_split[1]}={define_split[2].strip()}")
 
-        print("#3:")
-        print(standard_macro_defs)
+        # Add file-independent includes and macros to included_files_and_directories.
+        included_files_and_directories.append({'included_directories': standard_include_paths,
+                                               'macro_definitions': standard_macro_defs})
+
+        print(included_files_and_directories)
 
         return file_includes, dir_includes, macros
