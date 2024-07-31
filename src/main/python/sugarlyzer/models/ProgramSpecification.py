@@ -49,6 +49,8 @@ class ProgramSpecification(ABC):
         self.__search_context = "/"
         self.__oldconfig_location = "config/.config" if oldconfig_location is None else oldconfig_location
 
+        self.determine_includes_and_macros()
+
     @property
     def oldconfig_location(self):
         return self.try_resolve_path(self.__oldconfig_location, self.make_root)
@@ -135,7 +137,7 @@ class ProgramSpecification(ABC):
         return inc_files, inc_dirs, cmd_decs
 
     @abstractmethod
-    def determine_includes_and_macros_for_file(self, file: Path) -> (List[Path], List[Path], List[str]):
+    def determine_includes_and_macros(self) -> (List[Path], List[Path], List[str]):
         pass
 
     def download(self) -> int:

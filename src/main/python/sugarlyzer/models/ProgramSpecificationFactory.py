@@ -1,7 +1,7 @@
 from typing import Optional, Iterable, Dict, Any
 
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
-from python.sugarlyzer.models.axtlsSpecification import axtlsSpecification
+from python.sugarlyzer.models.Axtlsspecification import Axtlsspecification
 
 
 class ProgramSpecificationFactory:
@@ -14,6 +14,6 @@ class ProgramSpecificationFactory:
                                   source_dir) -> ProgramSpecification:
         match name.lower():
             case "axtls":
-                return axtlsSpecification(name=name, source_dir=source_dir, **program_json)
+                return Axtlsspecification(name=name, source_dir=source_dir, **program_json)
             case _:
                 raise ValueError(f"No tool for {name}")
