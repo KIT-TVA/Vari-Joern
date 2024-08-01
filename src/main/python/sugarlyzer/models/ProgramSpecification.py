@@ -49,7 +49,9 @@ class ProgramSpecification(ABC):
         self.__search_context = "/"
         self.__oldconfig_location = "config/.config" if oldconfig_location is None else oldconfig_location
 
-        self.determine_includes_and_macros()
+        self.__system_includes = self.__get_system_includes()
+        self.__system_macros = self.__get_system_macro_defs()
+        self.__make_includes = self.get_make_includes()
 
     @property
     def oldconfig_location(self):
@@ -69,7 +71,8 @@ class ProgramSpecification(ABC):
 
     @property
     def source_directory(self):
-        return self.try_resolve_path(self.__source_dir, self.search_context) if self.__source_dir is not None else self.project_root
+        return self.try_resolve_path(self.__source_dir,
+                                     self.search_context) if self.__source_dir is not None else self.project_root
 
     @property
     def sample_directory(self):
@@ -77,7 +80,8 @@ class ProgramSpecification(ABC):
 
     @property
     def make_root(self):
-        return self.try_resolve_path(self.__make_root, self.search_context) if self.__make_root is not None else self.project_root
+        return self.try_resolve_path(self.__make_root,
+                                     self.search_context) if self.__make_root is not None else self.project_root
 
     @property
     def build_script(self):
@@ -93,10 +97,10 @@ class ProgramSpecification(ABC):
                 if (f.endswith(".c") or f.endswith(".i")) and not f.endswith(".desugared.c"):
                     yield Path(root) / f
 
-    def clean_desugaring_files(self):
+    def clean_intermediary_results(self):
         for root, dirs, files in os.walk(self.source_directory):
             for f in files:
-                if f.endswith(".desugared.c") or f.endswith(".sugarc.log"):
+                if ".sugarlyzer." in f.name:
                     file_to_delete = Path(root) / f
                     try:
                         file_to_delete.unlink()
@@ -105,7 +109,8 @@ class ProgramSpecification(ABC):
                     except PermissionError:
                         logger.warning(f"Tried to clean up {file_to_delete} but did not have sufficient permissions.")
                     except Exception as e:
-                        logger.exception(f"Tried to clean up {file_to_delete} but encountered unexpected exception: {e}")
+                        logger.exception(
+                            f"Tried to clean up {file_to_delete} but encountered unexpected exception: {e}")
 
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
@@ -115,6 +120,11 @@ class ProgramSpecification(ABC):
         :return: included_files, included_directories for the first object in
         get_recommended_space with a regular expression that matches the **absolute** file name.
         """
+
+        # TODO Check whether the self.__make_includes is populated correctly using the -n just print option of make.
+
+        # TODO Figure out how to use self.__system_includes, self.__system_macros, and self.__make_includes instead of
+        #  using the json config in self.inc_dirs_and_files
 
         inc_dirs, inc_files, cmd_decs = [], [], []
         for spec in self.inc_dirs_and_files:
@@ -135,10 +145,6 @@ class ProgramSpecification(ABC):
                     cmd_decs.extend(spec['macro_definitions'])
 
         return inc_files, inc_dirs, cmd_decs
-
-    @abstractmethod
-    def determine_includes_and_macros(self) -> (List[Path], List[Path], List[str]):
-        pass
 
     def download(self) -> int:
         """
@@ -207,3 +213,45 @@ class ProgramSpecification(ABC):
     @search_context.setter
     def search_context(self, value):
         self.__search_context = value
+
+    def __get_system_includes(self) -> List[Path]:
+        # Collect locations of system headers.
+        standard_include_paths: List[Path] = []
+
+        cmd = ["cc", "-v", "-E", "-xc", "-", "<", "/dev/null", ">", "standard_include_locs.sugarlyzer.txt", "2>&1"]
+        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True,
+                            executable='/bin/bash', cwd=self.project_root)
+        if ps.returncode == 0:
+            with open(self.project_root / Path("standard_include_locs.sugarlyzer.txt"),
+                      "r") as standard_includes_output:
+                inside_search_list = False
+                for line in standard_includes_output:
+                    if "#include \"...\" search starts here" in line or "#include <...> search starts here:" in line:
+                        inside_search_list = True
+                    elif "End of search list." in line:
+                        inside_search_list = False
+                    elif inside_search_list and os.path.isdir(line.strip()):
+                        standard_include_paths.append(Path(line.strip()))
+
+        return standard_include_paths
+
+    def __get_system_macro_defs(self) -> List[Dict]:
+        # Collect default macro definitions.
+        standard_macro_defs: List[Dict] = []
+
+        cmd = ["cc", "-dM", "-E", "-xc", "-", "<", "/dev/null", ">", "standard_macro_defs.sugarlyzer.txt", "2>&1"]
+        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True,
+                            executable='/bin/bash', cwd=self.project_root)
+        if ps.returncode == 0:
+            with open(self.project_root / Path("standard_macro_defs.sugarlyzer.txt"), "r") as standard_includes_output:
+                for line in standard_includes_output:
+                    if line.startswith("#define"):
+                        define_split = line.split(" ")
+                        standard_macro_defs.append({'macro_name': define_split[1],
+                                                    'value': define_split[2].strip()})
+
+        return standard_macro_defs
+
+    @abstractmethod
+    def get_make_includes(self) -> List[Dict]:
+        pass

@@ -195,7 +195,7 @@ def desugar_file(file_to_desugar: Path,
 
     match log_file:
         case '' | None:
-            log_file = file_to_desugar.with_suffix('.sugarc.log')
+            log_file = file_to_desugar.with_suffix('.sugarlyzer.sugarc.log')
         case _:
             log_file = Path(log_file)
 

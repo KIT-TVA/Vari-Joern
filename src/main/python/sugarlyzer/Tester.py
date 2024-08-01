@@ -228,7 +228,7 @@ class Tester:
 
         # Clean desugared source files and associated log files.
         if not self.keep_desugaring_files:
-            self.program.clean_desugaring_files()
+            self.program.clean_intermediary_results()
 
     def desugar(self, file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
         included_directories, included_files, cmd_decs, recommended_space = self.get_inc_files_and_dirs_for_file(

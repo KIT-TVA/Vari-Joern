@@ -1,26 +1,29 @@
-import os.path
 import re
 import subprocess
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
 
 class Axtlsspecification(ProgramSpecification):
-    def determine_includes_and_macros(self) -> (List[Path], List[Path], List[str]):
-        file_includes = []
-        dir_includes = []
-        macros = []
-
-        # TODO Refactor and try to replace program.json with the dynamically resolved data.
-
-        included_files_and_directories = []
+    def get_make_includes(self) -> List[Dict]:
+        # Clean output of potential previous make call.
+        cmd = ["make", "clean"]
+        subprocess.run(" ".join(str(s) for s in cmd),
+                       shell=True,
+                       executable='/bin/bash',
+                       cwd=self.project_root,
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
 
         # Collect information from make call.
-        cmd = ["make", "linuxconf", ">", "make_output.sugarlyzer.txt", "2>&1"]
-        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True,
-                            executable='/bin/bash', cwd=self.project_root)
+        includes_per_file_pattern: List[Dict] = []
+        cmd = ["make", "-n", "-i", "linuxconf", ">", "make_output.sugarlyzer.txt", "2>&1"]
+        ps = subprocess.run(" ".join(str(s) for s in cmd),
+                            shell=True,
+                            executable='/bin/bash',
+                            cwd=self.project_root)
         if ps.returncode == 0:
             with open(self.project_root / Path("make_output.sugarlyzer.txt"), "r") as make_output:
                 current_building_directory = ""
@@ -52,43 +55,6 @@ class Axtlsspecification(ProgramSpecification):
                                           'included_files': included_files,
                                           'included_directories': included_dirs,
                                           'build_location': current_building_directory}
-                            included_files_and_directories.append(make_entry)
+                            includes_per_file_pattern.append(make_entry)
 
-        # Collect locations of system headers.
-        standard_include_paths = []
-
-        cmd = ["cc", "-v", "-E", "-xc", "-", "<", "/dev/null", ">", "standard_include_locs.sugarlyzer.txt", "2>&1"]
-        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True,
-                            executable='/bin/bash', cwd=self.project_root)
-        if ps.returncode == 0:
-            with open(self.project_root / Path("standard_include_locs.sugarlyzer.txt"),
-                      "r") as standard_includes_output:
-                inside_search_list = False
-                for line in standard_includes_output:
-                    if "#include \"...\" search starts here" in line or "#include <...> search starts here:" in line:
-                        inside_search_list = True
-                    elif "End of search list." in line:
-                        inside_search_list = False
-                    elif inside_search_list and os.path.isdir(line.strip()):
-                        standard_include_paths.append(Path(line.strip()))
-
-        # Collect default macro definitions.
-        standard_macro_defs = []
-
-        cmd = ["cc", "-dM", "-E", "-xc", "-", "<", "/dev/null", ">", "standard_macro_defs.sugarlyzer.txt", "2>&1"]
-        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True,
-                            executable='/bin/bash', cwd=self.project_root)
-        if ps.returncode == 0:
-            with open(self.project_root / Path("standard_macro_defs.sugarlyzer.txt"), "r") as standard_includes_output:
-                for line in standard_includes_output:
-                    if line.startswith("#define"):
-                        define_split = line.split(" ")
-                        standard_macro_defs.append(f"-D {define_split[1]}={define_split[2].strip()}")
-
-        # Add file-independent includes and macros to included_files_and_directories.
-        included_files_and_directories.append({'included_directories': standard_include_paths,
-                                               'macro_definitions': standard_macro_defs})
-
-        print(included_files_and_directories)
-
-        return file_includes, dir_includes, macros
+        return includes_per_file_pattern
