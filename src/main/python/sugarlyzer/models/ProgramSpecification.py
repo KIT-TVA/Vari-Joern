@@ -100,7 +100,7 @@ class ProgramSpecification(ABC):
     def clean_intermediary_results(self):
         for root, dirs, files in os.walk(self.source_directory):
             for f in files:
-                if ".sugarlyzer." in f.name:
+                if ".sugarlyzer." in f:
                     file_to_delete = Path(root) / f
                     try:
                         file_to_delete.unlink()

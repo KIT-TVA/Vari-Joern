@@ -189,7 +189,7 @@ def desugar_file(file_to_desugar: Path,
 
     match output_file:
         case '' | None:
-            desugared_file = Path(file_to_desugar).with_suffix('.desugared.c')
+            desugared_file = Path(file_to_desugar).with_suffix('.sugarlyzer.desugared.c')
         case _:
             desugared_file = Path(output_file)
 
@@ -287,7 +287,7 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
         if (not desugared_output.exists()) or (os.path.getsize(desugared_output) == 0):
             try:
                 logger.error(
-                    f"Could not desugar file {file_to_desugar}")  # \n\tSugarC stdout: {ps.stdout}\n\tSugarC stderr: {ps.stderr}")
+                    f"Could not desugar file {file_to_desugar} with command {cmd_str}")  # \n\tSugarC stdout: {ps.stdout}\n\tSugarC stderr: {ps.stderr}")
             except UnboundLocalError:
                 logger.error(
                     f"Could not desugar file {file_to_desugar}. Tried to output what went wrong but couldn't access subprocess output.")

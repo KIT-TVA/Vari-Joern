@@ -49,7 +49,8 @@ class Tester:
         # Set paths.
         tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
             suffix="vari-joern-")
-        self.intermediary_results_path = tmp_path / Path("family-based-analysis")
+        # TODO Fix bug related to concatenating TempDir with PosixPath
+        self.intermediary_results_path = Path(tmp_path) / Path("family-based-analysis")
         self.intermediary_results_path.mkdir(exist_ok=True, parents=True)
 
         self.cache_dir_path = Path.home() / Path(".vari-joern-sugarlyzer-cache")

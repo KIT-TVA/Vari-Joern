@@ -1,6 +1,8 @@
 import importlib
 import logging
 import subprocess
+import os
+import re
 from pathlib import Path
 from typing import Iterable
 
@@ -79,9 +81,17 @@ class Joern(AbstractTool):
                             f"max memory {resource_stats.max_memory}kb")
         else:
             logger.warning(
-                f"Running joern on file {str(file)} with command {cmd} potentially failed "
+                f"Running joern-parse on file {str(file)} with command {cmd} potentially failed "
                 f"(exit code {ps.returncode}).")
-            logger.warning(ps.stdout)
+            if os.environ.get('JAVA_HOME') is not None:
+                match = re.search(r"java-(\d+)", os.environ.get('JAVA_HOME'))
+                if match is not None:
+                    java_version = int(match.group(1))
+                    if java_version < 11:
+                        logger.error(f"JAVA_HOME points to Java version {java_version} "
+                                     f"but Joern requires at least Java 11!")
+            logger.debug(ps.stdout)
+            logger.debug(ps.stderr)
 
         # Ensure that dest_file exists for JoernReader.
         with open(dest_file, "a"):
