@@ -4,7 +4,7 @@ import subprocess
 import os
 import re
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Dict
 
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from python.sugarlyzer.util.Subprocessing import get_resource_usage_of_process
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class Joern(AbstractTool):
     joern_parse_command = ["/usr/bin/time", "-v",
                            "joern-parse", "{input}", "-o", "{output}", "--language", "c",
-                           "--frontend-args", "{file_includes}", "{dir_includes}"]
+                           "--frontend-args", "{file_includes}", "{dir_includes}", "{macro_defs}"]
     joern_analyze_command = ["/usr/bin/time", "-v",
                              "joern", "--script", "{script}",
                              "--param", "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
@@ -29,7 +29,7 @@ class Joern(AbstractTool):
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,
                 included_files: Iterable[Path] = None,
-                command_line_defs: Iterable[str] = None) -> Iterable[Path]:
+                command_line_defs: Iterable[Dict] = None) -> Iterable[Path]:
         if included_files is None:
             included_files = []
         if included_dirs is None:
@@ -43,15 +43,16 @@ class Joern(AbstractTool):
 
         file_includes = " ".join(f"--include {file}" for file in included_files)
         dir_includes = " ".join(f"--include {included_dir}" for included_dir in included_dirs)
-
-        # TODO What about included_dirs and command_line_defs?
+        # TODO Add quotes around macro values.
+        macro_defs = " ".join(f"--define {macro['name']}={macro['value']}" for macro in command_line_defs)
 
         # Generate CPG.
         cmd = " ".join(str(s) for s in Joern.joern_parse_command)
         cmd = cmd.format(input=file.absolute(),
                          output=cpg_file,
                          file_includes=file_includes,
-                         dir_includes=dir_includes)
+                         dir_includes=dir_includes,
+                         macro_defs=macro_defs)
         logger.debug(f"Building CPG for file \"{file.absolute()}\" and writing result to \"{cpg_file}\"")
         logger.debug(f"Command for building CPG: \"{cmd}\"")
         ps = subprocess.run(cmd, text=True, shell=True, capture_output=True,

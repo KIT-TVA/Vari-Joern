@@ -5,7 +5,7 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Dict
 
 from python.sugarlyzer.models.Alarm import Alarm
 from python.sugarlyzer.readers.AbstractReader import AbstractReader
@@ -24,7 +24,7 @@ class AbstractTool(ABC):
         self.name = name
         self.results_dir = intermediary_results_path
 
-    def analyze_and_read(self, source_file: Path, command_line_defs: Iterable[str] = None,
+    def analyze_and_read(self, source_file: Path, command_line_defs: Iterable[Dict] = None,
                          included_dirs: Iterable[Path] = None, included_files: Iterable[Path] = None,
                          recommended_space=None) -> Iterable[Alarm]:
         """
@@ -65,7 +65,7 @@ class AbstractTool(ABC):
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,
                 included_files: Iterable[Path] = None,
-                command_line_defs: Iterable[str] = None) -> Iterable[Path]:
+                command_line_defs: Iterable[Dict] = None) -> Iterable[Path]:
         """
         Analyzes a file and returns the location of its output.
         :param file: The file to run analysis on.

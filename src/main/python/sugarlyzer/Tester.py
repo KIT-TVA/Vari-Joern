@@ -229,6 +229,7 @@ class Tester:
 
         # Clean desugared source files and associated log files.
         if not self.keep_desugaring_files:
+            logger.debug("Cleaning intermediary results from project.")
             self.program.clean_intermediary_results()
 
     def desugar(self, file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
