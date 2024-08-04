@@ -155,7 +155,7 @@ def desugar_file(file_to_desugar: Path,
                  make_main: bool = False,
                  included_files: Optional[Iterable[Path]] = None,
                  included_directories: Optional[Iterable[Path]] = None,
-                 commandline_declarations: Optional[Iterable[Dict]] = None) -> tuple[Path, Path]:
+                 commandline_declarations: Optional[Iterable[str]] = None) -> tuple[Path, Path]:
     """
     Runs the SugarC command.
     :param file_to_desugar: The C source code file to desugar.
@@ -184,14 +184,12 @@ def desugar_file(file_to_desugar: Path,
 
     included_files = list(itertools.chain(*zip(['-include'] * len(included_files), included_files)))
     included_directories = list(itertools.chain(*zip(['-I'] * len(included_directories), included_directories)))
-    macro_names_with_values = [f"{macro['name']}=\"{macro['value']}\"" for macro in commandline_declarations]
-    macro_defs = list(itertools.chain(*zip(['-D'] * len(macro_names_with_values), macro_names_with_values)))
 
     commandline_args = []
     commandline_args = ['-nostdinc', *commandline_args] if no_stdlibs else commandline_args
     commandline_args = ['-keep-mem', *commandline_args] if keep_mem else commandline_args
     commandline_args = ['-make-main', *commandline_args] if make_main else commandline_args
-    commandline_args = [*macro_defs, *commandline_args] if macro_defs else commandline_args
+    commandline_args = [*commandline_declarations, *commandline_args] if commandline_declarations else commandline_args
 
     match output_file:
         case '' | None:
@@ -268,6 +266,16 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
         else:
             logger.debug("Cache miss")
             logger.debug("Cmd string is " + cmd_str)
+
+            #TODO Investigate why cmd is not able to desugar files
+            # Example of a faulty call: /usr/bin/time -v timeout -k 10 10m java -Xmx8g superc.SugarC -showActions -useBDD
+            # -restrictConfigToPrefix KGENMACRO_ -make-main -keep-mem -nostdinc
+            # -include /home/tim/Downloads/axTLS-2.1.4/axtls-code/standard_macro_defs.sugarlyzer.h
+            # -include /tmp/tmpckwyb2qu -I /usr/lib/gcc/x86_64-linux-gnu/11/include -I /usr/local/include
+            # -I /usr/include/x86_64-linux-gnu -I /usr/include -I /home/tim/Downloads/axTLS-2.1.4/axtls-code/config
+            # -I /home/tim/Downloads/axTLS-2.1.4/axtls-code/ssl -I /home/tim/Downloads/axTLS-2.1.4/axtls-code/crypto
+            # /home/tim/Downloads/axTLS-2.1.4/axtls-code/crypto/bigint.c
+
             ps = subprocess.run(cmd_str, capture_output=True, text=True, shell=True, executable='/bin/bash',
                                 env=os.environ)
             try:

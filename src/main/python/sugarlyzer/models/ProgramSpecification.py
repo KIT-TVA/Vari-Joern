@@ -112,7 +112,7 @@ class ProgramSpecification(ABC):
                         logger.exception(
                             f"Tried to clean up {file_to_delete} but encountered unexpected exception: {e}")
 
-    def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[Dict]]:
+    def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
         Iterates through the program.json's get_recommended_space field,
         returning the first match. See program_schema.json for more info.
@@ -126,9 +126,8 @@ class ProgramSpecification(ABC):
 
         inc_dirs, inc_files, cmd_decs = [], [], []
 
-        # Get automatically determined includes and macros.
         inc_dirs.extend(self.__system_includes)
-        cmd_decs.extend(self.__system_macros)
+        inc_files.append(self.__system_macros)
 
         # TODO Refactor
         for entry in self.__make_includes:
@@ -253,24 +252,21 @@ class ProgramSpecification(ABC):
 
         return standard_include_paths
 
-    def __get_system_macro_defs(self) -> List[Dict]:
-        # Collect default macro definitions.
-        standard_macro_defs: List[Dict] = []
+    def __get_system_macro_defs(self) -> Path:
+        # Collect default macro definitions and store them in a new header.
+        macro_header_path = self.project_root / Path("standard_macro_defs.sugarlyzer.h")
 
-        cmd = ["cc", "-dM", "-E", "-xc", "-", "<", "/dev/null", ">", "standard_macro_defs.sugarlyzer.txt", "2>&1"]
-        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True,
-                            executable='/bin/bash', cwd=self.project_root)
-        # TODO Debug problem relating to bash syntax error (syntax error near unexpected token `(')
-        # TODO Could be caused by parentheses in macro names (e.g., _UINT16_C(c)) and double escaped quotes in macro values
-        if ps.returncode == 0:
-            with open(self.project_root / Path("standard_macro_defs.sugarlyzer.txt"), "r") as standard_includes_output:
-                for line in standard_includes_output:
-                    if line.startswith("#define"):
-                        define_split = line.split(" ", maxsplit=2)
-                        standard_macro_defs.append({'name': define_split[1],
-                                                    'value': define_split[2].strip()})
+        cmd = ["cc", "-dM", "-E", "-xc", "-", "<", "/dev/null", ">", str(macro_header_path), "2>&1"]
+        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True, executable='/bin/bash',)
 
-        return standard_macro_defs
+        # TODO Remove
+        with open(macro_header_path, "a") as file:
+            file.write("#define __extension__ 1")
+
+        if ps.returncode != 0:
+            logger.warning(f"Retrieving system macro definitions probably failed. Exit code was {ps.returncode}")
+
+        return macro_header_path
 
     @abstractmethod
     def get_make_includes(self) -> List[Dict]:
