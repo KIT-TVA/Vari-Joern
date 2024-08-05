@@ -7,7 +7,7 @@ from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
 
 class Axtlsspecification(ProgramSpecification):
-    def get_make_includes(self) -> List[Dict]:
+    def collect_make_includes(self) -> List[Dict]:
         # Clean output of potential previous make call.
         cmd = ["make", "clean"]
         subprocess.run(" ".join(str(s) for s in cmd),

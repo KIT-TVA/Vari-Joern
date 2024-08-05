@@ -267,15 +267,6 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
             logger.debug("Cache miss")
             logger.debug("Cmd string is " + cmd_str)
 
-            #TODO Investigate why cmd is not able to desugar files
-            # Example of a faulty call: /usr/bin/time -v timeout -k 10 10m java -Xmx8g superc.SugarC -showActions -useBDD
-            # -restrictConfigToPrefix KGENMACRO_ -make-main -keep-mem -nostdinc
-            # -include /home/tim/Downloads/axTLS-2.1.4/axtls-code/standard_macro_defs.sugarlyzer.h
-            # -include /tmp/tmpckwyb2qu -I /usr/lib/gcc/x86_64-linux-gnu/11/include -I /usr/local/include
-            # -I /usr/include/x86_64-linux-gnu -I /usr/include -I /home/tim/Downloads/axTLS-2.1.4/axtls-code/config
-            # -I /home/tim/Downloads/axTLS-2.1.4/axtls-code/ssl -I /home/tim/Downloads/axTLS-2.1.4/axtls-code/crypto
-            # /home/tim/Downloads/axTLS-2.1.4/axtls-code/crypto/bigint.c
-
             ps = subprocess.run(cmd_str, capture_output=True, text=True, shell=True, executable='/bin/bash',
                                 env=os.environ)
             try:
@@ -318,7 +309,6 @@ def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Al
     :param desugared_file: The location of the desugared file.
     :return: A report containing all results. TODO: Replace with some data structure?
     """
-    logger.debug("In process_alarms")
 
     with open(desugared_file, 'r') as fl:
         lines = list(map(lambda x: x.strip("\n"), fl.readlines()))

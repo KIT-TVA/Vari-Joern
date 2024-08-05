@@ -49,9 +49,10 @@ class ProgramSpecification(ABC):
         self.__search_context = "/"
         self.__oldconfig_location = "config/.config" if oldconfig_location is None else oldconfig_location
 
-        self.__system_includes = self.__get_system_includes()
-        self.__system_macros = self.__get_system_macro_defs()
-        self.__make_includes = self.get_make_includes()
+        self.__make_includes = self.collect_make_includes()
+        self.__system_includes = self.__collect_system_includes()
+        self.__system_macros = self.__get_system_macro_header()
+        self.__program_macros = self.__get_program_macro_header()
 
     @property
     def oldconfig_location(self):
@@ -127,7 +128,9 @@ class ProgramSpecification(ABC):
         inc_dirs, inc_files, cmd_decs = [], [], []
 
         inc_dirs.extend(self.__system_includes)
+        # System and program macros are stored in their own headers that should be included via -include.
         inc_files.append(self.__system_macros)
+        inc_files.append(self.__program_macros)
 
         # TODO Refactor
         for entry in self.__make_includes:
@@ -143,13 +146,12 @@ class ProgramSpecification(ABC):
                 if 'macro_definitions' in entry.keys():
                     cmd_decs.extend(entry['macro_definitions'])
 
-        # Get manually defined includes and macros from program.json.
+        # Collect manually defined includes and macros from program.json.
         for spec in self.inc_dirs_and_files:
 
             # Note the difference between s[a] and s.get(a) is the former will
             #  raise an exception if a is not in s, while s.get will return None.
             if spec.get('file_pattern') is None or re.search(spec.get('file_pattern'), str(file.absolute())):
-                logger.debug(f"File {file} matched specification {spec}")
                 if (rt := spec.get('relative_to')) is not None:
                     relative_to = Path(rt)
                 else:
@@ -159,7 +161,10 @@ class ProgramSpecification(ABC):
                 if 'included_directories' in spec.keys():
                     inc_dirs.extend(self.try_resolve_path(Path(p), relative_to) for p in spec['included_directories'])
                 if 'macro_definitions' in spec.keys():
-                    cmd_decs.extend(spec['macro_definitions'])
+                    # Deal only with macros specified for the specific file. Program-specific macros are handled
+                    # separately.
+                    if spec.get('file_pattern') is not None:
+                        cmd_decs.extend(spec['macro_definitions'])
 
         return inc_files, inc_dirs, cmd_decs
 
@@ -231,7 +236,11 @@ class ProgramSpecification(ABC):
     def search_context(self, value):
         self.__search_context = value
 
-    def __get_system_includes(self) -> List[Path]:
+    @abstractmethod
+    def collect_make_includes(self) -> List[Dict]:
+        pass
+
+    def __collect_system_includes(self) -> List[Path]:
         # Collect locations of system headers.
         standard_include_paths: List[Path] = []
 
@@ -252,22 +261,31 @@ class ProgramSpecification(ABC):
 
         return standard_include_paths
 
-    def __get_system_macro_defs(self) -> Path:
+    def __get_system_macro_header(self) -> Path:
         # Collect default macro definitions and store them in a new header.
         macro_header_path = self.project_root / Path("standard_macro_defs.sugarlyzer.h")
 
         cmd = ["cc", "-dM", "-E", "-xc", "-", "<", "/dev/null", ">", str(macro_header_path), "2>&1"]
         ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True, executable='/bin/bash',)
 
-        # TODO Remove
-        with open(macro_header_path, "a") as file:
-            file.write("#define __extension__ 1")
-
         if ps.returncode != 0:
             logger.warning(f"Retrieving system macro definitions probably failed. Exit code was {ps.returncode}")
 
         return macro_header_path
 
-    @abstractmethod
-    def get_make_includes(self) -> List[Dict]:
-        pass
+    def __get_program_macro_header(self) -> Path:
+        project_macro_header_path = self.project_root / Path("program_macro_defs.sugarlyzer.h")
+
+        with open(project_macro_header_path, "w") as project_macro_header:
+            for spec in self.inc_dirs_and_files:
+                if spec.get('file_pattern') is None:
+                    macros: Iterable[str] = spec['macro_definitions']
+                    for macro in macros:
+                        macro_split = re.split(r'[ =]', macro)
+                        operator = "#undef" if macro_split[0] == "-U" else "#define"
+                        name = macro_split[1]
+                        value = None if len(macro_split) < 3 else macro_split[2]
+                        project_macro_header.write(f"{operator} {name} {value if value is not None else ''}")
+
+        return project_macro_header_path
+

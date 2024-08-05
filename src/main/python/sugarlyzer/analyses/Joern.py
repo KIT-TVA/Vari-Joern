@@ -29,7 +29,7 @@ class Joern(AbstractTool):
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,
                 included_files: Iterable[Path] = None,
-                command_line_defs: Iterable[Dict] = None) -> Iterable[Path]:
+                command_line_defs: Iterable[str] = None) -> Iterable[Path]:
         if included_files is None:
             included_files = []
         if included_dirs is None:
@@ -43,8 +43,8 @@ class Joern(AbstractTool):
 
         file_includes = " ".join(f"--include {file}" for file in included_files)
         dir_includes = " ".join(f"--include {included_dir}" for included_dir in included_dirs)
-        # TODO Add quotes around macro values.
-        macro_defs = " ".join(f"--define {macro['name']}={macro['value']}" for macro in command_line_defs)
+        macro_defs = " ".join([macro.replace("-D", "--define")
+                               for macro in command_line_defs if macro.startsWith("-D")])
 
         # Generate CPG.
         cmd = " ".join(str(s) for s in Joern.joern_parse_command)

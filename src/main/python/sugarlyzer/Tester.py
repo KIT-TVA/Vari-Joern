@@ -186,10 +186,12 @@ class Tester:
             ###################################
             buckets: List[List[Alarm]] = [[]]
 
+            # TODO Investigate why warning in SimpleCodeVariabilityBug slips through.
             def alarm_match(a: Alarm, b: Alarm):
-                return (a.line_in_input_file == b.line_in_input_file
+                return (a.input_file == b.input_file
+                        and a.feasible == b.feasible
                         and a.sanitized_message == b.sanitized_message
-                        and a.input_file == b.input_file and a.feasible == b.feasible)
+                        and a.original_line_range == b.original_line_range)
 
             # Collect alarms into "buckets" based on equivalence.
             # Then, for each bucket, we will return one alarm, combining all the
