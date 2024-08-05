@@ -122,33 +122,40 @@ class ProgramSpecification(ABC):
         get_recommended_space with a regular expression that matches the **absolute** file name.
         """
 
-        # TODO Figure out how to use self.__system_includes, self.__system_macros, and self.__make_includes instead of
-        #  using the json config in self.inc_dirs_and_files
+        # Collect includes and macros from make call.
+        inc_dirs_make, inc_files_make, cmd_decs_make = self.process_inc_dirs_and_files(
+            inc_dirs_and_files=self.__make_includes,
+            file=file,
+            include_only_file_specific_macros=False)
+        # Collect manually defined includes and macros from program.json.
+        inc_dirs_manual, inc_files_manual, cmd_decs_manual = self.process_inc_dirs_and_files(
+            inc_dirs_and_files=self.inc_dirs_and_files,
+            file=file,
+            include_only_file_specific_macros=True)
 
-        inc_dirs, inc_files, cmd_decs = [], [], []
+        inc_dirs = []
+        inc_dirs.extend(self.__system_includes) # Add system header paths.
+        inc_dirs.extend(inc_dirs_make)
+        inc_dirs.extend(inc_dirs_manual)
 
-        inc_dirs.extend(self.__system_includes)
+        inc_files = []
+        inc_files.extend(inc_files_make)
+        inc_files.extend(inc_files_manual)
         # System and program macros are stored in their own headers that should be included via -include.
         inc_files.append(self.__system_macros)
         inc_files.append(self.__program_macros)
 
-        # TODO Refactor
-        for entry in self.__make_includes:
-            if entry.get('file_pattern') is None or re.search(entry.get('file_pattern'), str(file.absolute())):
-                if (rt := entry.get('relative_to')) is not None:
-                    relative_to = Path(rt)
-                else:
-                    relative_to = self.project_root
-                if 'included_files' in entry.keys():
-                    inc_files.extend(self.try_resolve_path(Path(p), relative_to) for p in entry['included_files'])
-                if 'included_directories' in entry.keys():
-                    inc_dirs.extend(self.try_resolve_path(Path(p), relative_to) for p in entry['included_directories'])
-                if 'macro_definitions' in entry.keys():
-                    cmd_decs.extend(entry['macro_definitions'])
+        cmd_decs = []
+        cmd_decs.extend(cmd_decs_make)
+        cmd_decs.extend(cmd_decs_manual)
 
-        # Collect manually defined includes and macros from program.json.
-        for spec in self.inc_dirs_and_files:
+        return inc_files, inc_dirs, cmd_decs
 
+    def process_inc_dirs_and_files(self, inc_dirs_and_files: Iterable[dict], file: Path,
+                                   include_only_file_specific_macros: bool) -> Tuple[
+        List[Path], List[Path], List[str]]:
+        inc_dirs, inc_files, cmd_decs = [], [], []
+        for spec in inc_dirs_and_files:
             # Note the difference between s[a] and s.get(a) is the former will
             #  raise an exception if a is not in s, while s.get will return None.
             if spec.get('file_pattern') is None or re.search(spec.get('file_pattern'), str(file.absolute())):
@@ -163,7 +170,7 @@ class ProgramSpecification(ABC):
                 if 'macro_definitions' in spec.keys():
                     # Deal only with macros specified for the specific file. Program-specific macros are handled
                     # separately.
-                    if spec.get('file_pattern') is not None:
+                    if include_only_file_specific_macros and spec.get('file_pattern') is not None:
                         cmd_decs.extend(spec['macro_definitions'])
 
         return inc_files, inc_dirs, cmd_decs
@@ -266,7 +273,7 @@ class ProgramSpecification(ABC):
         macro_header_path = self.project_root / Path("standard_macro_defs.sugarlyzer.h")
 
         cmd = ["cc", "-dM", "-E", "-xc", "-", "<", "/dev/null", ">", str(macro_header_path), "2>&1"]
-        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True, executable='/bin/bash',)
+        ps = subprocess.run(" ".join(str(s) for s in cmd), shell=True, executable='/bin/bash', )
 
         if ps.returncode != 0:
             logger.warning(f"Retrieving system macro definitions probably failed. Exit code was {ps.returncode}")
@@ -288,4 +295,3 @@ class ProgramSpecification(ABC):
                         project_macro_header.write(f"{operator} {name} {value if value is not None else ''}")
 
         return project_macro_header_path
-
