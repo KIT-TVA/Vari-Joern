@@ -25,7 +25,7 @@ from python.sugarlyzer import SugarCRunner
 from python.sugarlyzer.SugarCRunner import process_alarms
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from python.sugarlyzer.analyses.AnalysisToolFactory import AnalysisToolFactory
-from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.models.Alarm import Alarm, same_range
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 from python.sugarlyzer.models.ProgramSpecificationFactory import ProgramSpecificationFactory
 
@@ -191,7 +191,7 @@ class Tester:
                 return (a.input_file == b.input_file
                         and a.feasible == b.feasible
                         and a.sanitized_message == b.sanitized_message
-                        and a.original_line_range == b.original_line_range)
+                        and same_range(a.original_line_range, b.original_line_range))
 
             # Collect alarms into "buckets" based on equivalence.
             # Then, for each bucket, we will return one alarm, combining all the
@@ -203,12 +203,12 @@ class Tester:
                         logger.debug("Found matching bucket.")
                         bucket.append(ba)
                         break
-
-                # If we get here, then there wasn't a bucket that this could fit into,
-                # So it gets its own bucket and we add a new one to the end of the list.
-                logger.debug("Creating a new bucket.")
-                buckets[-1].append(ba)
-                buckets.append([])
+                else:
+                    # If we get here, then there wasn't a bucket that this could fit into,
+                    # So it gets its own bucket and we add a new one to the end of the list.
+                    logger.debug("Creating a new bucket.")
+                    buckets[-1].append(ba)
+                    buckets.append([])
 
             # Aggregate alarms and join their presence conditions via disjunctions.
             logger.debug("Now aggregating alarms.")
@@ -216,10 +216,10 @@ class Tester:
             for bucket in (b for b in buckets if len(b) > 0):
                 alarms.append(bucket[0])
                 alarms[-1].presence_condition = f"Or({','.join(str(m.presence_condition) for m in bucket)})"
-            logger.debug("Done.")
+            logger.debug(f"Done. {len(alarms)} alarms remain after aggregation.")
 
             if self.validate:
-                logger.info("Now validating....")
+                logger.debug("Now validating....")
                 with ProcessPool(self.jobs) as p:
                     alarms = list(tqdm(p.imap(self.verify_alarm, alarms)))
         else:

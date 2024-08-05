@@ -33,6 +33,10 @@ class IntegerRange:
             return self.start_line <= i <= self.end_line
 
 
+def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
+    return range1.start_line == range2.start_line and range1.end_line == range2.end_line
+
+
 def map_source_line(desugared_file: Path, line: int) -> IntegerRange:
     """
     Given an alarm, map it back to original source and associate it with conditionals
@@ -134,9 +138,14 @@ class Alarm:
 
         if self.__original_line_range is None:
             self.__original_line_range = map_source_line(self.input_file, self.line_in_input_file)
-            if self.__original_line_range is not None and not self.function_line_range[0] == "GLOBAL" and not self.__original_line_range.is_in(self.function_line_range[1]):
-                logger.critical(f"Sanity check failed. Warning ({self.input_file}:{self.line_in_input_file} {self.message}) original line range {self.original_line_range} and "
-                                   f"function line range {self.__function_line_range}, and the former is not included in the latter, which is not a global scope. Please double check that our line mapping is correct.")
+            if (self.__original_line_range is not None
+                    and not self.function_line_range[0] == "GLOBAL"
+                    and not self.__original_line_range.is_in(self.function_line_range[1])):
+                logger.critical(
+                    f"Sanity check failed. Warning ({self.input_file}:{self.line_in_input_file} {self.message}) "
+                    f"original line range {self.original_line_range} and "
+                    f"function line range {self.__function_line_range}, and the former is not included in the latter, "
+                    f"which is not a global scope. Please double check that our line mapping is correct.")
                 # self.__original_line_range = IntegerRange(-1, 0)  # TODO Is there a better way to represent null values without using None?
         return self.__original_line_range
 
