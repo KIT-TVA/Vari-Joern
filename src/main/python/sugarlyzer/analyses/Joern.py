@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class Joern(AbstractTool):
     joern_parse_command = ["/usr/bin/time", "-v",
-                           "joern-parse", "{input}", "-o", "{output}", "--language", "c",
+                           "joern-parse", "{input}", "-o", "{output}", "--language", "C",
                            "--frontend-args", "{file_includes}", "{dir_includes}", "{macro_defs}"]
     joern_analyze_command = ["/usr/bin/time", "-v",
                              "joern", "--script", "{script}",
