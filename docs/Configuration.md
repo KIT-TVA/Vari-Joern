@@ -58,18 +58,44 @@ Analyzers are used to scan a composed software variant. Only [Joern](analyzers/J
 A complete configuration file might look like this:
 
 ```toml
+# Optional.
+iterations = 2
+
+# Mandatory table.
+[subject]
+name = "busybox"
+# Either absolute or relative to the config file.
+source_root = "path/to/busybox"
+
+# Mandatory table.
 [feature-model-reader]
 name = "featureide"
-path = "model.xml"
+# Either absolute or relative to subject.source_root.
+path = "path/to/feature-model.xml"
 
-[sampler]
-name = "fixed"
-features = [["MyAmazingFeature"]]
+# Only checked if product-based strategy is chosen.
+[product]
 
-[composer]
-name = "antenna"
-source = "src"
-
-[analyzer]
+# Mandatory table for product-based strategy.
+[product.analyzer]
 name = "joern"
+
+# Mandatory table for product-based strategy.
+[product.sampler]
+name = "fixed"
+features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
+
+# Mandatory table for product-based strategy.
+[product.composer]
+name = "kbuild"
+# Either absolute or relative to subject.source_root.
+source = "path/to/source-code"
+system = "busybox"
+
+# Only checked if family-based strategy is chosen.
+[family]
+
+# Mandatory table for family-based strategy.
+[family.sugarlyzer]
+analyzer_name = "joern"
 ```

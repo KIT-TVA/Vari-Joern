@@ -6,9 +6,12 @@ import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.analyzers.ResultAggregator;
+import edu.kit.varijoern.cli.Args;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.config.SubjectConfig;
+import edu.kit.varijoern.config.SugarlyzerConfig;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfigFactory;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
@@ -16,6 +19,8 @@ import edu.kit.varijoern.output.OutputData;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerConfigFactory;
 import edu.kit.varijoern.samplers.SamplerException;
+import jodd.io.StreamGobbler;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -23,11 +28,14 @@ import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
+import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +51,12 @@ public class Main {
     public static final int STATUS_INVALID_CONFIG = 78;
     public static final int STATUS_INTERRUPTED = 130;
     private static final Logger LOGGER = LogManager.getLogger();
+    private static final OutputStream SUGARLYZER_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
     private static final CountDownLatch EXITED_LATCH = new CountDownLatch(1);
+
+    private static Path tmpDir;
+    private static Path featureModelReaderTmpDirectory;
 
     public static void main(String[] args) {
         Args parsedArgs = new Args();
@@ -53,6 +65,7 @@ public class Main {
         addComponentArgs(jcommanderBuilder);
         JCommander jCommander = jcommanderBuilder
                 .build();
+
         try {
             jCommander.parse(args);
         } catch (ParameterException e) {
@@ -83,6 +96,7 @@ public class Main {
             Config config;
             try {
                 config = new Config(parsedArgs.getConfig());
+                config.checkForCompleteness(parsedArgs.getAnalysisStrategy());
             } catch (IOException e) {
                 LOGGER.atFatal().withThrowable(e).log("The configuration file could not be read");
                 EXITED_LATCH.countDown();
@@ -95,7 +109,20 @@ public class Main {
                 return;
             }
 
-            int status = runUsingConfig(config, parsedArgs);
+            try {
+                Main.tmpDir = Files.createTempDirectory("vari-joern");
+                Main.featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
+                Files.createDirectories(featureModelReaderTmpDirectory);
+            } catch (IOException e) {
+                LOGGER.atFatal().withThrowable(e).log("Failed to create temporary directory");
+                System.exit(STATUS_IO_ERROR);
+            }
+
+            int status = switch (parsedArgs.getAnalysisStrategy()) {
+                case PRODUCT -> runProductBased(config, parsedArgs);
+                case FAMILY -> runFamilyBased(config, parsedArgs);
+            };
+
             EXITED_LATCH.countDown();
             System.exit(status);
         } finally {
@@ -116,18 +143,7 @@ public class Main {
         }
     }
 
-    private static int runUsingConfig(@NotNull Config config, @NotNull Args args) {
-        Path tmpDir;
-        Path featureModelReaderTmpDirectory;
-        try {
-            tmpDir = Files.createTempDirectory("vari-joern");
-            featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
-            Files.createDirectories(featureModelReaderTmpDirectory);
-        } catch (IOException e) {
-            LOGGER.atFatal().withThrowable(e).log("Failed to create temporary directory");
-            return STATUS_IO_ERROR;
-        }
-
+    private static int runProductBased(@NotNull Config config, @NotNull Args args) {
         FeatureModelReader featureModelReader = config.getFeatureModelReaderConfig().newFeatureModelReader();
         IFeatureModel featureModel;
         try {
@@ -200,6 +216,64 @@ public class Main {
             return STATUS_IO_ERROR;
         }
         return STATUS_OK;
+    }
+
+    private static int runFamilyBased(@NotNull Config config, @NotNull Args args) {
+        // Gather information for Sugarlyzer call.
+        SubjectConfig subjectConfig = config.getProgramConfig();
+        SugarlyzerConfig sugarlyzerConfig = Objects.requireNonNull(config.getSugarlyzerConfig());
+
+        List<String> sugarlyzerCommandList = new ArrayList<>();
+        sugarlyzerCommandList.add("tester");
+
+        // Add options.
+        if(args.isVerbose()){
+            sugarlyzerCommandList.add("-v");
+        }
+
+        sugarlyzerCommandList.add("--tmp-path");
+        sugarlyzerCommandList.add(Main.tmpDir.toString());
+
+        args.getResultOutputArgs().getDestination().getPath().ifPresent((path) -> {
+            sugarlyzerCommandList.add("--output-path");
+            sugarlyzerCommandList.add(path.toString());
+        });
+
+        // Add mandatory arguments.
+        sugarlyzerCommandList.add(sugarlyzerConfig.getAnalyzerName());
+        sugarlyzerCommandList.add(subjectConfig.getSubjectName());
+        sugarlyzerCommandList.add(subjectConfig.getSourceRoot().toString());
+
+        // Call Sugarlyzer.
+        Process sugarlyzerProcess = null;
+        try {
+            LOGGER.info("Running Sugarlyzer with command: {}", String.join(" ", sugarlyzerCommandList));
+            sugarlyzerProcess = new ProcessBuilder(sugarlyzerCommandList)
+                    .directory(Paths.get(System.getProperty("user.home")).toFile())
+                    .start();
+
+            // StreamGobblers for handling the output produced by sugarlyzerProcess.
+            StreamGobbler stdoutGobbler = new StreamGobbler(sugarlyzerProcess.getInputStream(), SUGARLYZER_LOGGER);
+            StreamGobbler stderrGobbler = new StreamGobbler(sugarlyzerProcess.getErrorStream(), SUGARLYZER_LOGGER);
+            // Start Gobbler threads.
+            stdoutGobbler.start();
+            stderrGobbler.start();
+
+            int joernExitCode = sugarlyzerProcess.waitFor();
+
+            stdoutGobbler.waitFor();
+            stderrGobbler.waitFor();
+            if (joernExitCode != 0) {
+                System.err.printf("sugarlyzer exited with %d%n", joernExitCode);
+            }
+
+            return joernExitCode;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            sugarlyzerProcess.destroy();
+            throw new RuntimeException(e);
+        }
     }
 
     private static void setupShutdownHook() {

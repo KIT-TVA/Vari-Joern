@@ -43,11 +43,11 @@ public final class FeatureModelReaderConfigFactory extends NamedComponentConfigF
 
     @Override
     protected @NotNull FeatureModelReaderConfig newConfigFromName(@NotNull String componentName,
-                                                                  @NotNull TomlTable toml, @NotNull Path configPath)
+                                                                  @NotNull TomlTable toml, @NotNull Path resolvePath)
             throws InvalidConfigException {
         return switch (componentName) {
-            case FeatureIDEFMReader.NAME -> new FeatureIDEFMReaderConfig(toml, configPath);
-            case TorteKmaxFMReader.NAME -> new TorteKmaxFMReaderConfig(toml, configPath);
+            case FeatureIDEFMReader.NAME -> new FeatureIDEFMReaderConfig(toml, resolvePath);
+            case TorteKmaxFMReader.NAME -> new TorteKmaxFMReaderConfig(toml, resolvePath);
             default -> throw new InvalidConfigException("Unknown feature model reader \"%s\"".formatted(componentName));
         };
     }

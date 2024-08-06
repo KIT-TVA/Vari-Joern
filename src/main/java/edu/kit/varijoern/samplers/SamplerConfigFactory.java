@@ -39,7 +39,7 @@ public final class SamplerConfigFactory extends NamedComponentConfigFactory<Samp
 
     @Override
     protected @NotNull SamplerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
-                                                       @NotNull Path configPath)
+                                                       @NotNull Path resolvePath)
             throws InvalidConfigException {
         return switch (componentName) {
             case FixedSampler.NAME -> new FixedSamplerConfig(toml);

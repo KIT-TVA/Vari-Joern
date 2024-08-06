@@ -6,6 +6,7 @@ import edu.kit.varijoern.KconfigTestCasePreparer;
 import edu.kit.varijoern.PresenceConditionExpectation;
 import edu.kit.varijoern.composers.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
+import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,28 +34,35 @@ class KbuildComposerTest {
     );
 
     private static Stream<Arguments> testCases() {
-        return Stream.concat(busyboxTestCases(), linuxTestCases());
+        return Stream.of(busyboxTestCases(), linuxTestCases(), fiascoTestCases())
+                .flatMap(s -> s);
     }
 
     private static Stream<Arguments> busyboxTestCases() {
-        Set<String> standardIncludedFiles = Set.of("include/autoconf.h", "include/cmdline-included-header.h");
+        Set<Path> standardIncludedFiles = Set.of(Path.of("include/autoconf.h"),
+                Path.of("include/cmdline-included-header.h"));
+        List<Path> standardIncludePaths = List.of(Path.of("include"));
+        List<Path> standardSystemIncludePaths = List.of();
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("main"),
-                List.of("include")
+                standardIncludePaths,
+                standardSystemIncludePaths
         );
         InclusionInformation includedCByMain = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("main"),
-                List.of("include")
+                standardIncludePaths,
+                standardSystemIncludePaths
         );
         InclusionInformation includedCByIO = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
                 standardBusyboxDefinesForFile("io_file"),
-                List.of("include")
+                standardIncludePaths,
+                standardSystemIncludePaths
         );
         Stream<TestCase> testCases = Stream.of(
                 new TestCase(
@@ -64,8 +73,8 @@ class KbuildComposerTest {
                                 new FileAbsentVerifier(".*\\.src"),
                                 new FileAbsentVerifier(".*\\.in"),
                                 new FileAbsentVerifier(".*\\.o"),
-                                FileAbsentVerifier.originalSourceAndHeader("hello-cpp"),
-                                FileAbsentVerifier.originalSourceAndHeader("io-file"),
+                                FileAbsentVerifier.originalSourceAndHeader("src/hello-cpp"),
+                                FileAbsentVerifier.originalSourceAndHeader("src/io-file"),
                                 new FileContentVerifier(mainC),
                                 new FileContentVerifier(includedCByMain),
                                 new FileContentVerifier(Path.of("src/main.h")),
@@ -90,14 +99,16 @@ class KbuildComposerTest {
                                         Path.of("src/hello-cpp.cc"),
                                         standardIncludedFiles,
                                         standardBusyboxDefinesForFile("hello_cpp"),
-                                        List.of("include")
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
                                 )),
                                 new FileContentVerifier(Path.of("src/hello-cpp.h")),
                                 new FileContentVerifier(new InclusionInformation(
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
                                         standardBusyboxDefinesForFile("io_file"),
-                                        List.of("include")
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
                                 )),
                                 new FileContentVerifier(includedCByIO),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
@@ -115,16 +126,18 @@ class KbuildComposerTest {
     }
 
     private static Stream<Arguments> linuxTestCases() {
-        Set<String> standardIncludedFiles = Set.of("./include/linux/compiler-version.h", "./include/linux/kconfig.h",
-                "./include/linux/compiler_types.h");
-        List<String> standardIncludePaths = List.of("./arch/x86/include", "./arch/x86/include/generated",
-                "./include", "./arch/x86/include/uapi", "./arch/x86/include/generated/uapi",
-                "./include/uapi", "./include/generated/uapi");
+        Set<Path> standardIncludedFiles = Stream.of("include/linux/compiler-version.h", "include/linux/kconfig.h",
+                "include/linux/compiler_types.h").map(Path::of).collect(Collectors.toSet());
+        List<Path> standardIncludePaths = Stream.of("arch/x86/include", "arch/x86/include/generated",
+                "include", "arch/x86/include/uapi", "arch/x86/include/generated/uapi",
+                "include/uapi", "include/generated/uapi").map(Path::of).toList();
+        List<Path> standardSystemIncludePaths = List.of();
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("src/main.c"),
                 standardIncludedFiles,
                 standardLinuxDefinesForFile("main"),
-                standardIncludePaths
+                standardIncludePaths,
+                standardSystemIncludePaths
         );
         Stream<TestCase> testCases = Stream.of(
                 new TestCase(
@@ -133,7 +146,7 @@ class KbuildComposerTest {
                         List.of(),
                         List.of(
                                 new FileAbsentVerifier(".*\\.o"),
-                                FileAbsentVerifier.originalSourceAndHeader("io-file"),
+                                FileAbsentVerifier.originalSourceAndHeader("src/io-file"),
                                 new FileContentVerifier(mainC),
                                 new FileContentVerifier(Path.of("src/main.h"))
                         )
@@ -153,7 +166,8 @@ class KbuildComposerTest {
                                         Path.of("src/io-file.c"),
                                         standardIncludedFiles,
                                         standardLinuxDefinesForFile("io-file"),
-                                        standardIncludePaths
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
                                 )),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
@@ -165,6 +179,112 @@ class KbuildComposerTest {
                 testCase -> STANDARD_PREPARERS.stream()
                         .map(preparer -> Arguments.of(testCase, preparer))
         );
+    }
+
+    private static Stream<Arguments> fiascoTestCases() {
+        List<Path> standardSystemIncludePaths = List.of(getGCCIncludePath());
+        List<Path> standardIncludePaths = List.of(Path.of("build"), Path.of("build/auto"));
+        Verifier mainVerifier = new FiascoFileContentVerifier(new InclusionInformation(
+                Path.of("src/sample/main.cpp"),
+                Set.of(),
+                Map.of(),
+                standardIncludePaths,
+                standardSystemIncludePaths
+        )); // The build/* files aren't in the original source, so they must be read from the
+        // composer's tmp dir, which will run fiasco's preprocessor to generate them
+        Stream<TestCase> testCases = Stream.of(
+                new TestCase(
+                        "fiasco-sample",
+                        "fiasco",
+                        List.of(
+                                "AMD64",
+                                "__VISIBILITY__CONFIG_CC",
+                                "__VISIBILITY__CONFIG_CXX",
+                                "__VISIBILITY__CONFIG_LD",
+                                "__VISIBILITY__CONFIG_HOST_CC",
+                                "__VISIBILITY__CONFIG_HOST_CXX",
+                                "DEFINE_USELESS_FUNCTION"
+                        ),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.o"),
+                                FileAbsentVerifier.fiascoPreprocessorArtifacts("io_file"),
+                                mainVerifier
+                        )
+                ),
+                new TestCase(
+                        "fiasco-sample",
+                        "fiasco",
+                        List.of(
+                                "INCLUDE_IO_FILE",
+                                "PERFORM_RENAME",
+                                "PERFORM_CHMOD",
+                                "USE_GETS",
+                                "DEFINE_USELESS_FUNCTION",
+                                "AMD64",
+                                "__VISIBILITY__CONFIG_CC",
+                                "__VISIBILITY__CONFIG_CXX",
+                                "__VISIBILITY__CONFIG_LD",
+                                "__VISIBILITY__CONFIG_HOST_CC",
+                                "__VISIBILITY__CONFIG_HOST_CXX"
+                        ),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.o"),
+                                new FiascoFileContentVerifier(new InclusionInformation(
+                                        Path.of("src/sample/io_file.cpp"),
+                                        Set.of(),
+                                        Map.of(),
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
+                                )),
+                                mainVerifier
+                        )
+                )
+        );
+
+        // This test case does not set DEFINE_USELESS_FUNCTION, in order to test that the composer generates correct
+        // source maps even when fiasco's preprocessor drops some lines
+        TestCase noUselessFunction = new TestCase(
+                "fiasco-sample",
+                "fiasco",
+                List.of(
+                        "AMD64",
+                        "__VISIBILITY__CONFIG_CC",
+                        "__VISIBILITY__CONFIG_CXX",
+                        "__VISIBILITY__CONFIG_LD",
+                        "__VISIBILITY__CONFIG_HOST_CC",
+                        "__VISIBILITY__CONFIG_HOST_CXX"
+                ),
+                List.of(
+                        new FileAbsentVerifier(".*\\.o"),
+                        FileAbsentVerifier.fiascoPreprocessorArtifacts("io_file"),
+                        mainVerifier
+                )
+        );
+
+        return Stream.concat(
+                testCases.flatMap(
+                        testCase -> STANDARD_PREPARERS.stream()
+                                .map(preparer -> Arguments.of(testCase, preparer))
+                ),
+                Stream.of(Arguments.of(
+                        noUselessFunction,
+                        (KconfigTestCasePreparer) ((path) -> {
+                        })
+                ))
+        );
+    }
+
+    private static Path getGCCIncludePath() {
+        try {
+            return Path.of(new String(
+                    new ProcessBuilder("gcc", "-print-file-name=include")
+                            .start()
+                            .getInputStream()
+                            .readAllBytes()
+            ).trim());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void buildAllYesConfig(Path sourcePath) throws IOException {
@@ -251,7 +371,8 @@ class KbuildComposerTest {
         }
 
         for (Verifier verifier : testCase.verifiers) {
-            verifier.verify(compositionInformation, testCaseManager, originalDirectory, destinationDirectory);
+            verifier.verify(compositionInformation, testCaseManager, originalDirectory, destinationDirectory,
+                    composerTmpDirectory);
         }
 
         assertTrue(testCaseManager.getModifications().isEmpty(), "Composer modified original source");
@@ -275,7 +396,7 @@ class KbuildComposerTest {
      */
     private interface Verifier {
         void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
-                    Path originalDirectory, Path compositionDirectory)
+                    Path originalDirectory, Path compositionDirectory, Path composerTmpDirectory)
                 throws IOException;
     }
 
@@ -307,12 +428,33 @@ class KbuildComposerTest {
             return new FileAbsentVerifier(name + "[-0-9]*\\.(cc|c|h)");
         }
 
+        /**
+         * Returns a verifier that checks that there are no files generated by fiasco's C++ preprocessor.
+         * Forbidden files are:
+         * <ul>
+         *     <li>{@code build/auto/name.cc}</li>
+         *     <li>{@code build/auto/name.h}</li>
+         *     <li>{@code build/auto/name_i.h}</li>
+         * </ul>
+         * where {@code name} is the specified name. To make sure that the verifier also matches the file names
+         * generated by the {@link KbuildComposer}, the applied regular expression is
+         * {@code name[-0-9]*\.(cc|h)|_i[-0-9]*\.h}.
+         *
+         * @param name the file to check for, without the extension
+         * @return the verifier
+         */
+        public static Verifier fiascoPreprocessorArtifacts(String name) {
+            return new FileAbsentVerifier(name + "[-0-9]*\\.(cc|h)|_i[-0-9]*\\.h");
+        }
+
         @Override
         public void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
-                           Path originalDirectory, Path compositionDirectory) throws IOException {
+                           Path originalDirectory, Path compositionDirectory, Path composerTmpDirectory)
+                throws IOException {
             try (var stream = Files.walk(compositionDirectory)) {
-                assertNull(stream.filter(path -> regex.matcher(compositionDirectory.relativize(path).toString())
-                                        .matches())
+                assertNull(stream.filter(path -> regex.matcher(
+                                        compositionDirectory.relativize(path).normalize().toString()
+                                ).matches())
                                 .findAny()
                                 .orElse(null),
                         "File matching " + regex + " should not exist"
@@ -330,7 +472,9 @@ class KbuildComposerTest {
         private final Path originalRelativePath;
         private final Path composedRelativePath;
         private final List<String> expectedPrependedLines;
-        private final List<String> expectedIncludePaths;
+        private final List<Path> expectedIncludePaths;
+        private final List<Path> expectedSystemIncludePaths;
+        private final boolean useComposerTmpDir;
 
         /**
          * Creates a new verifier for a file in the composition. This constructor assumes that the file is not renamed
@@ -339,7 +483,18 @@ class KbuildComposerTest {
          * @param relativePath the relative path to the file
          */
         public FileContentVerifier(Path relativePath) {
-            this(relativePath, relativePath, List.of(), null);
+            this(relativePath, relativePath, List.of(), null, null);
+        }
+
+        /**
+         * Creates a new verifier for a file in the composition. This constructor assumes that the file is not renamed
+         * by the composer and that no prepended preprocessor directives are expected.
+         *
+         * @param relativePath      the relative path to the file
+         * @param useComposerTmpDir whether to read the original file from the composer's temporary directory
+         */
+        public FileContentVerifier(Path relativePath, boolean useComposerTmpDir) {
+            this(relativePath, relativePath, List.of(), null, null, useComposerTmpDir);
         }
 
         /**
@@ -347,14 +502,37 @@ class KbuildComposerTest {
          * the file name generated by the composer. The verifier checks that the file has the expected preprocessor
          * directives prepended.
          *
-         * @param originalRelativePath   the relative path to the original file
-         * @param composedRelativePath   the relative path to the file in the composition
-         * @param expectedPrependedLines the expected preprocessor directives
-         * @param expectedIncludePaths   the expected include paths for this file
+         * @param originalRelativePath       the relative path to the original file
+         * @param composedRelativePath       the relative path to the file in the composition
+         * @param expectedPrependedLines     the expected preprocessor directives
+         * @param expectedIncludePaths       the expected include paths for this file
+         * @param expectedSystemIncludePaths the expected system include paths for this file
          */
         public FileContentVerifier(Path originalRelativePath, Path composedRelativePath,
-                                   List<String> expectedPrependedLines, List<String> expectedIncludePaths) {
+                                   List<String> expectedPrependedLines, List<Path> expectedIncludePaths,
+                                   List<Path> expectedSystemIncludePaths) {
+            this(originalRelativePath, composedRelativePath, expectedPrependedLines, expectedIncludePaths,
+                    expectedSystemIncludePaths, false);
+        }
+
+        /**
+         * Creates a new verifier for a file in the composition with the specified paths to the original file name and
+         * the file name generated by the composer. The verifier checks that the file has the expected preprocessor
+         * directives prepended.
+         *
+         * @param originalRelativePath       the relative path to the original file
+         * @param composedRelativePath       the relative path to the file in the composition
+         * @param expectedPrependedLines     the expected preprocessor directives
+         * @param expectedIncludePaths       the expected include paths for this file
+         * @param expectedSystemIncludePaths the expected system include paths for this file
+         * @param useComposerTmpDir          whether to read the original file from the composer's temporary directory
+         */
+        public FileContentVerifier(Path originalRelativePath, Path composedRelativePath,
+                                   List<String> expectedPrependedLines, List<Path> expectedIncludePaths,
+                                   List<Path> expectedSystemIncludePaths, boolean useComposerTmpDir) {
             this.expectedIncludePaths = expectedIncludePaths;
+            this.expectedSystemIncludePaths = expectedSystemIncludePaths;
+            this.useComposerTmpDir = useComposerTmpDir;
             if (originalRelativePath.isAbsolute())
                 throw new IllegalArgumentException("originalRelativePath must be relative");
             if (composedRelativePath.isAbsolute())
@@ -373,6 +551,18 @@ class KbuildComposerTest {
          * @param inclusionInformation the inclusion information
          */
         public FileContentVerifier(InclusionInformation inclusionInformation) {
+            this(inclusionInformation, false);
+        }
+
+        /**
+         * Creates a new verifier for a file in the composition with the specified inclusion information. The verifier
+         * checks that the file has the expected preprocessor directives prepended. It uses the inclusion information to
+         * determine the new file name generated by the composer.
+         *
+         * @param inclusionInformation the inclusion information
+         * @param useComposerTmpDir    whether to read the original file from the composer's temporary directory
+         */
+        public FileContentVerifier(InclusionInformation inclusionInformation, boolean useComposerTmpDir) {
             this.originalRelativePath = inclusionInformation.filePath();
             this.composedRelativePath = inclusionInformation.getComposedFilePath();
             this.expectedPrependedLines = Stream.concat(
@@ -380,19 +570,23 @@ class KbuildComposerTest {
                                     .map(entry -> "#define %s %s".formatted(entry.getKey(), entry.getValue())),
                             inclusionInformation.includedFiles().stream()
                                     .map(includedFile -> this.originalRelativePath.getParent()
-                                            .relativize(Path.of(includedFile))
+                                            .relativize(includedFile)
                                     )
                                     .map("#include \"%s\""::formatted)
                     )
                     .toList();
             this.expectedIncludePaths = inclusionInformation.includePaths();
+            this.expectedSystemIncludePaths = inclusionInformation.systemIncludePaths();
+            this.useComposerTmpDir = useComposerTmpDir;
         }
 
         @Override
         public void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
-                           Path originalDirectory, Path compositionDirectory) throws IOException {
+                           Path originalDirectory, Path compositionDirectory, Path composerTmpDirectory)
+                throws IOException {
             Path compositionPath = compositionDirectory.resolve(this.composedRelativePath);
-            Path originalPath = originalDirectory.resolve(this.originalRelativePath);
+            Path originalPath = (this.useComposerTmpDir ? composerTmpDirectory.resolve("source") : originalDirectory)
+                    .resolve(this.originalRelativePath);
 
             assertTrue(Files.exists(compositionPath),
                     "File " + this.composedRelativePath + " should exist");
@@ -410,7 +604,7 @@ class KbuildComposerTest {
             verifyIncludePaths(compositionInformation);
         }
 
-        private void verifySourceMap(CompositionInformation compositionInformation) {
+        protected void verifySourceMap(CompositionInformation compositionInformation) {
             assertEquals(1,
                     compositionInformation.getSourceMap()
                             .getOriginalLocation(
@@ -479,9 +673,139 @@ class KbuildComposerTest {
             assertTrue(languageInformation.size() == 1 && languageInformation.get(0) instanceof CCPPLanguageInformation,
                     "Composition should contain exactly one C/C++ language information");
             CCPPLanguageInformation ccppLanguageInformation = (CCPPLanguageInformation) languageInformation.get(0);
-            assertEquals(this.expectedIncludePaths,
+            assertEquals(
+                    this.expectedIncludePaths,
                     ccppLanguageInformation.getIncludePaths().get(this.composedRelativePath)
             );
+            assertEquals(
+                    this.expectedSystemIncludePaths,
+                    ccppLanguageInformation.getSystemIncludePaths().get(this.composedRelativePath)
+            );
+        }
+    }
+
+    private static class FiascoFileContentVerifier implements Verifier {
+        private final InclusionInformation inclusionInformation;
+        private final Path mainCCPath;
+        private final Path mainHPath;
+        private final Path mainIHPath;
+        private final List<Verifier> fileContentVerifiers;
+
+        /**
+         * Creates a new verifier for the files in the composition created from the files the fiasco preprocessor
+         * generates.
+         *
+         * @param inclusionInformation the inclusion information for original source file (i.e., the *.cpp file). This
+         *                             is a slight abuse of {@link InclusionInformation} since the file is not directly
+         *                             included in the composition but rather its preprocessed output is.
+         */
+        public FiascoFileContentVerifier(InclusionInformation inclusionInformation) {
+            this.inclusionInformation = inclusionInformation;
+            this.mainCCPath = getBuildPath(inclusionInformation.filePath(), ".cc");
+            this.mainHPath = getBuildPath(inclusionInformation.filePath(), ".h");
+            this.mainIHPath = getBuildPath(inclusionInformation.filePath(), "_i.h");
+            this.fileContentVerifiers = List.of(
+                    new FileContentVerifier(
+                            new InclusionInformation(
+                                    this.mainCCPath,
+                                    inclusionInformation.includedFiles(),
+                                    inclusionInformation.defines(),
+                                    inclusionInformation.includePaths(),
+                                    inclusionInformation.systemIncludePaths()
+                            ),
+                            true
+                    ),
+                    new FileContentVerifier(this.mainHPath, true),
+                    new FileContentVerifier(this.mainIHPath, true)
+            );
+        }
+
+        private static Path getBuildPath(Path originalPath, String ending) {
+            Path originalFileName = originalPath.getFileName();
+            int dotIndex = originalFileName.toString().lastIndexOf('.');
+            Path buildFileName = Path.of(originalFileName.toString().substring(0, dotIndex) + ending);
+            return Path.of("build/auto").resolve(buildFileName);
+        }
+
+        @Override
+        public void verify(CompositionInformation compositionInformation, KconfigTestCaseManager testCaseManager,
+                           Path originalDirectory, Path compositionDirectory, Path composerTmpDirectory)
+                throws IOException {
+            for (Verifier verifier : this.fileContentVerifiers) {
+                verifier.verify(compositionInformation, testCaseManager, originalDirectory, compositionDirectory,
+                        composerTmpDirectory);
+            }
+
+            this.verifySourceMaps(compositionInformation, originalDirectory, compositionDirectory);
+        }
+
+        private void verifySourceMaps(CompositionInformation compositionInformation, Path originalDirectory,
+                                      Path compositionDirectory) throws IOException {
+            List<String> originalLines = Files.readAllLines(
+                    originalDirectory.resolve(this.inclusionInformation.filePath())
+            );
+            Map<String, List<Integer>> originalLineNumbers = new HashMap<>();
+            for (int i = 0; i < originalLines.size(); i++) {
+                String line = originalLines.get(i);
+                originalLineNumbers.computeIfAbsent(line, k -> new ArrayList<>()).add(i + 1);
+            }
+            this.verifySourceMapOfFile(compositionInformation, new InclusionInformation(
+                            this.mainCCPath,
+                            this.inclusionInformation.includedFiles(),
+                            this.inclusionInformation.defines(),
+                            this.inclusionInformation.includePaths(),
+                            this.inclusionInformation.systemIncludePaths()
+                    ).getComposedFilePath(), compositionDirectory,
+                    originalLineNumbers, false);
+            this.verifySourceMapOfFile(compositionInformation, this.mainHPath, compositionDirectory,
+                    originalLineNumbers, true);
+            this.verifySourceMapOfFile(compositionInformation, this.mainIHPath, compositionDirectory,
+                    originalLineNumbers, true);
+        }
+
+        private void verifySourceMapOfFile(CompositionInformation compositionInformation, Path path,
+                                           Path compositionDirectory, Map<String, List<Integer>> originalLineNumbers,
+                                           boolean isHeader) throws IOException {
+            // Number of lines prepended by the composer. These lines don't have source map information, so we'll ignore
+            // them.
+            int addedLines = isHeader ? this.inclusionInformation.defines().size()
+                    + this.inclusionInformation.includedFiles().size()
+                    : 0;
+
+            List<String> compositionLines = Files.readAllLines(compositionDirectory.resolve(path));
+            SourceMap sourceMap = compositionInformation.getSourceMap();
+            for (int i = 0; i < compositionLines.size(); i++) {
+                String line = compositionLines.get(i);
+                if (i < addedLines) {
+                    continue;
+                }
+
+                if (line.isBlank()) {
+                    // Blank lines are generated by fiasco's preprocessor. We don't know if this line is generated or
+                    // not, but in any case it is very unlikely that a blank line is mapped incorrectly while other
+                    // lines are mapped correctly.
+                    continue;
+                }
+
+                if (!originalLineNumbers.containsKey(line)) {
+                    // This line was (hopefully) generated by fiasco's preprocessor. We don't have source map
+                    // information for it, so we'll ignore it.
+                    continue;
+                }
+
+                SourceLocation reportedOriginalLocation = sourceMap.getOriginalLocation(new SourceLocation(path, i + 1))
+                        .orElseThrow();
+                assertEquals(this.inclusionInformation.filePath(), reportedOriginalLocation.file(),
+                        "Original path of line %d of %s should be %s but was %s"
+                                .formatted(i + 1, this.inclusionInformation.filePath(), path,
+                                        reportedOriginalLocation.file())
+                );
+                List<Integer> originalLineNumbersList = originalLineNumbers.get(line);
+                assertTrue(originalLineNumbersList.contains(reportedOriginalLocation.line()),
+                        "Original line number %d not found in potential locations for line %d of %s"
+                                .formatted(reportedOriginalLocation.line(), i + 1, path)
+                );
+            }
         }
     }
 }

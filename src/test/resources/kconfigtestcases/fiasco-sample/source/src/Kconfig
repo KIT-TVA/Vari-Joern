@@ -1,0 +1,75 @@
+choice
+        prompt "Architecture"
+        default AMD64
+
+config AMD64
+        bool "AMD64 processor family"
+
+#  ARCH_CHOICE
+endchoice
+
+config XARCH
+        string
+        default "amd64" if AMD64
+
+config ABI
+    string
+    default "vf"
+
+menu "Compiling"
+
+config CC
+        string "C compiler"
+        default "gcc"
+        help
+          Use this option to override the default C compiler (gcc).
+
+config CXX
+        string "C++ compiler"
+        default "g++"
+        help
+          Use this option to override the default C++ compiler (g++).
+
+config LD
+        string "LD linker"
+        default "ld"
+        help
+          Use this operation to override the default linker (ld).
+          It's especially useful to use the LLVM linker (lld) when using
+          Clang/Clang++ for compilation.
+
+config HOST_CC
+        string "C host compiler"
+        default "gcc"
+        help
+          Use this option to override the default C host compiler (gcc).
+
+config HOST_CXX
+        string "C++ host compiler"
+        default "g++"
+        help
+          Use this option to override the default C++ host compiler (g++).
+
+endmenu
+
+config USE_GETS
+    bool "Have fun with gets"
+    default false
+
+config DEFINE_USELESS_FUNCTION
+    bool "Define a useless function"
+    default false
+
+config INCLUDE_IO_FILE
+   bool "Include a file that contains a method performing I/O operations"
+   default true
+
+config PERFORM_CHMOD
+   bool "Run chmod on a path"
+   default false
+   depends on INCLUDE_IO_FILE
+
+config PERFORM_RENAME
+   bool "Rename a path"
+   default false
+   depends on INCLUDE_IO_FILE

@@ -23,7 +23,7 @@ The Kbuild composer is configured using the following options:
       Relative paths are relative to the location of the configuration file.
     - Optional: no
 - `system`
-    - Specifies the used Kconfig/Kbuild implementation. Currently, `busybox` and `linux` are supported.
+    - Specifies the used Kconfig/Kbuild implementation. Currently, `busybox`, `linux` and `fiasco` are supported.
     - Optional: no
 
 For example, the composer could be configured as follows:

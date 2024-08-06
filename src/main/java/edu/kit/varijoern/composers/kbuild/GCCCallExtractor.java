@@ -3,6 +3,8 @@ package edu.kit.varijoern.composers.kbuild;
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.ParseException;
@@ -14,9 +16,13 @@ import java.util.stream.Stream;
  * Extracts GCC calls from a command string.
  */
 public class GCCCallExtractor {
+    private static final List<String> COMMAND_PREFIXES = List.of("", "x86_64-linux-gnu-");
     private static final List<String> COMMAND_NAMES = List.of("gcc", "g++");
     // Match common C and C++ file names. Exclude files starting with a hyphen as they are probably actually GCC flags.
     private static final Pattern SOURCE_FILE_PATTERN = Pattern.compile("^[^-].*\\.(?:c|C|cc|cpp|cxx|c++)$");
+    private static final Set<String> UNSUPPORTED_INCLUDE_OPTIONS = Set.of("-iquote", "-idirafter", "-I-",
+            "-iwithprefix", "-iwithprefixbefore");
+    private static final Logger LOGGER = LogManager.getLogger();
     private final @NotNull CommandParser parser;
 
     /**
@@ -38,16 +44,28 @@ public class GCCCallExtractor {
     public @NotNull List<GCCCall> getCalls() throws ParseException {
         List<GCCCall> calls = new ArrayList<>();
         for (List<String> command : this.parser.parse()) {
-            if (!COMMAND_NAMES.contains(command.get(0))) continue;
+            if (!isRelevantCommand(command.get(0))) continue;
             calls.add(this.parseCall(command));
         }
         return calls;
     }
 
+    private static boolean isRelevantCommand(@NotNull String commandName) {
+        return COMMAND_PREFIXES.stream()
+                .anyMatch(prefix -> commandName.startsWith(prefix)
+                        && COMMAND_NAMES.contains(commandName.substring(prefix.length()))
+                );
+    }
+
     private @NotNull GCCCall parseCall(@NotNull List<String> command) {
         RawGCCCall rawCall = new RawGCCCall();
+        List<String> unsupportedIncludeOptions = new ArrayList<>();
         List<String> preprocessedArguments = command.stream()
                 .flatMap(arg -> {
+                    if (UNSUPPORTED_INCLUDE_OPTIONS.contains(arg)) {
+                        unsupportedIncludeOptions.add(arg);
+                        return Stream.of(arg);
+                    }
                     if (arg.startsWith("-D") && arg.length() > 2 && arg.indexOf('=') == -1) {
                         return Stream.of(arg + "=");
                     } else if (arg.startsWith("-I") && arg.length() > 2) {
@@ -57,6 +75,9 @@ public class GCCCallExtractor {
                     }
                 })
                 .toList();
+        if (!unsupportedIncludeOptions.isEmpty()) {
+            LOGGER.warn("Ignoring unsupported include options: {}", String.join(", ", unsupportedIncludeOptions));
+        }
         JCommander.newBuilder()
                 .addObject(rawCall)
                 .build()
@@ -68,9 +89,10 @@ public class GCCCallExtractor {
                                 .toList()
                         )
                         .orElseGet(List::of),
-                Objects.requireNonNullElseGet(rawCall.includePaths, List::of),
-                Objects.requireNonNullElseGet(rawCall.includes, List::of),
-                Objects.requireNonNullElseGet(rawCall.defines, Map::of)
+                rawCall.includePaths,
+                rawCall.systemIncludePaths,
+                rawCall.includes,
+                rawCall.defines
         );
     }
 
@@ -79,12 +101,19 @@ public class GCCCallExtractor {
         @Parameter
         @NotNull
         List<String> compiledFiles = new ArrayList<>();
+
         @Parameter(names = "-I")
         @NotNull
         List<String> includePaths = new ArrayList<>();
+
+        @Parameter(names = "-isystem")
+        @NotNull
+        List<String> systemIncludePaths = new ArrayList<>();
+
         @Parameter(names = "-include")
         @NotNull
         List<String> includes = new ArrayList<>();
+
         @DynamicParameter(names = "-D")
         @NotNull
         Map<String, String> defines = new HashMap<>();

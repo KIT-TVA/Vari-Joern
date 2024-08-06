@@ -6,7 +6,6 @@ import java.util.Map;
 /**
  * Represents a call to GCC.
  */
-public record GCCCall(List<String> compiledFiles, List<String> includePaths, List<String> includes,
-                      Map<String, String> defines) {
-
+public record GCCCall(List<String> compiledFiles, List<String> includePaths, List<String> systemIncludePaths,
+                      List<String> includes, Map<String, String> defines) {
 }

@@ -1,0 +1,15 @@
+{
+  "remove_errors": false,
+  "config_prefix": "KGENMACRO_",
+  "kgen_map": "axtlsMapping.json",
+  "sample_dir": "axtls/configs",
+  "included_files_and_directories": [
+    {
+      "macro_definitions": [
+        "-D __extension__"
+      ]
+    }
+  ],
+  "build_script": "axtlsScript.sh",
+  "project_root": "axtls-code"
+}
