@@ -179,10 +179,10 @@ class Tester:
                     except Exception as e:
                         logger.exception(f"Error during analysis: {e}")
 
-            logger.info(f"Got {len(alarms)} unique alarms.")
+            logger.info(f"Got {len(alarms)} unique alarms from the analysis tool.")
 
             ###################################
-            # Post processing of alarms..
+            # Post processing of alarms.
             ###################################
             buckets: List[List[Alarm]] = [[]]
 
@@ -216,7 +216,8 @@ class Tester:
             for bucket in (b for b in buckets if len(b) > 0):
                 alarms.append(bucket[0])
                 alarms[-1].presence_condition = f"Or({','.join(str(m.presence_condition) for m in bucket)})"
-            logger.debug(f"Done. {len(alarms)} alarms remain after aggregation.")
+            logger.debug("Done.")
+            logger.info(f"{len(alarms)} alarms remain after aggregation.")
 
             if self.validate:
                 logger.debug("Now validating....")

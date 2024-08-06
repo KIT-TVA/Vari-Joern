@@ -123,38 +123,36 @@ class ProgramSpecification(ABC):
         """
 
         # Collect includes and macros from make call.
-        inc_dirs_make, inc_files_make, cmd_decs_make = self.process_inc_dirs_and_files(
+        inc_files_make, inc_dirs_make, cmd_decs_make = self.process_inc_dirs_and_files(
             inc_dirs_and_files=self.__make_includes,
             file=file,
             include_only_file_specific_macros=False)
         # Collect manually defined includes and macros from program.json.
-        inc_dirs_manual, inc_files_manual, cmd_decs_manual = self.process_inc_dirs_and_files(
+        inc_files_manual, inc_dirs_manual, cmd_decs_manual = self.process_inc_dirs_and_files(
             inc_dirs_and_files=self.inc_dirs_and_files,
             file=file,
             include_only_file_specific_macros=True)
 
-        inc_dirs = []
-        inc_dirs.extend(self.__system_includes) # Add system header paths.
+        inc_dirs: List[Path] = []
+        inc_dirs.extend(self.__system_includes)  # Add system header paths.
         inc_dirs.extend(inc_dirs_make)
         inc_dirs.extend(inc_dirs_manual)
 
-        inc_files = []
+        # System and program macros are stored in their own headers that should be included via -include.
+        inc_files: List[Path] = [self.__system_macros, self.__program_macros]
         inc_files.extend(inc_files_make)
         inc_files.extend(inc_files_manual)
-        # System and program macros are stored in their own headers that should be included via -include.
-        inc_files.append(self.__system_macros)
-        inc_files.append(self.__program_macros)
 
-        cmd_decs = []
+        cmd_decs: List[str] = []
         cmd_decs.extend(cmd_decs_make)
         cmd_decs.extend(cmd_decs_manual)
 
         return inc_files, inc_dirs, cmd_decs
 
-    def process_inc_dirs_and_files(self, inc_dirs_and_files: Iterable[dict], file: Path,
-                                   include_only_file_specific_macros: bool) -> Tuple[
-        List[Path], List[Path], List[str]]:
-        inc_dirs, inc_files, cmd_decs = [], [], []
+    def process_inc_dirs_and_files(self, inc_dirs_and_files: Iterable[dict],
+                                   file: Path,
+                                   include_only_file_specific_macros: bool) -> Tuple[List[Path], List[Path], List[str]]:
+        inc_files, inc_dirs, cmd_decs = [], [], []
         for spec in inc_dirs_and_files:
             # Note the difference between s[a] and s.get(a) is the former will
             #  raise an exception if a is not in s, while s.get will return None.
@@ -168,9 +166,7 @@ class ProgramSpecification(ABC):
                 if 'included_directories' in spec.keys():
                     inc_dirs.extend(self.try_resolve_path(Path(p), relative_to) for p in spec['included_directories'])
                 if 'macro_definitions' in spec.keys():
-                    # Deal only with macros specified for the specific file. Program-specific macros are handled
-                    # separately.
-                    if include_only_file_specific_macros and spec.get('file_pattern') is not None:
+                    if not include_only_file_specific_macros or spec.get('file_pattern') is not None:
                         cmd_decs.extend(spec['macro_definitions'])
 
         return inc_files, inc_dirs, cmd_decs
