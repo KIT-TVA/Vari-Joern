@@ -240,18 +240,20 @@ class Tester:
             file)
         start = time.monotonic()
         # noinspection PyTypeChecker
-        desugared_file_location, log_file = SugarCRunner.desugar_file(file,
-                                                                      recommended_space=None,
-                                                                      remove_errors=self.remove_errors,
-                                                                      config_prefix=self.config_prefix,
-                                                                      whitelist=self.whitelist,
-                                                                      no_stdlibs=True,
-                                                                      included_files=included_files,
-                                                                      included_directories=included_directories,
-                                                                      commandline_declarations=cmd_decs,
-                                                                      keep_mem=self.tool.keep_mem,
-                                                                      make_main=self.tool.make_main,
-                                                                      cache_dir_path=self.cache_dir_path)
+        desugared_file_location, log_file = (
+            SugarCRunner.desugar_file(file,
+                                      recommended_space=None,
+                                      remove_errors=self.remove_errors,
+                                      config_prefix=self.config_prefix,
+                                      whitelist=self.whitelist,
+                                      no_stdlibs=True,
+                                      included_files=included_files,
+                                      included_directories=included_directories,
+                                      commandline_declarations=cmd_decs,
+                                      keep_mem=self.tool.keep_mem,
+                                      make_main=self.tool.make_main,
+                                      cache_dir_path=self.cache_dir_path,
+                                      desugaring_function_whitelist=self.tool.desugaring_function_whitelist))
 
         return desugared_file_location, log_file, file, time.monotonic() - start
 

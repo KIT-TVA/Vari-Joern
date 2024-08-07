@@ -5,7 +5,7 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Dict
+from typing import Iterable, List
 
 from python.sugarlyzer.models.Alarm import Alarm
 from python.sugarlyzer.readers.AbstractReader import AbstractReader
@@ -16,13 +16,16 @@ logger = logging.getLogger(__name__)
 class AbstractTool(ABC):
 
     def __init__(self, reader: AbstractReader, name: str, keep_mem: bool, make_main: bool, remove_errors: bool,
-                 intermediary_results_path: Path):
+                 intermediary_results_path: Path, desugaring_function_whitelist: List[str] = None):
         self.reader = reader
         self.keep_mem = keep_mem,
         self.make_main = make_main
         self.remove_errors = remove_errors
         self.name = name
         self.results_dir = intermediary_results_path
+
+        self.desugaring_function_whitelist = [] if desugaring_function_whitelist is None \
+            else desugaring_function_whitelist
 
     def analyze_and_read(self, source_file: Path, command_line_defs: Iterable[str] = None,
                          included_dirs: Iterable[Path] = None, included_files: Iterable[Path] = None,
@@ -42,7 +45,7 @@ class AbstractTool(ABC):
                 included_files.append(uds.name)
 
         start_time = time.monotonic()
-        alarms =\
+        alarms = \
             functools.reduce(operator.iconcat, [self.reader.read_output(f) for f in
                                                 self.analyze(file=source_file,
                                                              command_line_defs=command_line_defs,

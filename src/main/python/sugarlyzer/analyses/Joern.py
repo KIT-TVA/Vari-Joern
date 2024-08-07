@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 class Joern(AbstractTool):
+    whitelist_function_names = ["gets", "getwd", "strtok", "access" "chdir", "chmod", "chown", "creat", "faccessat",
+                                "fchmodat", "fopen", "fstatat", "lchown", "linkat", "link", "lstat", "mkdirat", "mkdir",
+                                "mkfifoat", "mkfifo", "mknodat", "mknod", "openat", "open", "readlinkat", "readlink",
+                                "renameat", "rename", "rmdir", "stat", "unlinkat", "unlink", "printf", "sprintf",
+                                "vsprintf", "free", "memset", "bzero", "malloc", "memcpy", "setresgid", "setregid",
+                                "setegid", "setgroups", "setresuid", "setreuid", "seteuid", "setgid", "send", "strlen",
+                                "strncpy", "read", "recv"]
+
     joern_parse_command = ["/usr/bin/time", "-v",
                            "joern-parse", "{input}", "-o", "{output}", "--language", "C",
                            "--frontend-args", "{file_includes}", "{dir_includes}", "{macro_defs}"]
@@ -23,8 +31,12 @@ class Joern(AbstractTool):
     joern_script_path = importlib.resources.path(f'resources.joern', "scan.sc")
 
     def __init__(self, intermediary_results_path: Path):
-        super().__init__(JoernReader(), name='joern', make_main=True, keep_mem=True, remove_errors=True,
-                         intermediary_results_path=intermediary_results_path)
+        super().__init__(JoernReader(), name='joern',
+                         make_main=True,
+                         keep_mem=True,
+                         remove_errors=True,
+                         intermediary_results_path=intermediary_results_path,
+                         desugaring_function_whitelist=Joern.whitelist_function_names)
 
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,

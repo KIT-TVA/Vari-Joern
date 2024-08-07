@@ -155,7 +155,8 @@ def desugar_file(file_to_desugar: Path,
                  make_main: bool = False,
                  included_files: Optional[Iterable[Path]] = None,
                  included_directories: Optional[Iterable[Path]] = None,
-                 commandline_declarations: Optional[Iterable[str]] = None) -> tuple[Path, Path]:
+                 commandline_declarations: Optional[Iterable[str]] = None,
+                 desugaring_function_whitelist: List[str] = None) -> tuple[Path, Path]:
     """
     Runs the SugarC command.
     :param file_to_desugar: The C source code file to desugar.
@@ -204,16 +205,19 @@ def desugar_file(file_to_desugar: Path,
             log_file = Path(log_file)
 
     # TODO Make JVM heap size configurable or read the available RAM from the system.
+
+    whitelist_function_names = list(itertools.chain(*zip(['-renaming-whitelist'] * len(desugaring_function_whitelist),
+                                                         desugaring_function_whitelist))) \
+        if desugaring_function_whitelist is not None else []
+
     cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', 'superc.SugarC',
            '-showActions', '-useBDD']
     if config_prefix is not None:
-        cmd.extend(['-restrictConfigToPrefix', config_prefix, *commandline_args, *included_files, *included_directories,
-                    file_to_desugar])
+        cmd.extend(['-restrictConfigToPrefix', config_prefix])
     elif whitelist is not None:
-        cmd.extend(['-restrictConfigToWhitelist', whitelist, *commandline_args, *included_files, *included_directories,
-                    file_to_desugar])
-    else:
-        cmd.extend([*commandline_args, *included_files, *included_directories, file_to_desugar])
+        cmd.extend(['-restrictConfigToWhitelist', whitelist])
+
+    cmd.extend([*commandline_args, *included_files, *included_directories, *whitelist_function_names, file_to_desugar])
     cmd = [str(s) for s in cmd]
 
     to_append = None
