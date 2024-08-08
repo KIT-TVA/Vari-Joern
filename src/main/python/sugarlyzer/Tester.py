@@ -47,9 +47,7 @@ class Tester:
         self.keep_desugaring_files: bool = True if args.keep_desugared_files is not None else False
 
         # Set paths.
-        tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
-            suffix="vari-joern-")
-        # TODO Fix bug related to concatenating TempDir with PosixPath
+        tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(prefix="vari-joern-").name
         self.intermediary_results_path = Path(tmp_path) / Path("family-based-analysis")
         self.intermediary_results_path.mkdir(exist_ok=True, parents=True)
 
