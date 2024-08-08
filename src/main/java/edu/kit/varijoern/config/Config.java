@@ -91,7 +91,7 @@ public class Config {
             throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FEATURE_MODEL_READER_FIELD_NAME));
         this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
                 .readConfig(Objects.requireNonNull(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
-                        this.subjectConfig.getSourceRoot());
+                        this.subjectConfig);
 
         // Try to collect optional strategy-related configurations.
         this.initializeProductBasedConfig(parsedConfig, absoluteConfigLocation);
@@ -109,19 +109,19 @@ public class Config {
         // Analyzer.
         if (productTable.isTable(ANALYZER_FIELD_NAME)) {
             this.analyzerConfig = AnalyzerConfigFactory.getInstance()
-                    .readConfig(Objects.requireNonNull(productTable.getTable(ANALYZER_FIELD_NAME)), absoluteConfigLocation.getParent());
+                    .readConfig(Objects.requireNonNull(productTable.getTable(ANALYZER_FIELD_NAME)), this.subjectConfig);
         }
 
         // Sampler.
         if (productTable.isTable(SAMPLER_FIELD_NAME)) {
             this.samplerConfig = SamplerConfigFactory.getInstance()
-                    .readConfig(Objects.requireNonNull(productTable.getTable(SAMPLER_FIELD_NAME)), absoluteConfigLocation.getParent());
+                    .readConfig(Objects.requireNonNull(productTable.getTable(SAMPLER_FIELD_NAME)), this.subjectConfig);
         }
 
         // Composer.
         if (productTable.isTable(COMPOSER_FIELD_NAME)) {
             this.composerConfig = ComposerConfigFactory.getInstance()
-                    .readConfig(Objects.requireNonNull(productTable.getTable(COMPOSER_FIELD_NAME)), this.subjectConfig.getSourceRoot());
+                    .readConfig(Objects.requireNonNull(productTable.getTable(COMPOSER_FIELD_NAME)), this.subjectConfig);
         }
     }
 

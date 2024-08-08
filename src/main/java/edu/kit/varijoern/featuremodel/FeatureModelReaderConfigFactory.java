@@ -2,6 +2,7 @@ package edu.kit.varijoern.featuremodel;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import edu.kit.varijoern.config.SubjectConfig;
 import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReader;
 import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReaderConfig;
 import edu.kit.varijoern.featuremodel.tortekmax.TorteKmaxFMReader;
@@ -9,7 +10,6 @@ import edu.kit.varijoern.featuremodel.tortekmax.TorteKmaxFMReaderConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -43,11 +43,11 @@ public final class FeatureModelReaderConfigFactory extends NamedComponentConfigF
 
     @Override
     protected @NotNull FeatureModelReaderConfig newConfigFromName(@NotNull String componentName,
-                                                                  @NotNull TomlTable toml, @NotNull Path resolvePath)
+                                                                  @NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig)
             throws InvalidConfigException {
         return switch (componentName) {
-            case FeatureIDEFMReader.NAME -> new FeatureIDEFMReaderConfig(toml, resolvePath);
-            case TorteKmaxFMReader.NAME -> new TorteKmaxFMReaderConfig(toml, resolvePath);
+            case FeatureIDEFMReader.NAME -> new FeatureIDEFMReaderConfig(toml, subjectConfig);
+            case TorteKmaxFMReader.NAME -> new TorteKmaxFMReaderConfig(toml, subjectConfig);
             default -> throw new InvalidConfigException("Unknown feature model reader \"%s\"".formatted(componentName));
         };
     }

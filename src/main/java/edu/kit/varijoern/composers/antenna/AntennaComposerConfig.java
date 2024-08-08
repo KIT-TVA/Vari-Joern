@@ -3,6 +3,7 @@ package edu.kit.varijoern.composers.antenna;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.config.SubjectConfig;
 import edu.kit.varijoern.config.TomlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
@@ -19,13 +20,12 @@ public class AntennaComposerConfig extends ComposerConfig {
 
     /**
      * Creates a new {@link AntennaComposerConfig} by extracting data from the specified TOML section.
-     * Relative paths are assumed to be relative to the specified resolve path.
      *
-     * @param toml       the TOML section
-     * @param resolvePath the path with which to resolve relative paths. Must be absolute.
+     * @param toml          the TOML section
+     * @param subjectConfig the {@link SubjectConfig} with which to resolve the source path if not specified absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public AntennaComposerConfig(@NotNull TomlTable toml, @NotNull Path resolvePath) throws InvalidConfigException {
+    public AntennaComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig) throws InvalidConfigException {
         super(toml);
         String sourceLocation = TomlUtils.getMandatoryString(
                 SOURCE_FIELD_NAME,
@@ -39,7 +39,7 @@ public class AntennaComposerConfig extends ComposerConfig {
             throw new InvalidConfigException("Source location for Antenna composer is not a valid path", e);
         }
         if (!sourcePath.isAbsolute()) {
-            sourcePath = resolvePath.resolve(sourcePath);
+            sourcePath = subjectConfig.getSourceRoot().resolve(sourcePath);
         }
         this.sourceLocation = sourcePath;
     }

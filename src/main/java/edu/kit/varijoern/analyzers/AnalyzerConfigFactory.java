@@ -5,10 +5,10 @@ import edu.kit.varijoern.analyzers.joern.JoernAnalyzerConfig;
 import edu.kit.varijoern.analyzers.joern.JoernArgs;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import edu.kit.varijoern.config.SubjectConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -43,7 +43,7 @@ public final class AnalyzerConfigFactory extends NamedComponentConfigFactory<Ana
 
     @Override
     protected @NotNull AnalyzerConfig<?> newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
-                                                        @NotNull Path resolvePath)
+                                                        @NotNull SubjectConfig subjectConfig)
             throws InvalidConfigException {
         return switch (componentName) {
             case JoernAnalyzer.NAME -> new JoernAnalyzerConfig(toml, JOERN_ARGS);
