@@ -47,11 +47,12 @@ class Tester:
         self.keep_desugaring_files: bool = True if args.keep_desugared_files is not None else False
 
         # Set paths.
-        tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(prefix="vari-joern-").name
+        tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
+            prefix="vari-joern-").name
         self.intermediary_results_path = Path(tmp_path) / Path("family-based-analysis")
         self.intermediary_results_path.mkdir(exist_ok=True, parents=True)
 
-        self.cache_dir_path = Path.home() / Path(".vari-joern-sugarlyzer-cache")
+        self.cache_dir_path = Path.home() / Path(".vari-joern/sugarlyzer-cache")
         self.cache_dir_path.mkdir(exist_ok=True, parents=True)
 
         self.output_file_path = args.output_path if args.output_path is not None else Path.home() / Path(
@@ -141,14 +142,15 @@ class Tester:
             # Run SugarC.
             ###################################
             logger.info(f"Desugaring the source code in {self.program.source_directory} with {self.jobs} jobs...")
+            source_files = list(self.program.get_source_files())
             desugared_files: List[Tuple] = []
 
             with ProcessPoolExecutor(max_workers=self.jobs) as executor:
                 # Submit tasks.
-                desugar_tasks = [executor.submit(self.desugar, file) for file in self.program.get_source_files()]
+                desugar_tasks = [executor.submit(self.desugar, file) for file in source_files]
 
                 # Collect results.
-                for desugar_task in tqdm(desugar_tasks, total=len(list(self.program.get_source_files()))):
+                for desugar_task in tqdm(desugar_tasks, total=len(source_files)):
                     try:
                         desugared_file = desugar_task.result()
                         desugared_files.append(desugared_file)
@@ -156,7 +158,14 @@ class Tester:
                         logger.exception(f"Error during desugaring: {e}")
 
             logger.info(f"Finished desugaring the source code.")
-            logger.info(f"Collected {len(desugared_files)} desugared .c files to analyze.")
+            logger.info(f"From a total of {len(source_files)} source files, collected {len(desugared_files)} "
+                        f"desugared .c files.")
+
+            # Prune desugared files that are empty.
+            desugared_files = [desugaring_result for desugaring_result in desugared_files
+                               if os.path.getsize(desugaring_result[0]) > 0]
+
+            logger.info(f"After pruning empty files, {len(desugared_files)} desugared files remain for analysis.")
 
             ###################################
             # Run analysis tool.
@@ -184,7 +193,6 @@ class Tester:
             ###################################
             buckets: List[List[Alarm]] = [[]]
 
-            # TODO Investigate why warning in SimpleCodeVariabilityBug slips through.
             def alarm_match(a: Alarm, b: Alarm):
                 return (a.input_file == b.input_file
                         and a.feasible == b.feasible
@@ -440,15 +448,14 @@ def set_up_logging(args: argparse.Namespace) -> None:
     else:
         logging_level = logging.INFO
 
-    logging_dir = "log"
-    if not os.path.exists(logging_dir):
-        os.makedirs(logging_dir)
+    logging_dir = Path.home() / Path(".vari-joern")
+    logging_dir.mkdir(exist_ok=True, parents=True)
 
     logging_kwargs = {"level": logging_level,
                       "format": '%(asctime)s %(name)s [%(levelname)s - %(process)d] %(message)s',
                       "handlers": [
                           logging.StreamHandler(),
-                          logging.FileHandler(os.path.join(logging_dir, "logfile.log"), 'w')
+                          logging.FileHandler(os.path.join(logging_dir, "sugarlyzer.log"), 'w')
                       ]
                       }
 
