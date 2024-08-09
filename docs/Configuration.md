@@ -90,7 +90,6 @@ features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
 name = "kbuild"
 # Either absolute or relative to subject.source_root.
 source = "path/to/source-code"
-system = "busybox"
 
 # Only checked if family-based strategy is chosen.
 [family]
