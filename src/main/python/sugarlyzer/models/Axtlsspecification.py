@@ -19,7 +19,7 @@ class Axtlsspecification(ProgramSpecification):
 
         # Collect information from make call.
         includes_per_file_pattern: List[Dict] = []
-        cmd = ["make", "-n", "-i", "linuxconf", ">", "make_output.sugarlyzer.txt", "2>&1"]
+        cmd = ["make", "-i", "linuxconf", ">", "make_output.sugarlyzer.txt", "2>&1"]
         ps = subprocess.run(" ".join(str(s) for s in cmd),
                             shell=True,
                             executable='/bin/bash',
