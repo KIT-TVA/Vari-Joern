@@ -258,11 +258,11 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
     for st in sorted(to_hash):
         hasher.update(bytes(st, 'utf-8'))
 
-    digest = hasher.hexdigest()
+    hex_digest = hasher.hexdigest()
     usr_time = 0
     sys_time = 0
     try:
-        if (cached_file := (cache_dir_path / Path((digest + desugared_output.name)))).exists():
+        if (cached_file := (cache_dir_path / Path((hex_digest + desugared_output.name)))).exists():
             logger.debug("Cache hit!")
             with open(desugared_output, 'wb') as outfile:
                 with open(cached_file, 'rb') as infile:
@@ -281,9 +281,11 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
             except Exception as ve:
                 logger.exception("Could not parse time in string " + times)
 
+            # Write desugared file.
             with open(desugared_output, 'w') as f:
                 f.write(ps.stdout)
 
+            # Add file to cache.
             if not os.path.exists(cache_dir_path):
                 os.makedirs(cache_dir_path)
             with open(cached_file, 'w') as f:
@@ -307,15 +309,15 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
 
 def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Alarm]:
     """
-    Runs the analysis, and compiles the results into a report.
+    Processes the alarms reported for a given file and compiles them into a report.
 
     :param alarms: The list of alarms.
     :param desugared_file: The location of the desugared file.
     :return: A report containing all results. TODO: Replace with some data structure?
     """
 
-    with open(desugared_file, 'r') as fl:
-        lines = list(map(lambda x: x.strip("\n"), fl.readlines()))
+    with open(desugared_file, 'r') as file:
+        lines = list(map(lambda x: x.strip("\n"), file.readlines()))
 
     condition_mapping = ConditionMapping()
     for line in lines:
@@ -325,19 +327,22 @@ def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Al
     varis = condition_mapping.varis
     for w in alarms:
         w: Alarm
+
         w.static_condition_results = calculate_asserts(w, desugared_file)
         s = Solver()
-        missingCondition = False
+        missing_condition = False
+
         for a in w.static_condition_results:
             if a['var'] == '' or not a['var'] in condition_mapping.replacers.keys() or condition_mapping.replacers[
                 a['var']] == '':
-                missingCondition = True
+                missing_condition = True
                 break
             if a['val']:
                 s.add(eval(condition_mapping.replacers[a['var']]))
             else:
                 s.add(eval('Not(' + condition_mapping.replacers[a['var']] + ')'))
-        if missingCondition:
+
+        if missing_condition:
             print('broken condition')
             w.feasible = False
             w.model = None
@@ -412,38 +417,38 @@ def find_condition_scope(start, fpa, goingUp):
     return result
 
 
-def calculate_asserts(w: Alarm, fpa):
-    '''
-    Given the warning, the lines are gone over to find associated
-    presence conditions. If the line is a static condition if statement,
-    we check if a line exists in it's scope, if it does not, we
-    assert the conidition is false. For any other line, we assume
-    the parent condition is true.
-    '''
-    ff = open(fpa, 'r')
-    lines = ff.read().split('\n')
-    ff.close()
+def calculate_asserts(alarm: Alarm, desugared_file: Path):
+    """
+    Given the specified alarm, the lines of the desugared file are traversed to find associated presence conditions.
+    If the line_number is a static condition if statement, we check if a line_number exists in its scope. If it does not, we assert
+    the condition is false. For any other line_number, we assume the parent condition is true.
+    """
+
+    file = open(desugared_file, 'r')
+    lines = file.read().split('\n')
+    file.close()
+
     result = []
-    for line in w.all_relevant_lines:
-        line -= 1
-        fl = lines[line]
-        if 'static_condition_default' in fl:
-            if line != w.line_in_input_file - 1:
-                start = line
-                end = find_condition_scope(line, fpa, False)
+    for line_number in alarm.all_relevant_lines:
+        line_number -= 1 # Move upward in the file.
+        current_line = lines[line_number]
+
+        if 'static_condition_default' in current_line:
+            if line_number != alarm.line_in_input_file - 1:
+                start = line_number
+                end = find_condition_scope(line_number, desugared_file, False)
                 if end == -1:
                     continue
                 found = False
-                for x in w.all_relevant_lines:
+                for x in alarm.all_relevant_lines:
                     if start < x - 1 <= end:
                         found = True
                         break
                 # if not found:
-                # asrt = {'var': fl.split("(")[1].split(')')[0], 'val': False}
+                # asrt = {'var': current_line.split("(")[1].split(')')[0], 'val': False}
                 # result.append(asrt)
-
         else:
-            top = find_condition_scope(line, fpa, True)
+            top = find_condition_scope(line_number, desugared_file, True)
             if top == -1 or 'static_condition_default' not in lines[top]:
                 continue
             asrt = {'var': lines[top].split("(")[1].split(')')[0], 'val': True}

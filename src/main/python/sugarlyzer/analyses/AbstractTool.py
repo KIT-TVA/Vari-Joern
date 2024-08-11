@@ -27,9 +27,9 @@ class AbstractTool(ABC):
         self.desugaring_function_whitelist = [] if desugaring_function_whitelist is None \
             else desugaring_function_whitelist
 
-    def analyze_and_read(self, source_file: Path, command_line_defs: Iterable[str] = None,
-                         included_dirs: Iterable[Path] = None, included_files: Iterable[Path] = None,
-                         recommended_space=None) -> Iterable[Alarm]:
+    def analyze_file_and_read_alarms(self, source_file: Path, command_line_defs: Iterable[str] = None,
+                                     included_dirs: Iterable[Path] = None, included_files: Iterable[Path] = None,
+                                     recommended_space=None) -> Iterable[Alarm]:
         """
         Analyzes a desugared .c file, and returns the alarms generated.
         :param no_std_libs:

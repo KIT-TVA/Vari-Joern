@@ -101,9 +101,9 @@ class Tester:
 
     def analyze_one_file(self, fi: Path, ps: ProgramSpecification) -> Iterable[Alarm]:
         inc_files, inc_dirs, cmd_decs = ps.inc_files_and_dirs_for_file(fi)
-        alarms = self.tool.analyze_and_read(fi, command_line_defs=cmd_decs,
-                                            included_files=inc_files,
-                                            included_dirs=inc_dirs)
+        alarms = self.tool.analyze_file_and_read_alarms(fi, command_line_defs=cmd_decs,
+                                                        included_files=inc_files,
+                                                        included_dirs=inc_dirs)
         return alarms
 
     @staticmethod
@@ -203,18 +203,21 @@ class Tester:
             # Then, for each bucket, we will return one alarm, combining all the
             # models into a list.
             logger.debug("Now deduplicating results.")
+            bucket_matches = 0
             for ba in alarms:
                 for bucket in buckets:
+                    # Bucket hit.
                     if len(bucket) > 0 and alarm_match(bucket[0], ba):
-                        logger.debug("Found matching bucket.")
                         bucket.append(ba)
+                        bucket_matches += 1
                         break
                 else:
                     # If we get here, then there wasn't a bucket that this could fit into,
                     # So it gets its own bucket and we add a new one to the end of the list.
-                    logger.debug("Creating a new bucket.")
                     buckets[-1].append(ba)
                     buckets.append([])
+
+            logger.debug(f"Sorted the {len(alarms)} into {len(buckets) - 1} buckets ({bucket_matches} bucket matches).")
 
             # Aggregate alarms and join their presence conditions via disjunctions.
             logger.debug("Now aggregating alarms.")
@@ -238,7 +241,7 @@ class Tester:
 
         # Clean desugared source files and associated log files.
         if not self.keep_desugaring_files:
-            logger.debug("Cleaning intermediary results from project.")
+            logger.debug("Cleaning intermediary results from subject system.")
             self.program.clean_intermediary_results()
 
     def desugar(self, file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
@@ -268,13 +271,15 @@ class Tester:
         included_directories, included_files, cmd_decs, user_defined_space = (
             self.get_inc_files_and_dirs_for_file(original_file))
 
-        alarms = process_alarms(self.tool.analyze_and_read(desugared_file,
-                                                           included_files=included_files,
-                                                           included_dirs=included_directories), desugared_file)
+        alarms = self.tool.analyze_file_and_read_alarms(desugared_file,
+                                                        included_files=included_files,
+                                                        included_dirs=included_directories)
 
-        for a in alarms:
+        processed_alarms = process_alarms(alarms, desugared_file)
+
+        for a in processed_alarms:
             a.desugaring_time = desugaring_time
-        return alarms
+        return processed_alarms
 
     def verify_alarm(self, alarm):
         alarm = copy.deepcopy(alarm)
@@ -469,7 +474,7 @@ def main():
     set_up_logging(args)
     t = Tester(args)
     t.execute()
-    print(f'total time: {time.monotonic() - start}')
+    logger.info(f'Total execution time of Sugarlyzer: {time.monotonic() - start}')
 
 
 if __name__ == '__main__':
