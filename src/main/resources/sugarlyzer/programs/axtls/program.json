@@ -6,6 +6,8 @@
   "included_files_and_directories": [
     {
       "macro_definitions": [
+        "-D CONFIG_SSL_MAX_CERTS=1",
+        "-U MB_LEN_MAX",
         "-D __extension__"
       ]
     }

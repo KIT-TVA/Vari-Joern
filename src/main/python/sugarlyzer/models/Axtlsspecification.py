@@ -1,3 +1,4 @@
+import importlib
 import re
 import subprocess
 from pathlib import Path
@@ -56,5 +57,11 @@ class Axtlsspecification(ProgramSpecification):
                                           'included_directories': included_dirs,
                                           'build_location': current_building_directory}
                             includes_per_file_pattern.append(make_entry)
+
+        # Overwrite generated default Config.h.
+        with (open(importlib.resources.path(f'resources.sugarlyzer.programs.axtls', 'axtlsconfig.h'), 'r') as new_config,
+              open(self.project_root / Path("config/config.h"), 'w') as default_config):
+            new_config_content = new_config.read()
+            default_config.write(new_config_content)
 
         return includes_per_file_pattern

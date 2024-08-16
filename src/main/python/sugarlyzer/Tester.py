@@ -135,8 +135,8 @@ class Tester:
         return ps_copy
 
     def execute(self):
+        logger.info(f"PYTHONPATH is {os.environ.get('PYTHONPATH')}")
         logger.info(f"Current environment is {os.environ}")
-
         if not self.baselines:
             ###################################
             # Run SugarC.
@@ -217,7 +217,8 @@ class Tester:
                     buckets[-1].append(ba)
                     buckets.append([])
 
-            logger.debug(f"Sorted the {len(alarms)} into {len(buckets) - 1} buckets ({bucket_matches} bucket matches).")
+            logger.debug(f"Sorted the {len(alarms)} alarms into {len(buckets) - 1} buckets "
+                         f"({bucket_matches} bucket matches).")
 
             # Aggregate alarms and join their presence conditions via disjunctions.
             logger.debug("Now aggregating alarms.")
@@ -236,6 +237,14 @@ class Tester:
             alarms = self.run_baseline_experiments()
 
         logger.debug(f"Writing alarms to file \"{self.output_file_path}\"")
+
+        # Assign unique ids to the alarms (ProcessPoolExecutor leads to overlapping ids and postprocessing can
+        # create discontinuations).
+        alarm_id: int = 0
+        for alarm in alarms:
+            alarm.id = alarm_id
+            alarm_id += 1
+
         with open(self.output_file_path, 'w') as f:
             json.dump([a.as_dict() for a in alarms], f, indent=4)
 
@@ -434,8 +443,9 @@ def get_arguments() -> argparse.Namespace:
     p.add_argument("--tmp-path", help="The path to the tmp directory that will be used for storing intermediary "
                                       "results.")
     p.add_argument("--jobs", help="The number of jobs to use. If None, will use all CPUs", type=int)
-    p.add_argument("--keep-desugared-files", help="Keep the desugared source files (.desugared.c) and associated log "
-                                                  "files (.sugarc.log) alongside the original source files.")
+    p.add_argument("--keep-desugared-files", action="store_true",
+                   help="Keep the desugared source files (.desugared.c) and associated log "
+                        "files (.sugarc.log) alongside the original source files.")
 
     p.add_argument("--baselines", action="store_true",
                    help="""Run the baseline experiments. In these, we configure each 
@@ -474,7 +484,7 @@ def main():
     set_up_logging(args)
     t = Tester(args)
     t.execute()
-    logger.info(f'Total execution time of Sugarlyzer: {time.monotonic() - start}')
+    logger.info(f"Total execution time of Sugarlyzer: {time.monotonic() - start}s")
 
 
 if __name__ == '__main__':

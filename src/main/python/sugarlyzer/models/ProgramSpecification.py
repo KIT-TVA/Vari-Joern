@@ -67,11 +67,11 @@ class ProgramSpecification(ABC):
             return p
 
     @property
-    def project_root(self):
+    def project_root(self) -> Path:
         return self.try_resolve_path(self.__project_root, self.source_directory)
 
     @property
-    def source_directory(self):
+    def source_directory(self) -> Path:
         return self.try_resolve_path(self.__source_dir,
                                      self.search_context) if self.__source_dir is not None else self.project_root
 
@@ -288,6 +288,6 @@ class ProgramSpecification(ABC):
                         operator = "#undef" if macro_split[0] == "-U" else "#define"
                         name = macro_split[1]
                         value = None if len(macro_split) < 3 else macro_split[2]
-                        project_macro_header.write(f"{operator} {name} {value if value is not None else ''}")
+                        project_macro_header.write(f"{operator} {name} {value if value is not None else ''}\n")
 
         return project_macro_header_path
