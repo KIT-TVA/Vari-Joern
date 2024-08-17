@@ -294,7 +294,7 @@ def main() -> None:
       k.cond = formatCond(k.cond, kvars, args.defineFalse)
    with open('Config.h','w') as out:
       out.write(generateHeader(kvars,genvars,choice,args.format))
-   with open('mapping.json','w') as out:
+   with open('mapping.json', 'w') as out:
       printMapping(out, kvars, args.defineFalse)
    
 if __name__ == '__main__':
