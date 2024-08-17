@@ -42,6 +42,7 @@ class Tester:
         self.baselines = args.baselines
         self.no_recommended_space = True
         self.jobs: int = max(args.jobs if args.jobs is not None else os.cpu_count() or 1, 1)
+        self.maximum_heap_per_job = args.max_heap_per_job
         self.validate = args.validate if args.validate is not None else False
         self.verbosity = args.verbosity
         self.keep_desugaring_files: bool = True if args.keep_desugared_files is not None else False
@@ -82,7 +83,9 @@ class Tester:
             name=args.program,
             program_json=program_as_json,
             source_dir=args.program_path)
-        self.tool: AbstractTool = AnalysisToolFactory().get_tool(args.tool, self.intermediary_results_path)
+        self.tool: AbstractTool = AnalysisToolFactory().get_tool(tool_name=args.tool,
+                                                                 intermediary_results_path=self.intermediary_results_path,
+                                                                 maximum_heap_size=self.maximum_heap_per_job)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
         self.whitelist = self.program.whitelist
@@ -271,7 +274,8 @@ class Tester:
                                       keep_mem=self.tool.keep_mem,
                                       make_main=self.tool.make_main,
                                       cache_dir_path=self.cache_dir_path,
-                                      desugaring_function_whitelist=self.tool.desugaring_function_whitelist))
+                                      desugaring_function_whitelist=self.tool.desugaring_function_whitelist,
+                                      maximum_heap_size=self.maximum_heap_per_job))
 
         return desugared_file_location, log_file, file, time.monotonic() - start
 
@@ -443,6 +447,8 @@ def get_arguments() -> argparse.Namespace:
     p.add_argument("--tmp-path", help="The path to the tmp directory that will be used for storing intermediary "
                                       "results.")
     p.add_argument("--jobs", help="The number of jobs to use. If None, will use all CPUs", type=int)
+    p.add_argument("--max-heap-per-job", help="The maximum JVM heap size allocated to each job in gigabytes (--jobs).",
+                   type=int)
     p.add_argument("--keep-desugared-files", action="store_true",
                    help="Keep the desugared source files (.desugared.c) and associated log "
                         "files (.sugarc.log) alongside the original source files.")

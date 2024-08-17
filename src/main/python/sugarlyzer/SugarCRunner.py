@@ -156,7 +156,8 @@ def desugar_file(file_to_desugar: Path,
                  included_files: Optional[Iterable[Path]] = None,
                  included_directories: Optional[Iterable[Path]] = None,
                  commandline_declarations: Optional[Iterable[str]] = None,
-                 desugaring_function_whitelist: List[str] = None) -> tuple[Path, Path]:
+                 desugaring_function_whitelist: List[str] = None,
+                 maximum_heap_size: int = None) -> tuple[Path, Path]:
     """
     Runs the SugarC command.
     :param file_to_desugar: The C source code file to desugar.
@@ -210,7 +211,9 @@ def desugar_file(file_to_desugar: Path,
                                                          desugaring_function_whitelist))) \
         if desugaring_function_whitelist is not None else []
 
-    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', '-Xmx8g', 'superc.SugarC',
+    maximum_heap_size_option = f"-Xmx{maximum_heap_size}g" if maximum_heap_size is not None else ""
+
+    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', maximum_heap_size_option, 'superc.SugarC',
            '-showActions', '-useBDD']
     if config_prefix is not None:
         cmd.extend(['-restrictConfigToPrefix', config_prefix])

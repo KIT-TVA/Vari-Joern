@@ -12,17 +12,27 @@ class AnalysisToolFactory:
 
     # noinspection PyTypeChecker
     @classmethod
-    def get_tool(cls, tool, intermediary_results_path: Path) -> AbstractTool:
+    def get_tool(cls, tool_name: str,
+                 intermediary_results_path: Path,
+                 maximum_heap_size: int = None) -> AbstractTool:
         """
         Given the name of the tool, return the appropriate tool class.
-        :param tool:
+        :param tool_name: The name of the tool.
+        :param intermediary_results_path: The path at which to store intermediary results of the tool.
+        :param maximum_heap_size: The maximum heap size in gigabytes that should be used for the analysis.
         :return:
         """
 
-        match tool.lower():
-            case "clang": return Clang(intermediary_results_path)
-            case "testtool": return TestTool(intermediary_results_path)
-            case "infer": return Infer(intermediary_results_path)
-            case "phasar": return Phasar(intermediary_results_path)
-            case "joern": return Joern(intermediary_results_path)
-            case _: raise ValueError(f"No tool for {tool}")
+        match tool_name.lower():
+            case "clang":
+                return Clang(intermediary_results_path)
+            case "testtool":
+                return TestTool(intermediary_results_path)
+            case "infer":
+                return Infer(intermediary_results_path)
+            case "phasar":
+                return Phasar(intermediary_results_path)
+            case "joern":
+                return Joern(intermediary_results_path, maximum_heap_size)
+            case _:
+                raise ValueError(f"No tool for {tool_name}")

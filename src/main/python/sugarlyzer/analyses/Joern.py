@@ -23,20 +23,21 @@ class Joern(AbstractTool):
                                 "strncpy", "read", "recv"]
 
     joern_parse_command = ["/usr/bin/time", "-v",
-                           "joern-parse", "{input}", "-o", "{output}", "--language", "C",
+                           "joern-parse", "{maximum_heap_size_option}", "{input}", "-o", "{output}", "--language", "C",
                            "--frontend-args", "{file_includes}", "{dir_includes}", "{macro_defs}"]
     joern_analyze_command = ["/usr/bin/time", "-v",
-                             "joern", "--script", "{script}",
+                             "joern", "{maximum_heap_size_option}", "--script", "{script}",
                              "--param", "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
     joern_script_path = importlib.resources.path(f'resources.joern', "scan.sc")
 
-    def __init__(self, intermediary_results_path: Path):
+    def __init__(self, intermediary_results_path: Path, maximum_heap_size: int = None):
         super().__init__(JoernReader(), name='joern',
                          make_main=True,
                          keep_mem=True,
                          remove_errors=True,
                          intermediary_results_path=intermediary_results_path,
                          desugaring_function_whitelist=Joern.whitelist_function_names)
+        self.maximum_heap_size = maximum_heap_size
 
     def analyze(self, file: Path,
                 included_dirs: Iterable[Path] = None,
@@ -58,13 +59,18 @@ class Joern(AbstractTool):
         macro_defs = " ".join([macro.replace("-D", "--define")
                                for macro in command_line_defs if macro.startsWith("-D")])
 
-        # Generate CPG.
+        maximum_heap_size_option = f"-J-Xmx{self.maximum_heap_size}G" if self.maximum_heap_size is not None else ""
+
+        ############################################
+        ### Generate CPG.
+        ############################################
         cmd = " ".join(str(s) for s in Joern.joern_parse_command)
         cmd = cmd.format(input=file.absolute(),
                          output=cpg_file,
                          file_includes=file_includes,
                          dir_includes=dir_includes,
-                         macro_defs=macro_defs)
+                         macro_defs=macro_defs,
+                         maximum_heap_size_option=maximum_heap_size_option)
         logger.debug(f"Building CPG for file \"{file.absolute()}\" and writing result to \"{cpg_file}\"")
         logger.debug(f"Command for building CPG: \"{cmd}\"")
         ps = subprocess.run(cmd, text=True, shell=True, capture_output=True,
@@ -72,11 +78,14 @@ class Joern(AbstractTool):
 
         if ps.returncode == 0:
             logger.debug(f"Successfully built CPG for file \"{file.absolute()}\"")
-            # Analyze CPG.
+            ############################################
+            ### Analyze CPG.
+            ############################################
             cmd = " ".join(str(s) for s in Joern.joern_analyze_command)
             cmd = cmd.format(script=Joern.joern_script_path,
                              cpg_path=cpg_file,
-                             report_path=dest_file)
+                             report_path=dest_file,
+                             maximum_heap_size_option=maximum_heap_size_option)
             logger.debug(f"Analyzing CPG \"{cpg_file.absolute()}\" and writing analysis report to \"{dest_file}\"")
             logger.debug(f"Command for analysis: \"{cmd}\"")
             ps = subprocess.run(cmd, text=True, shell=True,
