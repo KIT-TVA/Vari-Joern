@@ -1,11 +1,11 @@
 import argparse
-import os
-import importlib.resources
-import tempfile
 import json
-from pathlib import Path
+import os
 import pickle
 import re
+import tempfile
+from pathlib import Path
+
 
 class kvar:
    def __init__(self,name,type):
@@ -40,20 +40,20 @@ class kvar:
             default = '"X"' if self.type == 'string' else '1'
          alt = '""' if self.type == 'string' else '0'
          maps[f'DEF_KGENMACRO_{self.name}'] = f'USE_{self.name} == {default}'
-         maps[f'!DEF_KGENMACRO_{self.name}'] = f'USE_{self.name} == {alt}'         
+         maps[f'!DEF_KGENMACRO_{self.name}'] = f'USE_{self.name} == {alt}'
    def __str__(self):
       return f'{self.name}({self.type})={self.default}{" or ?" if self.promptable else ""}'
    def __repr__(self):
       return self.__str__()
-   
+
 def read_arguments() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="A tool to parse kmax output and generate config header files for configuration exploration")
     p.add_argument('-d', '--directory', help='root directory for kbuild', default="./")
-    p.add_argument('-m', '--module_version', help='module version for kextract', default="3.19")
+    p.add_argument('-m', '--module-version', help='module version for kextract', default="3.19")
     p.add_argument('-i', '--input', help='kbuild file', default="Config.in")
-    p.add_argument('-o', '--output', help='File to output header to',default='config.h')
+    p.add_argument('-o', '--output', help='Directory to output header and mapping to',default=f"{Path.cwd()}")
     p.add_argument('-f', '--format', help='Format of the output',required=True)
-    p.add_argument('--defineFalse', action='store_true',
+    p.add_argument('--define-false', action='store_true',
                    help='Instead of bools being either defined or undefined, define them as 1 or 0')
     return p.parse_args()
 
@@ -70,7 +70,7 @@ def findClause(string, start):
       i += 1
    print('illegal parens',string, start)
    exit()
- 
+
 def processLet(cond,predefs):
    stripped = cond[len('(let '):-1]
    firstClause = findClause(stripped,0)
@@ -165,7 +165,7 @@ def parseClause(input,kvars):
          if 'CONFIG_'+kv.name == k:
             kv.processClause(v,genvars)
    return genvars, choice
-   
+
 
 def parseExtract(input):
    kvars = []
@@ -214,7 +214,7 @@ def parseExtract(input):
                for k in kvars:
                   if v == k.name:
                      k.choices.append((choiceName,options))
-                     options = options + 1               
+                     options = options + 1
    return kvars
 
 def formatCond(condition, variables, defining):
@@ -249,7 +249,7 @@ def parseFormat(format):
          else:
             text += l
    return res
-   
+
 
 def generateHeader(vars, prevars, choice, format):
    toReturn = ''
@@ -275,28 +275,49 @@ def printMapping(file, vars, defining):
       v.addMap(maps,defining)
    file.write(json.dumps(maps, indent=4))
 
+def run_kgenerate(kconfig_file_path: Path,
+                  output_directory_path: Path,
+                  format_file_path: Path,
+                  source_tree_path: Path = None,
+                  module_version: str = "3.19",
+                  define_false: bool = True):
+    kextract_file, kextract_tmp = tempfile.mkstemp()
+    kclause_file, kclause_tmp = tempfile.mkstemp()
+    cur_dir = Path.cwd()
+
+    os.chdir(source_tree_path) # Achieves the same as --extract -e srctree=/path/to/srctree
+    os.system(f'kextract --module-version {module_version} --extract {kconfig_file_path} >> {kextract_tmp}')
+    os.system(f'kclause < {kextract_tmp} > {kclause_tmp}')
+
+    kvars = parseExtract(kextract_tmp)
+    genvars, choice = parseClause(kclause_tmp,kvars)
+
+    os.chdir(cur_dir)
+    os.system(f'cp {kextract_tmp} tmp')
+    os.system(f'cp {kclause_tmp} tmp2')
+    os.remove(kextract_tmp)
+    os.remove(kclause_tmp)
+
+    for k in kvars:
+        k.cond = formatCond(k.cond, kvars, define_false)
+
+    # Write output.
+    with open(output_directory_path / Path('Config.h'),'w') as header_file:
+        header_file.write(generateHeader(kvars, genvars, choice, format_file_path))
+    with open(output_directory_path / Path('mapping.json'), 'w') as mapping_file:
+        printMapping(mapping_file, kvars, define_false)
+
+# TODO Debug why old implementation produced 822 lines in Config.h, whereas this version produces only 818 lines.
+
 def main() -> None:
-   args = read_arguments()
-   kextractFile, kextractTmp = tempfile.mkstemp()
-   kclauseFile, kclauseTmp = tempfile.mkstemp()
-   curDir = Path.cwd()
-   os.chdir(args.directory)
-   os.system(f'kextract --module-version {args.module_version} --extract {args.input} >> {kextractTmp}')
-   os.system(f'kclause < {kextractTmp} > {kclauseTmp}')
-   kvars = parseExtract(kextractTmp)
-   genvars, choice = parseClause(kclauseTmp,kvars)
-   os.chdir(curDir)
-   os.system(f'cp {kextractTmp} tmp')
-   os.system(f'cp {kclauseTmp} tmp2')
-   os.remove(kextractTmp)
-   os.remove(kclauseTmp)
-   for k in kvars:
-      k.cond = formatCond(k.cond, kvars, args.defineFalse)
-   with open('Config.h','w') as out:
-      out.write(generateHeader(kvars,genvars,choice,args.format))
-   with open('mapping.json', 'w') as out:
-      printMapping(out, kvars, args.defineFalse)
-   
+    args = read_arguments()
+    run_kgenerate(kconfig_file_path=args.input,
+                  output_directory_path=args.output,
+                  format_file_path=args.format,
+                  source_tree_path=args.directory,
+                  module_version=args.module_version,
+                  define_false=args.define_false)
+
 if __name__ == '__main__':
    main()
-   
+
