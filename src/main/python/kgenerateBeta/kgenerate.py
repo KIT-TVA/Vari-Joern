@@ -1,10 +1,17 @@
 import argparse
 import json
+import logging
 import os
 import pickle
 import re
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
+from subprocess import CompletedProcess
+from sys import stderr, stdout
+
+logger = logging.getLogger(__name__)
 
 
 class kvar:
@@ -55,6 +62,7 @@ def read_arguments() -> argparse.Namespace:
     p.add_argument('-f', '--format', help='Format of the output',required=True)
     p.add_argument('--define-false', action='store_true',
                    help='Instead of bools being either defined or undefined, define them as 1 or 0')
+    p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
     return p.parse_args()
 
 def findClause(string, start):
@@ -285,9 +293,23 @@ def run_kgenerate(kconfig_file_path: Path,
     kclause_file, kclause_tmp = tempfile.mkstemp()
     cur_dir = Path.cwd()
 
-    os.chdir(source_tree_path) # Achieves the same as --extract -e srctree=/path/to/srctree
-    os.system(f'kextract --module-version {module_version} --extract {kconfig_file_path} >> {kextract_tmp}')
-    os.system(f'kclause < {kextract_tmp} > {kclause_tmp}')
+    ####################################
+    ### Run kextract.
+    ####################################
+    kextract_cmd: str = f'kextract --module-version {module_version} -e srctree={source_tree_path}  --extract {kconfig_file_path}'
+
+    with open(kextract_file, "w") as stdout_target:
+      logger.debug(f"Running kextract with command: {kextract_cmd}")
+      process: CompletedProcess = subprocess.run(kextract_cmd, shell=True, stderr=sys.stderr, stdout=stdout_target)
+      if process.returncode != 0:
+         logger.warning(f"Call to kextract returned with exitcode {process.returncode}")
+
+    ####################################
+    ### Run kextract.
+    ####################################
+    kclause_cmd = f'kclause < {kextract_tmp} > {kclause_tmp}'
+    # TODO Refactor with subprocess.run
+    os.system(kclause_cmd)
 
     kvars = parseExtract(kextract_tmp)
     genvars, choice = parseClause(kclause_tmp,kvars)
@@ -307,10 +329,25 @@ def run_kgenerate(kconfig_file_path: Path,
     with open(output_directory_path / Path('mapping.json'), 'w') as mapping_file:
         printMapping(mapping_file, kvars, define_false)
 
-# TODO Debug why old implementation produced 822 lines in Config.h, whereas this version produces only 818 lines.
+# TODO Some part in this script introduces non-determinism.
 
 def main() -> None:
     args = read_arguments()
+
+    logging_level: int = logging.DEBUG if args.verbosity else logging.INFO
+
+    logging_dir: Path = Path.home() / Path(".vari-joern")
+    logging_dir.mkdir(exist_ok=True, parents=True)
+
+    logging_kwargs = {"level": logging_level,
+                      "format": '%(asctime)s %(name)s [%(levelname)s - %(process)d] %(message)s',
+                      "handlers": [
+                         logging.StreamHandler(),
+                         logging.FileHandler(os.path.join(logging_dir, "kgenerate.log"), 'w')
+                      ]
+                      }
+    logging.basicConfig(**logging_kwargs)
+
     run_kgenerate(kconfig_file_path=args.input,
                   output_directory_path=args.output,
                   format_file_path=args.format,
