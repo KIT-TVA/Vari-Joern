@@ -9,6 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 from subprocess import CompletedProcess
+from typing import TextIO
 
 logger = logging.getLogger(__name__)
 
@@ -56,20 +57,6 @@ class ConfigurationVariable:
 
     def __repr__(self):
         return self.__str__()
-
-
-def read_arguments() -> argparse.Namespace:
-    p = argparse.ArgumentParser(
-        description="A tool to parse kmax output and generate config header files for configuration exploration")
-    p.add_argument('-d', '--directory', help='root directory for kbuild', default="./")
-    p.add_argument('-m', '--module-version', help='module version for kextract', default="3.19")
-    p.add_argument('-i', '--input', help='kbuild file', default="Config.in")
-    p.add_argument('-o', '--output', help='Directory to output header and mapping to', default=f"{Path.cwd()}")
-    p.add_argument('-f', '--format', help='Format of the output', required=True)
-    p.add_argument('--define-false', action='store_true',
-                   help='Instead of bools being either defined or undefined, define them as 1 or 0')
-    p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
-    return p.parse_args()
 
 
 def findClause(string, start):
@@ -150,7 +137,7 @@ def processSMT(cond, predefs):
     return None
 
 
-def parseSMT(stmts, predefs):
+def parseSMT(stmts, predefs) -> str:
     parts = []
     for s in stmts:
         if '(assert' in s and ')\n(check-sat)\n' in s:
@@ -176,30 +163,33 @@ def getConfigFiles(inputs):
     return [inputs]
 
 
-def parseClause(input, kvars):
-    genvars = {}
-    choice = None
-    with open(input, 'rb') as inputFile:
-        clauseParse = pickle.load(inputFile)
-    for k, v in clauseParse.items():
+def parse_kclause_output(kclause_file: str, configuration_variables: list[ConfigurationVariable]):
+    genvars: dict = {}
+    choice: str|None = None
+
+    with open(kclause_file, 'rb') as input_file:
+        clause_parse = pickle.load(input_file)
+
+    for k, v in clause_parse.items():
         if k == '<CHOICE>':
             choice = parseSMT(v, genvars)
-        for kv in kvars:
-            if 'CONFIG_' + kv.name == k:
-                kv.process_clause(v, genvars)
+        for configuration_variable in configuration_variables:
+            if 'CONFIG_' + configuration_variable.name == k:
+                configuration_variable.process_clause(v, genvars)
+
     return genvars, choice
 
 
-def parseExtract(kextract_file: str):
+def parse_kextract_output(kextract_file: str):
     configuration_variables = []
-    choices_encountered = 0
 
     with open(kextract_file) as file:
         for line in file:
             line = line.lstrip().rstrip()
 
-            if line.startswith('config'):  # Found configuration option.
-                # Exemplary structure: config CONFIG_MY_CONFIG_NAME type
+            # Case: Found definition of a configuration variable.
+            # Exemplary structure: config CONFIG_MY_CONFIG_NAME type
+            if line.startswith('config'):
                 split_components: list[str] = line.split(' ')
                 configuration_variable_name: str = split_components[1][len('CONFIG_'):]
                 configuration_variable_type = split_components[2]
@@ -207,32 +197,30 @@ def parseExtract(kextract_file: str):
                     ConfigurationVariable(configuration_variable_name, configuration_variable_type))
                 continue
 
-            if line.startswith('prompt'):
-                split_components = line.split(' ')
-                configuration_variable_name = split_components[1][len('CONFIG_'):]
-                thisVar = None
-                for k in configuration_variables:
-                    if k.name == configuration_variable_name:
-                        thisVar = k
-                        break
-                if thisVar == None:
-                    continue
-                k.promptable = True
-                continue
+            # Cases: Found a definition of a prompt associated with a configuration variable or the definition of
+            # its default value.
+            # Exemplary structure: prompt CONFIG_MY_CONFIG_NAME (OTHER_CONFIG_EXPRESSION)
+            # Exemplary structure: def_bool CONFIG_MY_CONFIG_NAME DEFAULT_VALUE|(CONFIG_MY_OTHER_CONFIG_NAME and
+            # not CONFIG_MY_OTHER_OTHER_CONFIG_NAME)
+            if line.startswith('prompt') or line.startswith('def_'):
+                split_components: list[str] = line.split(' ')
+                configuration_variable_name: str = split_components[1][len('CONFIG_'):]
+                found_corresponding_variable: bool = False
 
-            if line.startswith('def_'):
-                split_components = line.split(' ')
-                configuration_variable_name = split_components[1][len('CONFIG_'):]
-                thisVar = None
-                for k in configuration_variables:
-                    if k.name == configuration_variable_name:
-                        thisVar = k
+                for configuration_variable in configuration_variables:
+                    if configuration_variable.name == configuration_variable_name:
+                        found_corresponding_variable = True
                         break
-                if thisVar == None:
+
+                if found_corresponding_variable is False:
                     continue
-                k.default = ' '.join(split_components[2:]).split('|')[0]
-                if k.type == 'number':
-                    k.default = k.default.split('"')[1]
+
+                if line.startswith('prompt'):
+                    configuration_variable.promptable = True
+                else:
+                    configuration_variable.default = ' '.join(split_components[2:]).split('|')[0]
+                    if configuration_variable.type == 'number':
+                        configuration_variable.default = configuration_variable.default.split('"')[1]
                 continue
 
             if line.startswith('bool_choice'):
@@ -244,9 +232,9 @@ def parseExtract(kextract_file: str):
                 options = 1
                 for v in vars:
                     v = v[len('CONFIG_'):]
-                    for k in configuration_variables:
-                        if v == k.name:
-                            k.choices.append((choiceName, options))
+                    for configuration_variable in configuration_variables:
+                        if v == configuration_variable.name:
+                            configuration_variable.choices.append((choiceName, options))
                             options = options + 1
     return configuration_variables
 
@@ -305,11 +293,11 @@ def generateHeader(vars, prevars, choice, format):
     return toReturn
 
 
-def printMapping(file, vars, defining):
+def printMapping(mapping_file: TextIO, configuration_variables:list[ConfigurationVariable], define_false: bool):
     maps = {}
-    for v in vars:
-        v.addMap(maps, defining)
-    file.write(json.dumps(maps, indent=4))
+    for configuration_variable in configuration_variables:
+        configuration_variable.addMap(maps, define_false)
+    mapping_file.write(json.dumps(maps, indent=4))
 
 
 def run_kgenerate(kconfig_file_path: Path,
@@ -327,9 +315,9 @@ def run_kgenerate(kconfig_file_path: Path,
 
     cur_dir = Path.cwd()
 
-    ####################################
-    ### Run kextract.
-    ####################################
+    ######################################################
+    ### Run kextract on the Kconfig files of the project.
+    ######################################################
     kextract_cmd: str = f'kextract --module-version {module_version} -e srctree={source_tree_path}  --extract {kconfig_file_path}'
 
     with open(kextract_file, "w") as stdout_target:
@@ -338,9 +326,9 @@ def run_kgenerate(kconfig_file_path: Path,
         if process.returncode != 0:
             logger.warning(f"Call to kextract returned with exitcode {process.returncode}")
 
-    ####################################
-    ### Run kextract.
-    ####################################
+    ######################################################
+    ### Run kclause on the output generated by kextract.
+    ######################################################
     kclause_cmd = f'kclause < {kextract_tmp}'
 
     with open(kclause_file, "w") as stdout_target:
@@ -349,25 +337,40 @@ def run_kgenerate(kconfig_file_path: Path,
         if process.returncode != 0:
             logger.warning(f"Call to kclause returned with exitcode {process.returncode}")
 
-    kvars = parseExtract(kextract_tmp)
-    genvars, choice = parseClause(kclause_tmp, kvars)
+    configuration_variables: list[ConfigurationVariable] = parse_kextract_output(kextract_tmp)
+    genvars, choice = parse_kclause_output(kclause_tmp, configuration_variables)
 
+    # TODO Delete.
     os.chdir(cur_dir)
     os.system(f'cp {kextract_tmp} tmp')
     os.system(f'cp {kclause_tmp} tmp2')
     os.remove(kextract_tmp)
     os.remove(kclause_tmp)
 
-    for k in kvars:
-        k.cond = formatCond(k.cond, kvars, define_false)
+    for k in configuration_variables:
+        k.cond = formatCond(k.cond, configuration_variables, define_false)
 
     # Write output.
     with open(output_directory_path / Path('Config.h'), 'w') as header_file:
-        header_file.write(generateHeader(kvars, genvars, choice, format_file_path))
+        header_file.write(generateHeader(configuration_variables, genvars, choice, format_file_path))
     with open(output_directory_path / Path('mapping.json'), 'w') as mapping_file:
-        printMapping(mapping_file, kvars, define_false)
+        printMapping(mapping_file, configuration_variables, define_false)
 
 # TODO Some part in this script introduces non-determinism.
+# TODO Appears as if the output of kclause changes between executions --> See whether that also applies to the object created by pickle.load.
+
+def read_arguments() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="A tool to parse kmax output and generate config header files for configuration exploration")
+    p.add_argument('-d', '--directory', help='root directory for kbuild', default="./")
+    p.add_argument('-m', '--module-version', help='module version for kextract', default="3.19")
+    p.add_argument('-i', '--input', help='kbuild file', default="Config.in")
+    p.add_argument('-o', '--output', help='Directory to output header and mapping to', default=f"{Path.cwd()}")
+    p.add_argument('-f', '--format', help='Format of the output', required=True)
+    p.add_argument('--define-false', action='store_true',
+                   help='Instead of bools being either defined or undefined, define them as 1 or 0')
+    p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
+    return p.parse_args()
 
 def main() -> None:
     args = read_arguments()
