@@ -306,9 +306,9 @@ class Tester:
             for k, v in alarm.model.items():
                 mappedKey = k
                 mappedValue = v
+                # TODO Rework.
                 if self.kgen_map != None:
-                    with open(importlib.resources.path(f'resources.programs.{self.program.name}',
-                                                       self.kgen_map)) as mapping:
+                    with open(self.program.project_root / Path("config/mapping.json"), 'w') as mapping:
                         map = json.load(mapping)
                     kdef = k
                     if v.lower() == 'false':

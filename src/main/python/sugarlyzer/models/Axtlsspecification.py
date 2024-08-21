@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 from typing import List, Dict
 
+from python.kgenerateBeta.kgenerate import run_kgenerate
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
 
@@ -58,10 +59,12 @@ class Axtlsspecification(ProgramSpecification):
                                           'build_location': current_building_directory}
                             includes_per_file_pattern.append(make_entry)
 
-        # Replace make-generated default Config.h. TODO Replace with call to kgenerate.
-        with (open(importlib.resources.path(f'resources.sugarlyzer.programs.axtls', 'axtlsconfig.h'), 'r') as new_config,
-              open(self.project_root / Path("config/config.h"), 'w') as default_config):
-            new_config_content = new_config.read()
-            default_config.write(new_config_content)
+        # Replace make-generated default Config.h.
+        with importlib.resources.path(f'python.kgenerateBeta', 'axtlsFormat.txt') as format_file_path:
+            run_kgenerate(kconfig_file_path=self.project_root / Path("config/Config.in"),
+                          output_directory_path=self.project_root / Path("config/"),
+                          format_file_path=format_file_path,
+                          source_tree_path=self.project_root,
+                          header_file_name="config.h")
 
         return includes_per_file_pattern

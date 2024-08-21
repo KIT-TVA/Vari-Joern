@@ -321,9 +321,10 @@ def run_kgenerate(kconfig_file_path: Path,
                   source_tree_path: Path = None,
                   module_version: str = "3.19",
                   define_false: bool = True,
-                  tmp_directory_path: Path = None):
+                  tmp_directory_path: Path = None,
+                  header_file_name: str = "Config.h"):
     # Create temp-files.
-    tmp_directory = tempfile.TemporaryDirectory(prefix="vari-joern-")
+    tmp_directory = tempfile.TemporaryDirectory(prefix="vari-joern-kgenerate-")
     tmp_directory_path = Path(tmp_directory.name) if tmp_directory_path is None else tmp_directory_path
     kextract_file, kextract_tmp = tempfile.mkstemp(prefix="kextract-out-", dir=tmp_directory_path)
     kclause_file, kclause_tmp = tempfile.mkstemp(prefix="kclause-out-", dir=tmp_directory_path)
@@ -371,7 +372,7 @@ def run_kgenerate(kconfig_file_path: Path,
         k.cond = format_cond(k.cond, configuration_variables, define_false)
 
     # Write output.
-    with open(output_directory_path / Path('Config.h'), 'w') as header_file:
+    with open(output_directory_path / Path(header_file_name), 'w') as header_file:
         header_file.write(generateHeader(configuration_variables, genvars, choice, format_file_path))
     with open(output_directory_path / Path('mapping.json'), 'w') as mapping_file:
         printMapping(mapping_file, configuration_variables, define_false)
@@ -384,6 +385,7 @@ def read_arguments() -> argparse.Namespace:
     p.add_argument('-m', '--module-version', help='module version for kextract', default="3.19")
     p.add_argument('-i', '--input', help='kbuild file', default="Config.in")
     p.add_argument('-o', '--output', help='Directory to output header and mapping to', default=f"{Path.cwd()}")
+    p.add_argument('-n', '--header-name',help='The name of the header file that should be created.', default="Config.h")
     p.add_argument('-f', '--format', help='Format of the output', required=True)
     p.add_argument('--define-false', action='store_true',
                    help='Instead of bools being either defined or undefined, define them as 1 or 0')
