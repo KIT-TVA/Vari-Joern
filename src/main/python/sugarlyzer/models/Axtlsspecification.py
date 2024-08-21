@@ -58,7 +58,7 @@ class Axtlsspecification(ProgramSpecification):
                                           'build_location': current_building_directory}
                             includes_per_file_pattern.append(make_entry)
 
-        # Replace make-generated default Config.h.
+        # Replace make-generated default Config.h. TODO Replace with call to kgenerate.
         with (open(importlib.resources.path(f'resources.sugarlyzer.programs.axtls', 'axtlsconfig.h'), 'r') as new_config,
               open(self.project_root / Path("config/config.h"), 'w') as default_config):
             new_config_content = new_config.read()

@@ -15,15 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigurationVariable:
-    def __init__(self, name: str, type: str):
+    def __init__(self, name: str, data_type: str):
         self.name = name
-        self.type = type
-        self.promptable = False
+        self.type = data_type
+        self.promptable: bool = False
         self.default = None
-        self.cond = None
-
-    def process_clause(self, cond, genvars):
-        self.cond = parseSMT(cond, genvars)
+        self.cond: str | None = None
 
     def define(self, format):
         default = str(self.default)
@@ -74,7 +71,7 @@ def findClause(string, start):
     exit()
 
 
-def processLet(cond, predefs):
+def process_let(cond, predefs):
     stripped = cond[len('(let '):-1]
     firstClause = findClause(stripped, 0)
     firstClause = stripped[0:firstClause]
@@ -84,68 +81,74 @@ def processLet(cond, predefs):
     # if x var already exists, ignore
     if var not in predefs.keys():
         subcond = firstClause[3 + len(var):-2].lstrip().rstrip()
-        predefs[var] = processSMT(subcond, predefs)
+        predefs[var] = process_smt(subcond, predefs)
     # else process SMT on  the x var and create a mapping
-    return processSMT(stripped[len(firstClause):].lstrip(), predefs)
+    return process_smt(stripped[len(firstClause):].lstrip(), predefs)
 
 
-def processLogic(cond, predefs, op):
-    parts = cond[:-1].split(' ')
+def process_logic(cond, predefs, logical_operator: str):
+    # Remove (OPERATOR and ) from the beginning and end, respectively.
+    parts: list[str] = cond[:-1].split(' ')
     parts = parts[1:]
+
+    # Identify operator sub-statements (need ti be correctly encapsulated within parentheses).
     i = 0
     while i < len(parts):
         while parts[i].count('(') != parts[i].count(')'):
             parts[i] = parts[i] + ' ' + parts[i + 1]
             parts.pop(i + 1)
         i += 1
+
+    # Recursively descend for the sub-statements.
     processed = []
     for p in parts:
-        processed.append(processSMT(p.lstrip().rstrip(), predefs))
-    return '(' + op.join(processed) + ')'
+        processed.append(process_smt(p.strip(), predefs))
+    return '(' + logical_operator.join(processed) + ')'
 
 
-def processNot(cond, predefs):
-    return '(!' + processSMT(cond[len('(not '):-1].lstrip().rstrip(), predefs) + ')'
+def process_not(cond, predefs):
+    substatement: str = cond[len('(not '):-1].strip()
+    return '(!' + process_smt(substatement, predefs) + ')'
 
 
-def processSolo(cond, predefs):
+def process_solo(cond, predefs):
     return 'defined KGENMACRO_' + cond[len('CONFIG_'):]
 
 
-def processPredef(cond, predefs):
+def processPredef(cond, predefs) -> str:
     if cond not in predefs.keys():
-        print('var not found', cond)
+        logger.error('var not found', cond)
         exit()
     return '(' + 'KGEN_' + cond[1:] + ')'
 
 
-def processSMT(cond, predefs):
+def process_smt(cond, predefs):
     if cond.startswith('(let'):
-        return processLet(cond, predefs)
+        return process_let(cond, predefs)
     elif cond.startswith('(or'):
-        return processLogic(cond, predefs, '||')
+        return process_logic(cond, predefs, '||')
     elif cond.startswith('(and'):
-        return processLogic(cond, predefs, '&&')
+        return process_logic(cond, predefs, '&&')
     elif cond.startswith('(not'):
-        return processNot(cond, predefs)
+        return process_not(cond, predefs)
     elif cond.startswith('CONFIG_'):
-        return processSolo(cond, predefs)
+        return process_solo(cond, predefs)
     elif cond.startswith('$x'):
         return processPredef(cond, predefs)
     else:
-        print('cant handle', cond)
+        logger.warning(f"Cannot handle condition: {cond}")
     return None
 
 
-def parseSMT(stmts, predefs) -> str:
+def parse_smt(smt_lib_stmts: list[str], predefs) -> str:
     parts = []
-    for s in stmts:
-        if '(assert' in s and ')\n(check-sat)\n' in s:
-            assertion = s.split('assert\n')[1]
-            assertion = assertion[:-len(')\n(check-sat)\n')]
+    for smt_lib_stmt in smt_lib_stmts:
+        if '(assert' in smt_lib_stmt and ')\n(check-sat)\n' in smt_lib_stmt:
+            assertion: str = smt_lib_stmt.split('assert\n')[1]  # Everything that comes after 'assert\n'
+            assertion = assertion[:-len(')\n(check-sat)\n')]  # Remove trailing ')\n(check-sat)\n'
             assertion = assertion.replace('\n', ' ')
-            assertion = assertion.lstrip().rstrip()
-            parts.append(processSMT(assertion, predefs))
+            assertion = assertion.strip()
+            parts.append(process_smt(assertion, predefs))
     return '(' + ') && ('.join(parts) + ')'
 
 
@@ -165,17 +168,21 @@ def getConfigFiles(inputs):
 
 def parse_kclause_output(kclause_file: str, configuration_variables: list[ConfigurationVariable]):
     genvars: dict = {}
-    choice: str|None = None
+    choice: str | None = None
 
     with open(kclause_file, 'rb') as input_file:
         clause_parse = pickle.load(input_file)
 
-    for k, v in clause_parse.items():
-        if k == '<CHOICE>':
-            choice = parseSMT(v, genvars)
+    # The kclause output contains logical formulas for each configuration options’ constraints in the SMT-LIB 2 format.
+    # See also Oh et al. (https://doi.org/10.1145/3468264.3468578)
+    for option, constraints in clause_parse.items():
+        if option == '<CHOICE>':
+            choice = parse_smt(constraints, genvars)
+            continue
+
         for configuration_variable in configuration_variables:
-            if 'CONFIG_' + configuration_variable.name == k:
-                configuration_variable.process_clause(v, genvars)
+            if 'CONFIG_' + configuration_variable.name == option:
+                configuration_variable.cond = parse_smt(constraints, genvars)
 
     return genvars, choice
 
@@ -239,61 +246,69 @@ def parse_kextract_output(kextract_file: str):
     return configuration_variables
 
 
-def formatCond(condition, variables, defining):
-    if condition == '1' or condition == None:
+def format_cond(condition: str | None, configuration_variables: list[ConfigurationVariable], defining):
+    if condition is None or condition == '1':
         return None
-    newCond = condition.replace(' and ', ' && ')
-    newCond = newCond.replace(' or ', ' || ')
-    for v in variables:
-        if v.name in condition:
-            if v.type == 'bool' and not defining:
-                rep = 'defined ' + v.name
+
+    new_cond: str = condition.replace(' and ', ' && ')
+    new_cond = new_cond.replace(' or ', ' || ')
+    new_cond = new_cond.replace('not ', '!')
+
+    for configuration_variable in configuration_variables:
+        if configuration_variable.name in condition:
+            if configuration_variable.type == 'bool' and not defining:
+                replacement: str = 'defined ' + configuration_variable.name
             else:
-                rep = v.name
-            newCond = newCond.replace('CONFIG_' + v.name, rep)
-            newCond = newCond.replace('"' + v.name + '"', rep)
-    newCond = newCond.replace('not ', '!')
-    return newCond
+                replacement: str = configuration_variable.name
+
+            new_cond = new_cond.replace('CONFIG_' + configuration_variable.name, replacement)
+            new_cond = new_cond.replace('"' + configuration_variable.name + '"', replacement)
+    return new_cond
 
 
-def parseFormat(format):
+def parse_format(format_file_path: Path) -> dict[str, str]:
     res = {}
-    with open(format, 'r') as formatFile:
+    with open(format_file_path, 'r') as format_file:
         type = ''
         text = ''
-        for l in formatFile.readlines():
-            if l.startswith(':'):
-                temp = l.split(':')[1]
+
+        for line in format_file.readlines():
+            if line.startswith(':'):
+                temp = line.split(':')[1]
                 if temp == 'end':
                     res[type] = text
                     text = ""
                 else:
                     type = temp
             else:
-                text += l
+                text += line
     return res
 
 
-def generateHeader(vars, prevars, choice, format):
-    toReturn = ''
-    outputFormat = parseFormat(format)
-    print(outputFormat)
-    for p, v in prevars.items():
-        toReturn += f'#define KGEN_{p[1:]} ({v})\n'
+def generateHeader(configuration_variables: list[ConfigurationVariable],
+                   prevars, choice: str | None,
+                   format_file_path: Path):
+    header_content: str = ''
+    output_format = parse_format(format_file_path)
+    logger.info(f"Header generation uses the following output format: {output_format}")
+
+    for p, configuration_variable in prevars.items():
+        header_content += f'#define KGEN_{p[1:]} ({configuration_variable})\n'
     #   if choice != None:
-    #      toReturn += f"#if ({choice})\n"
-    for v in vars:
-        if v.cond != None:
-            toReturn += '#if ' + v.cond + '\n'
-        toReturn += v.define(outputFormat)
-        if v.cond != None:
-            toReturn += '#endif\n'
+    #      header_content += f"#if ({choice})\n"
+
+    for configuration_variable in configuration_variables:
+        if configuration_variable.cond is not None:
+            header_content += '#if ' + configuration_variable.cond + '\n'
+        header_content += configuration_variable.define(output_format)
+        if configuration_variable.cond is not None:
+            header_content += '#endif\n'
     #   if choice != None:
-    #      toReturn += f"#else\n#error\n#endif"
-    return toReturn
+    #      header_content += f"#else\n#error\n#endif"
+    return header_content
 
 
-def printMapping(mapping_file: TextIO, configuration_variables:list[ConfigurationVariable], define_false: bool):
+def printMapping(mapping_file: TextIO, configuration_variables: list[ConfigurationVariable], define_false: bool):
     maps = {}
     for configuration_variable in configuration_variables:
         configuration_variable.addMap(maps, define_false)
@@ -315,6 +330,9 @@ def run_kgenerate(kconfig_file_path: Path,
 
     cur_dir = Path.cwd()
 
+    # kextract and kclause documentation of the kmax project:
+    # https://github.com/paulgazz/kmax/blob/master/docs/advanced.md#kclause
+
     ######################################################
     ### Run kextract on the Kconfig files of the project.
     ######################################################
@@ -331,6 +349,8 @@ def run_kgenerate(kconfig_file_path: Path,
     ######################################################
     kclause_cmd = f'kclause < {kextract_tmp}'
 
+    # Note that the output produced by kclause can change between executions. The number of items within stays the same
+    # but the $xNUM identifiers often change.
     with open(kclause_file, "w") as stdout_target:
         logger.debug(f"Running kclause with command: {kclause_cmd}")
         process: CompletedProcess = subprocess.run(kclause_cmd, shell=True, stderr=sys.stderr, stdout=stdout_target)
@@ -348,7 +368,7 @@ def run_kgenerate(kconfig_file_path: Path,
     os.remove(kclause_tmp)
 
     for k in configuration_variables:
-        k.cond = formatCond(k.cond, configuration_variables, define_false)
+        k.cond = format_cond(k.cond, configuration_variables, define_false)
 
     # Write output.
     with open(output_directory_path / Path('Config.h'), 'w') as header_file:
@@ -356,8 +376,6 @@ def run_kgenerate(kconfig_file_path: Path,
     with open(output_directory_path / Path('mapping.json'), 'w') as mapping_file:
         printMapping(mapping_file, configuration_variables, define_false)
 
-# TODO Some part in this script introduces non-determinism.
-# TODO Appears as if the output of kclause changes between executions --> See whether that also applies to the object created by pickle.load.
 
 def read_arguments() -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -371,6 +389,7 @@ def read_arguments() -> argparse.Namespace:
                    help='Instead of bools being either defined or undefined, define them as 1 or 0')
     p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
     return p.parse_args()
+
 
 def main() -> None:
     args = read_arguments()
