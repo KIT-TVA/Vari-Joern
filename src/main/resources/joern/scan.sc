@@ -1,4 +1,4 @@
-import io.joern.console.scan.ScannerStarters
+import scala.language.implicitConversions
 
 case class FindingOutput(name: String, title: String, description: String, score: String, evidence: List[EvidenceOutput])
 
@@ -15,7 +15,7 @@ case class EvidenceOutput(filename: String, lineNumber: Option[Integer])
     val evidence = finding.evidence.map(evidence => {
       val filename = evidence.file.name.head
       val lineNumber = evidence.location.lineNumber
-      EvidenceOutput(filename, lineNumber)
+      EvidenceOutput(filename, lineNumber.map(_.asInstanceOf[Integer]))
     }).l
     FindingOutput(name, title, description, score, evidence)
   })
