@@ -45,12 +45,12 @@ class Tester:
         self.maximum_heap_per_job = args.max_heap_per_job
         self.validate = args.validate if args.validate is not None else False
         self.verbosity = args.verbosity
-        self.keep_desugaring_files: bool = True if args.keep_desugared_files is not None else False
+        self.keep_intermediary_files: bool = args.keep_intermediary_files if args.keep_intermediary_files is not None else False
 
         # Set paths.
-        tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
+        self.__tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
             prefix="vari-joern-").name
-        self.intermediary_results_path = Path(tmp_path) / Path("family-based-analysis")
+        self.intermediary_results_path = Path(self.__tmp_path) / Path("family-based-analysis")
         self.intermediary_results_path.mkdir(exist_ok=True, parents=True)
 
         self.cache_dir_path = Path.home() / Path(".vari-joern/sugarlyzer-cache")
@@ -77,19 +77,23 @@ class Tester:
             validator.validate(result)
             return result
 
-        program_as_json = read_json_and_validate(
+        # Program (subject system).
+        program_specification_json = read_json_and_validate(
             importlib.resources.path(f'resources.sugarlyzer.programs.{args.program}', 'program.json'))
         self.program: ProgramSpecification = ProgramSpecificationFactory.get_program_specification(
             name=args.program,
-            program_json=program_as_json,
-            source_dir=args.program_path)
+            project_root=Path(args.program_path),
+            tmp_dir=self.intermediary_results_path,
+            program_specification_json=program_specification_json)
+
+        # Analysis tool.
         self.tool: AbstractTool = AnalysisToolFactory().get_tool(tool_name=args.tool,
                                                                  intermediary_results_path=self.intermediary_results_path,
                                                                  maximum_heap_size=self.maximum_heap_per_job)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
-        self.whitelist = self.program.whitelist
-        self.kgen_map = self.program.kgen_map
+        self.whitelist = None  # TODO Consider removing (Sugarlyzer debt).
+        self.kgen_map = self.intermediary_results_path / Path("kgenerate_macro_mapping.json")
 
     @functools.cache
     def get_inc_files_and_dirs_for_file(self, file: Path):
@@ -114,7 +118,7 @@ class Tester:
         logger.info(f"Running configuration {config.name}")
         # Copy config to .config
         cwd = os.curdir
-        os.chdir(program.make_root)
+        os.chdir(program.makefile_dir_path)
         logger.debug(f"Copying {config.name} to {program.oldconfig_location}")
         shutil.copyfile(config, program.oldconfig_location)
         os.system('yes "" | make oldconfig')
@@ -144,7 +148,7 @@ class Tester:
             ###################################
             # Run SugarC.
             ###################################
-            logger.info(f"Desugaring the source code in {self.program.source_directory} with {self.jobs} jobs...")
+            logger.info(f"Desugaring the source code in {self.program.source_dirs} with {self.jobs} jobs...")
             source_files = list(self.program.get_source_files())
             desugared_files: List[Tuple] = []
 
@@ -241,6 +245,9 @@ class Tester:
 
         logger.debug(f"Writing alarms to file \"{self.output_file_path}\"")
 
+        # Sort alarms w.r.t full file name and original line range to ease comparison of reports between executions.
+        alarms.sort(key=lambda alarm_param: f"{alarm_param.input_file}::{str(alarm_param.original_line_range)}")
+
         # Assign unique ids to the alarms (ProcessPoolExecutor leads to overlapping ids and postprocessing can
         # create discontinuations).
         alarm_id: int = 0
@@ -252,7 +259,11 @@ class Tester:
             json.dump([a.as_dict() for a in alarms], f, indent=4)
 
         # Clean desugared source files and associated log files.
-        if not self.keep_desugaring_files:
+        if not self.keep_intermediary_files:
+            logger.debug("Cleaning intermediary results from tmp directory.")
+            if os.path.exists(self.__tmp_path):
+                shutil.rmtree(self.__tmp_path)
+
             logger.debug("Cleaning intermediary results from subject system.")
             self.program.clean_intermediary_results()
 
@@ -306,9 +317,8 @@ class Tester:
             for k, v in alarm.model.items():
                 mappedKey = k
                 mappedValue = v
-                # TODO Rework.
-                if self.kgen_map != None:
-                    with open(self.program.project_root / Path("config/mapping.json"), 'w') as mapping:
+                if self.kgen_map.exists():
+                    with open(self.kgen_map) as mapping:
                         map = json.load(mapping)
                     kdef = k
                     if v.lower() == 'false':
@@ -438,20 +448,22 @@ class Tester:
 
 def get_arguments() -> argparse.Namespace:
     p = argparse.ArgumentParser()
+    # Mandatory parameters.
     p.add_argument("tool", help="The tool to run.")
     p.add_argument("program", help="The target program.")
     p.add_argument("program_path", help="The absolute path to the target program.")
 
+    # Options.
     p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
-    p.add_argument("--output-path", help="The path to the file in which the output is going to be written.")
+    p.add_argument("--output-path", help="The path to the file to which the output is going to be written. "
+                                         "If None, will write to ~/sugarlyzer-results.json")
     p.add_argument("--tmp-path", help="The path to the tmp directory that will be used for storing intermediary "
                                       "results.")
     p.add_argument("--jobs", help="The number of jobs to use. If None, will use all CPUs", type=int)
-    p.add_argument("--max-heap-per-job", help="The maximum JVM heap size allocated to each job in gigabytes (--jobs).",
+    p.add_argument("--max-heap-per-job", help="The maximum JVM heap size allocated to each job (--jobs) in gigabytes.",
                    type=int)
-    p.add_argument("--keep-desugared-files", action="store_true",
-                   help="Keep the desugared source files (.desugared.c) and associated log "
-                        "files (.sugarc.log) alongside the original source files.")
+    p.add_argument("--keep-intermediary-files", action="store_true",
+                   help="Keep all intermediary files (desugared source files, desugaring logs, system and project headers, ...).")
 
     p.add_argument("--baselines", action="store_true",
                    help="""Run the baseline experiments. In these, we configure each 

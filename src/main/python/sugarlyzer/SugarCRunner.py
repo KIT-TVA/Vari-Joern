@@ -662,7 +662,6 @@ def get_condition_mapping(line, current_result: ConditionMapping = ConditionMapp
 
     cs = re.split('&&|\|\|', condstr)
     ops = []
-    logger.debug('rearranging ops 0:0')
     # or and and methods need to be called in plae of the binary operators
     for d in range(0, len(condstr)):
         if condstr[d] == '&' and condstr[d + 1] == '&':
@@ -681,7 +680,6 @@ def get_condition_mapping(line, current_result: ConditionMapping = ConditionMapp
     # continue
     # if we were to add all strings, it would be an N^2 alg, so we append to a list and join later
     for o in ops:
-        logger.debug('rearranging ops' + str(opxx) + ':' + str(len(ops)))
         if o == 'And':
             ands += 1
             ncondlist.append('And(' + cs[0] + ',')

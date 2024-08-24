@@ -4,7 +4,7 @@
   "title": "Program",
   "description": "A program specification",
   "type": "object",
-    "required": ["build_script", "project_root"],
+    "required": [],
   "properties": {
     "remove_errors": {
       "description": "Whether to enable SugarC's remove_errors functionality (default False).",
@@ -50,7 +50,7 @@
         "description": "The directory from which 'make' should be run (if not supplied, will default to project_root).",
       "type": "string"
     },
-    "source_dir": {
+    "source_dirs": {
         "description": "Where the source code will be after running the build_script (if not supplied, will default to project_root)",
       "type": "array",
       "items": {

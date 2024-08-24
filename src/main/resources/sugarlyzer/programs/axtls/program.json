@@ -1,8 +1,14 @@
 {
   "remove_errors": false,
   "config_prefix": "KGENMACRO_",
-  "kgen_map": "axtlsMapping.json",
-  "sample_dir": "axtls/configs",
+
+  "source_dirs": ["axtls-code"],
+  "make_target": "linuxconf",
+  "makefile_dir_path": "axtls-code/",
+  "kconfig_root_path": "axtls-code/",
+  "kconfig_root_file_path": "axtls-code/config/Config.in",
+  "config_header_path": "axtls-code/config/config.h",
+
   "included_files_and_directories": [
     {
       "macro_definitions": [
@@ -11,7 +17,5 @@
         "-D __extension__"
       ]
     }
-  ],
-  "build_script": "axtlsScript.sh",
-  "project_root": "axtls-code"
+  ]
 }

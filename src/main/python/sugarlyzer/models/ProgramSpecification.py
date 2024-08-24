@@ -7,9 +7,11 @@ import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from io import StringIO
+from os.path import isfile
 from pathlib import Path
 from typing import List, Iterable, Optional, Dict, Tuple
 
+from python.kgenerateBeta.kgenerate import run_kgenerate
 from python.sugarlyzer.util.MacroDiscoveryPreprocessor import MacroDiscoveryPreprocessor
 
 logger = logging.getLogger(__name__)
@@ -19,45 +21,86 @@ class ProgramSpecification(ABC):
 
     def __init__(self,
                  name: str,
-                 build_script: str,
-                 project_root: str,
-                 config_prefix: str = None,
-                 whitelist: str = None,
-                 kgen_map: str = None,
+                 project_root: Path,
+                 tmp_dir: Path,
+                 # Everything below set by program specification file.
                  remove_errors: bool = False,
-                 source_dir: Optional[str] = None,
-                 make_root: Optional[str] = None,
-                 included_files_and_directories: Optional[Iterable[Dict]] = None,
-                 sample_dir: Optional[str] = None,
-                 makefile_location: str = None,
-                 oldconfig_location: Optional[str] = None
-                 ):
-        self.name = name
-        self.remove_errors = remove_errors
-        self.config_prefix = config_prefix
-        self.whitelist = whitelist
-        self.kgen_map = kgen_map
-        self.no_std_libs = True
-        self.__project_root = project_root
-        self.__source_dir = source_dir
-        self.__make_root = make_root
-        self.__build_script = build_script
-        self.__source_location = source_dir
-        self.inc_dirs_and_files = [] if included_files_and_directories is None else included_files_and_directories
-        self.__sample_directory = sample_dir
-        self.__makefile_location = makefile_location
-        self.__search_context = "/"
-        self.__oldconfig_location = "config/.config" if oldconfig_location is None else oldconfig_location
+                 config_prefix: str = None,
+                 source_dirs: list[str] = None,
+                 make_target: str = None,
+                 makefile_dir_path: str = None,
+                 kconfig_root_file_path: str = None,
+                 kconfig_root_path: str = None,
+                 config_header_path: str = None,
+                 included_files_and_directories: Optional[Iterable[Dict]] = None):
+        """
+        Constructs a new ProgramSpecification.
 
+        :param name: The name of the program.
+        :param project_root: The absolute path to the root directory of the program.
+        :param remove_errors: TODO
+        :param config_prefix: The prefix to which SugarC should be limited in its macro expansion
+        :param source_dirs: The relative paths to directories containing source code starting from the project's root.
+        :param make_target: The make target that should be used to determine necessary includes of the source files.
+        :param makefile_dir_path: The relative path to the directory containing the Makefile starting from the project's root.
+        :param kconfig_root_file_path: The relative path to the root Kconfig file starting from the project's root.
+        :param kconfig_root_path: The relative path to the directory from which Kconfig source calls are resolved starting from the project's root.
+        :param config_header_path: The relative path to the config header file starting from the project's root.
+        :param included_files_and_directories: Macros as well as headers and directories required for parsing the source
+        files of the project.
+        :return: A new ProgramSpecification.
+        """
+
+        self.name: str = name
+        self.project_root: Path = project_root
+        self.__tmp_dir: Path = tmp_dir
+
+        self.remove_errors: bool = remove_errors
+        self.config_prefix: str | None = config_prefix
+
+        self.source_dirs: list[Path] = []
+        if source_dirs is None or len(source_dirs) == 0:
+            self.source_dirs.append(self.project_root)
+        else:
+            for source_dir in source_dirs:
+                self.source_dirs.append(self.try_resolve_path(path=source_dir,
+                                                              root=self.project_root))
+
+        self.make_target: str | None = make_target
+        self.makefile_dir_path: Path = self.try_resolve_path(path=makefile_dir_path, root=self.project_root) \
+            if makefile_dir_path is not None else self.project_root
+        self.kconfig_root_file_path: Path = self.try_resolve_path(path=kconfig_root_file_path, root=self.project_root) \
+            if kconfig_root_file_path is not None else self.project_root / Path("Config.in")
+        self.kconfig_root_path: Path = self.try_resolve_path(path=kconfig_root_path, root=self.project_root) \
+            if kconfig_root_path is not None else self.project_root
+        self.config_header_path: Path = self.try_resolve_path(path=config_header_path, root=self.project_root) \
+            if config_header_path is not None else self.project_root / Path("config.h")
+        self.inc_dirs_and_files = [] if included_files_and_directories is None else included_files_and_directories
+
+        self.no_std_libs = True  # TODO Consider removing (Sugarlyzer debt).
+        self.__oldconfig_location = "config/.config"  # TODO Consider removing (Sugarlyzer debt).
+        self.__search_context = None
+
+        # Collect includes and macros from system and make.
         self.__make_includes = self.collect_make_includes()
         self.__system_includes = self.__collect_system_includes()
         self.__system_macros = self.__get_system_macro_header()
         self.__program_macros = self.__get_program_macro_header()
 
+        # Replaces the default config.h (or similar) with the one generated by kgenerate and creates the mapping file.
+        self.create_config_header_and_mapping()
+
+    # TODO Consider removing (Sugarlyzer debt).
     @property
     def oldconfig_location(self):
-        return self.try_resolve_path(self.__oldconfig_location, self.make_root)
+        return self.try_resolve_path(self.__oldconfig_location, self.makefile_dir_path)
 
+    # TODO Consider removing (Sugarlyzer debt).
+    @property
+    def sample_directory(self):
+        return self.try_resolve_path(self.__sample_directory, importlib.resources.path('resources.programs', ''))
+
+    # TODO Consider removing (Sugarlyzer debt).
     @property
     def search_context(self):
         p = Path(self.__search_context)
@@ -66,52 +109,40 @@ class ProgramSpecification(ABC):
         else:
             return p
 
-    @property
-    def project_root(self) -> Path:
-        return self.try_resolve_path(self.__project_root, self.source_directory)
-
-    @property
-    def source_directory(self) -> Path:
-        return self.try_resolve_path(self.__source_dir,
-                                     self.search_context) if self.__source_dir is not None else self.project_root
-
-    @property
-    def sample_directory(self):
-        return self.try_resolve_path(self.__sample_directory, importlib.resources.path('resources.programs', ''))
-
-    @property
-    def make_root(self):
-        return self.try_resolve_path(self.__make_root,
-                                     self.search_context) if self.__make_root is not None else self.project_root
-
-    @property
-    def build_script(self):
-        return self.try_resolve_path(self.__build_script, importlib.resources.path('resources.programs', ''))
-
     def get_source_files(self) -> Iterable[Path]:
         """
-        :return: All .c or .i files that are in the program's source locations but have not been produced by earlier
+        :return: All .c or .i files that are in the program's source directory but have not been produced by earlier
         desugaring.
         """
-        for root, dirs, files in os.walk(self.source_directory):
-            for f in files:
-                if (f.endswith(".c") or f.endswith(".i")) and not f.endswith(".desugared.c"):
-                    yield Path(root) / f
+        for source_dir in self.source_dirs:
+            for root, dirs, files in os.walk(source_dir):
+                for f in files:
+                    if (f.endswith(".c") or f.endswith(".i")) and not f.endswith(".desugared.c"):
+                        yield Path(root) / f
 
     def clean_intermediary_results(self):
-        for root, dirs, files in os.walk(self.source_directory):
-            for f in files:
-                if ".sugarlyzer." in f:
-                    file_to_delete = Path(root) / f
-                    try:
-                        file_to_delete.unlink()
-                    except FileNotFoundError:
-                        logger.warning(f"Tried to clean up {file_to_delete} but could not find file.")
-                    except PermissionError:
-                        logger.warning(f"Tried to clean up {file_to_delete} but did not have sufficient permissions.")
-                    except Exception as e:
-                        logger.exception(
-                            f"Tried to clean up {file_to_delete} but encountered unexpected exception: {e}")
+        # Clean system and project headers as well as associated intermediary results in the project root.
+        for child in os.listdir(self.project_root):
+            child_path: Path = self.project_root / Path(child)
+            if isfile(child_path) and ".sugarlyzer." in child:
+                child_path.unlink()
+
+        # Clean desugared files.
+        for source_dir in self.source_dirs:
+            for root, dirs, files in os.walk(source_dir):
+                for f in files:
+                    if ".sugarlyzer." in f:
+                        file_to_delete = Path(root) / f
+                        try:
+                            file_to_delete.unlink()
+                        except FileNotFoundError:
+                            logger.warning(f"Tried to clean up {file_to_delete} but could not find file.")
+                        except PermissionError:
+                            logger.warning(
+                                f"Tried to clean up {file_to_delete} but did not have sufficient permissions.")
+                        except Exception as e:
+                            logger.exception(
+                                f"Tried to clean up {file_to_delete} but encountered unexpected exception: {e}")
 
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
@@ -170,14 +201,6 @@ class ProgramSpecification(ABC):
                         cmd_decs.extend(spec['macro_definitions'])
 
         return inc_files, inc_dirs, cmd_decs
-
-    def download(self) -> int:
-        """
-        Runs the script to obtain the program's source code.
-        :return: The return code
-        """
-        ps = subprocess.run(self.build_script)
-        return ps.returncode
 
     @functools.cache
     def try_resolve_path(self, path: str | Path, root: Path = Path("/")) -> Path:
@@ -238,6 +261,16 @@ class ProgramSpecification(ABC):
     @search_context.setter
     def search_context(self, value):
         self.__search_context = value
+
+    def create_config_header_and_mapping(self):
+        with (importlib.resources.path(f'resources.sugarlyzer.programs.{self.name}', 'kgenerate_format.txt')
+              as format_file_path):
+            run_kgenerate(kconfig_file_path=self.kconfig_root_file_path,
+                          format_file_path=format_file_path,
+                          header_output_path=self.config_header_path,
+                          mapping_file_output_dir_path=self.__tmp_dir,
+                          tmp_directory_path=self.__tmp_dir,
+                          source_tree_path=self.kconfig_root_path)
 
     @abstractmethod
     def collect_make_includes(self) -> List[Dict]:

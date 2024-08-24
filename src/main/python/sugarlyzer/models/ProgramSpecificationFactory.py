@@ -1,7 +1,8 @@
-from typing import Optional, Iterable, Dict, Any
+from pathlib import Path
+from typing import Any
 
-from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 from python.sugarlyzer.models.Axtlsspecification import Axtlsspecification
+from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
 
 class ProgramSpecificationFactory:
@@ -10,10 +11,14 @@ class ProgramSpecificationFactory:
     @classmethod
     def get_program_specification(cls,
                                   name: str,
-                                  program_json: dict[str, Any],
-                                  source_dir) -> ProgramSpecification:
+                                  project_root: Path,
+                                  tmp_dir: Path,
+                                  program_specification_json: dict[str, Any]) -> ProgramSpecification:
         match name.lower():
             case "axtls":
-                return Axtlsspecification(name=name, source_dir=source_dir, **program_json)
+                return Axtlsspecification(name=name,
+                                          project_root=project_root,
+                                          tmp_dir=tmp_dir,
+                                          **program_specification_json)
             case _:
                 raise ValueError(f"No tool for {name}")

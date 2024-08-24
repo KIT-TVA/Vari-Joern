@@ -316,20 +316,25 @@ def printMapping(mapping_file: TextIO, configuration_variables: list[Configurati
 
 
 def run_kgenerate(kconfig_file_path: Path,
-                  output_directory_path: Path,
                   format_file_path: Path,
+                  header_output_path: Path = Path.cwd() / Path("Config.h"),
+                  mapping_file_output_dir_path: Path = Path.cwd(),
+                  tmp_directory_path: Path = None,
                   source_tree_path: Path = None,
                   module_version: str = "3.19",
-                  define_false: bool = True,
-                  tmp_directory_path: Path = None,
-                  header_file_name: str = "Config.h"):
+                  define_false: bool = True):
+    # Create full header_output_path if only a target directory is provided.
+    if header_output_path.is_dir():
+        header_output_path = header_output_path / Path("config.h")
+
     # Create temp-files.
-    tmp_directory = tempfile.TemporaryDirectory(prefix="vari-joern-kgenerate-")
-    tmp_directory_path = Path(tmp_directory.name) if tmp_directory_path is None else tmp_directory_path
+    tmp_directory = None
+    if tmp_directory_path is None:
+        tmp_directory = tempfile.TemporaryDirectory(prefix="vari-joern-kgenerate-")
+        tmp_directory_path = Path(tmp_directory.name)
+
     kextract_file, kextract_tmp = tempfile.mkstemp(prefix="kextract-out-", dir=tmp_directory_path)
     kclause_file, kclause_tmp = tempfile.mkstemp(prefix="kclause-out-", dir=tmp_directory_path)
-
-    cur_dir = Path.cwd()
 
     # kextract and kclause documentation of the kmax project:
     # https://github.com/paulgazz/kmax/blob/master/docs/advanced.md#kclause
@@ -361,21 +366,19 @@ def run_kgenerate(kconfig_file_path: Path,
     configuration_variables: list[ConfigurationVariable] = parse_kextract_output(kextract_tmp)
     genvars, choice = parse_kclause_output(kclause_tmp, configuration_variables)
 
-    # TODO Delete.
-    os.chdir(cur_dir)
-    os.system(f'cp {kextract_tmp} tmp')
-    os.system(f'cp {kclause_tmp} tmp2')
-    os.remove(kextract_tmp)
-    os.remove(kclause_tmp)
 
     for k in configuration_variables:
         k.cond = format_cond(k.cond, configuration_variables, define_false)
 
     # Write output.
-    with open(output_directory_path / Path(header_file_name), 'w') as header_file:
+    with open(header_output_path, 'w') as header_file:
         header_file.write(generateHeader(configuration_variables, genvars, choice, format_file_path))
-    with open(output_directory_path / Path('mapping.json'), 'w') as mapping_file:
+    with open(mapping_file_output_dir_path / Path('kgenerate_macro_mapping.json'), 'w') as mapping_file:
         printMapping(mapping_file, configuration_variables, define_false)
+
+    # If tmp_directory had to be created and was not provided do cleanup. Otherwise, caller is responsible for cleanup.
+    if tmp_directory is not None:
+        tmp_directory.cleanup()
 
 
 def read_arguments() -> argparse.Namespace:
@@ -384,8 +387,11 @@ def read_arguments() -> argparse.Namespace:
     p.add_argument('-d', '--directory', help='root directory for kbuild', default="./")
     p.add_argument('-m', '--module-version', help='module version for kextract', default="3.19")
     p.add_argument('-i', '--input', help='kbuild file', default="Config.in")
-    p.add_argument('-o', '--output', help='Directory to output header and mapping to', default=f"{Path.cwd()}")
-    p.add_argument('-n', '--header-name',help='The name of the header file that should be created.', default="Config.h")
+    p.add_argument('-o', '--header-output',
+                   help='Path to output the config header to. If pointing to a directory, the default name config.h will be used.',
+                   default=f"{Path.cwd()}")
+    p.add_argument('-m', '--mapping-output', help="The location where to put the mapping file.",
+                   default=f"{Path.cwd()}")
     p.add_argument('-f', '--format', help='Format of the output', required=True)
     p.add_argument('--define-false', action='store_true',
                    help='Instead of bools being either defined or undefined, define them as 1 or 0')
@@ -411,8 +417,9 @@ def main() -> None:
     logging.basicConfig(**logging_kwargs)
 
     run_kgenerate(kconfig_file_path=args.input,
-                  output_directory_path=args.output,
                   format_file_path=args.format,
+                  header_output_path=args.header_output,
+                  mapping_file_output_dir_path=args.mapping_output,
                   source_tree_path=args.directory,
                   module_version=args.module_version,
                   define_false=args.define_false)
