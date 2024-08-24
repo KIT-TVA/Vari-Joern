@@ -5,6 +5,7 @@ from typing import List, Dict
 
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
+# TODO Add function that brings the Kconfig files into the correct from for kgenerate/kextract.
 
 class Axtlsspecification(ProgramSpecification):
     def collect_make_includes(self) -> List[Dict]:

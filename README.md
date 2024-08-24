@@ -3,6 +3,18 @@
 Vari-Joern is a tool for analyzing software product lines.
 Its goal is to find weaknesses by running [Joern](https://joern.io) on a subset of all valid configurations of a software system.
 
+## Prerequisites
+
+- A working installation of KIT-TVA/superc
+  - Corresponding jars are expected to be part of PATH
+- A working installation of Joern >= 4
+  - joern-cli is expected as part of PATH
+- A working installation of a C compiler (preferably GCC)
+- Python 3 (>= 3.10.0)
+  - `python` should point to Python 3, not to Python 2 (can be solved via a symbolic link or alias). 
+  - Pip (can be installed via `sudo apt install python3-pip`)
+  - Dependencies can be installed with `python -m pip install -r requirements.txt`
+
 ## Usage
 In the simplest case, Vari-Joern can be run with the following command:
 ```shell
