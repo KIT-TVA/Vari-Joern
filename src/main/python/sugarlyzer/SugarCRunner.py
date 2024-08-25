@@ -596,13 +596,11 @@ def get_condition_mapping(line, current_result: ConditionMapping = ConditionMapp
     inds = conds.split('(')
     # inds[0] is ' "', so we ignore it
     inds = inds[1:]
-    logger.debug('checking individual conditions 0:0')
     # need to access id often, for performance we manually iterate
     indxx = 0
     # each i is a condition
     # This loop is the meat of Part 1
     for i in inds:
-        logger.debug('checking individual conditions' + str(indxx) + ':' + str(len(inds)))
         splits = i.split(' ')
         if len(splits) == 0 or splits[0] == '':
             continue
