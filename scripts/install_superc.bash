@@ -1,9 +1,13 @@
 #!/bin/bash
 
+##############################################################################################################
+### Bash script automating the installation of the TVA SuperC fork found at https://github.com/KIT-TVA/superc.
+##############################################################################################################
+
 # Prerequisites:
 # - Git is installed
 # - A JDK >= 8 is installed
-# - JAVA_HOME points to the JDK is exported in the shell used to execute this script (e.g., via export in ~/.bashrc).
+# - JAVA_HOME points to the JDK and is exported in the shell used to execute this script (e.g., via export in ~/.bashrc).
 
 # Usage: bash /path/to/vari-joern/scripts/install_superc.bash [installation_path]
 # installation_path is optional. By default, superc will be installed to the user's home directory.
@@ -42,7 +46,7 @@ script_dir=$(dirname "$script_path")
 
 # Install dependencies.
 echo "Installing dependencies of SuperC..."
-sudo apt-get install bison libz3-java=4.8.7-4build1 libjson-java sat4j
+sudo apt-get install bison libz3-java libjson-java sat4j
 echo "Done installing dependencies."
 
 # Clone SuperC.

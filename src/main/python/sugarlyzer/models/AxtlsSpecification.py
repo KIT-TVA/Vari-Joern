@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -5,9 +6,39 @@ from typing import List, Dict
 
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
-# TODO Add function that brings the Kconfig files into the correct from for kgenerate/kextract.
 
-class Axtlsspecification(ProgramSpecification):
+class AxtlsSpecification(ProgramSpecification):
+    def transform_kconfig_into_kextract_format(self):
+        kconfig_files: list[Path] = []
+        for dir_path, dir_names, file_names in os.walk(self.project_root):
+            for file_name in file_names:
+                if file_name == "Config.in":
+                    kconfig_files.append(Path(dir_path) / Path(file_name))
+
+        # Problem: Missing quotation marks surrounding the file path.
+        problematic_pattern_source_directive: str = r'source [^"\s]*Config\.in'
+        # Problem: Colon after help.
+        problematic_pattern_help_directive: str = r'help:'
+
+        # Go through the Kconfig files and adjust problematic syntax.
+        for kconfig_file in kconfig_files:
+            with open(kconfig_file, "r") as input_file, open(Path(str(kconfig_file) + ".tmp"), "w") as output_file:
+                for line in input_file:
+                    if re.fullmatch(problematic_pattern_source_directive, line.strip()):
+                        source_left_right: list[str] = line.split("source")
+                        indentation: str = source_left_right[0]
+                        included_file: str = source_left_right[1].strip()
+
+                        output_file.write(f"{indentation}source \"{included_file}\"\n")
+                    elif re.fullmatch(problematic_pattern_help_directive, line.strip()):
+                        help_left_right: list[str] = line.split("help")
+                        indentation: str = help_left_right[0]
+                        output_file.write(f"{indentation}help\n")
+                    else:
+                        output_file.write(f"{line}")
+
+        # TODO Replace old Kconfig file with transformed one but retain the old one.
+
     def collect_make_includes(self) -> List[Dict]:
         # TODO Extract make calls into their own function in the base class.
         # Clean output of potential previous make call.

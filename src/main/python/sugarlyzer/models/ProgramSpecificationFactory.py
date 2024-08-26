@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from python.sugarlyzer.models.Axtlsspecification import Axtlsspecification
+from python.sugarlyzer.models.AxtlsSpecification import AxtlsSpecification
 from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
 
 
@@ -16,7 +16,7 @@ class ProgramSpecificationFactory:
                                   program_specification_json: dict[str, Any]) -> ProgramSpecification:
         match name.lower():
             case "axtls":
-                return Axtlsspecification(name=name,
+                return AxtlsSpecification(name=name,
                                           project_root=project_root,
                                           tmp_dir=tmp_dir,
                                           **program_specification_json)

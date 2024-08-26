@@ -155,6 +155,9 @@ class ProgramSpecification(ABC):
                             logger.exception(
                                 f"Tried to clean up {file_to_delete} but encountered unexpected exception: {e}")
 
+        # Clean transformed Kconfig files and reinstate the old ones.
+        # TODO
+
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
         Iterates through the program.json's get_recommended_space field,
@@ -273,7 +276,22 @@ class ProgramSpecification(ABC):
     def search_context(self, value):
         self.__search_context = value
 
+    @abstractmethod
+    def transform_kconfig_into_kextract_format(self):
+        pass
+
     def create_config_header_and_mapping(self):
+        """
+        Creates the config header (usually config.h) and mapping fie (kgenerate_macro_mapping.json) based on the
+        information extracted from the program's Kconfig files.
+        """
+        logger.info("Creating config header and mapping.")
+
+        # Bring the program's Kconfig files into the format required by kextract, if necessary.
+        logger.info("Transforming the kconfig files of the program into a suitable form.")
+        self.transform_kconfig_into_kextract_format()
+
+        logger.info("Running kgenerate.")
         with (importlib.resources.path(f'resources.sugarlyzer.programs.{self.name}', 'kgenerate_format.txt')
               as format_file_path):
             run_kgenerate(kconfig_file_path=self.kconfig_root_file_path,

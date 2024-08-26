@@ -5,17 +5,20 @@ Its goal is to find weaknesses by running [Joern](https://joern.io) on a subset 
 
 ## Prerequisites (Local Execution)
 
+### Family-Based Strategy
+- A Java JDK >= 19 is installed.
 - A working installation of KIT-TVA/superc
   - Corresponding jars are expected to be part of PATH
+  - See the `scripts/install_superc.bash` script 
 - A working installation of Joern >= 4
   - joern-cli is expected as part of PATH
   - Query database is already populated (e.g., via `joern-scan --updatedb --dbversion 4.0.48`)
 - A working installation of a C compiler (preferably GCC)
 - Python 3 (>= 3.10.0)
   - `python` should point to Python 3, not to Python 2 (can be solved via a symbolic link or alias). 
-  - Pip (can be installed via `sudo apt install python3-pip`)
-  - Dependencies can be installed with `python -m pip install -r requirements.txt`
-- `PYTHONPATH` points to `.../Vari-Joern/src/main`
+  - Pip is installed (can be installed via `sudo apt install python3-pip`)
+  - Python dependencies are installed (can be installed with `python -m pip install -r requirements.txt`)
+- `PYTHONPATH` points to `Vari-Joern/src/main`
 - A working installation nof kmax
   - Can be installed via `pipx install kmax` (see https://github.com/paulgazz/kmax) 
 
