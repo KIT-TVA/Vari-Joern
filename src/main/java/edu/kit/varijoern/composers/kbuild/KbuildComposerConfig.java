@@ -1,6 +1,7 @@
 package edu.kit.varijoern.composers.kbuild;
 
 import edu.kit.varijoern.composers.Composer;
+import edu.kit.varijoern.composers.ComposerArgs;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.config.InvalidConfigException;
@@ -29,17 +30,21 @@ public class KbuildComposerConfig extends ComposerConfig {
     private final @NotNull Path sourceLocation;
     private final @NotNull String system;
     private final @NotNull Set<Path> presenceConditionExcludes;
+    private final ComposerArgs composerArgs;
 
     /**
      * Creates a new {@link KbuildComposerConfig} by extracting data from the specified TOML section.
      * Relative paths are assumed to be relative to the specified path of the configuration file.
      *
-     * @param toml       the TOML section
-     * @param configPath the path to the configuration file. Must be absolute.
+     * @param toml         the TOML section
+     * @param configPath   the path to the configuration file. Must be absolute.
+     * @param composerArgs the general command line arguments for the composer
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public KbuildComposerConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
+    public KbuildComposerConfig(@NotNull TomlTable toml, @NotNull Path configPath, @NotNull ComposerArgs composerArgs)
+            throws InvalidConfigException {
         super(toml);
+        this.composerArgs = composerArgs;
         String sourceLocation = TomlUtils.getMandatoryString(
                 SOURCE_FIELD_NAME,
                 toml,
@@ -102,6 +107,7 @@ public class KbuildComposerConfig extends ComposerConfig {
     @Override
     public @NotNull Composer newComposer(@NotNull Path tmpPath)
             throws IOException, ComposerException, InterruptedException {
-        return new KbuildComposer(this.sourceLocation, this.system, tmpPath, this.presenceConditionExcludes);
+        return new KbuildComposer(this.sourceLocation, this.system, tmpPath, this.presenceConditionExcludes,
+                this.composerArgs.shouldSkipPCs());
     }
 }

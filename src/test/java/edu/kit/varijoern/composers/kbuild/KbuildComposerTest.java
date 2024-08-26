@@ -374,7 +374,7 @@ class KbuildComposerTest {
         CompositionInformation compositionInformation;
         try {
             Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system, composerTmpDirectory,
-                    testCase.presenceConditionExcludes);
+                    testCase.presenceConditionExcludes, false);
             compositionInformation = composer.compose(featureMap,
                     destinationDirectory,
                     testCaseManager.getCorrectFeatureModel()

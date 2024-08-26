@@ -18,6 +18,7 @@ import java.util.List;
  */
 public final class ComposerConfigFactory extends NamedComponentConfigFactory<ComposerConfig> {
     private static final ComposerConfigFactory INSTANCE = new ComposerConfigFactory();
+    private static final ComposerArgs COMPOSER_ARGS = new ComposerArgs();
 
     private ComposerConfigFactory() {
     }
@@ -38,7 +39,7 @@ public final class ComposerConfigFactory extends NamedComponentConfigFactory<Com
      * @return the objects into which the command line arguments for the composers should be parsed
      */
     public static @NotNull List<Object> getComponentArgs() {
-        return List.of(); // Currently, no composer has command line arguments
+        return List.of(COMPOSER_ARGS);
     }
 
     @Override
@@ -46,8 +47,8 @@ public final class ComposerConfigFactory extends NamedComponentConfigFactory<Com
                                                         @NotNull Path configPath)
             throws InvalidConfigException {
         return switch (componentName) {
-            case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath);
-            case KbuildComposer.NAME -> new KbuildComposerConfig(toml, configPath);
+            case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath, COMPOSER_ARGS);
+            case KbuildComposer.NAME -> new KbuildComposerConfig(toml, configPath, COMPOSER_ARGS);
             default -> throw new InvalidConfigException(String.format("Unknown composer \"%s\"", componentName));
         };
     }

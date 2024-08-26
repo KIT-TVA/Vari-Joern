@@ -59,6 +59,12 @@ public class FilePresenceConditionMapper {
         }
     }
 
+    /**
+     * Creates a new {@link FilePresenceConditionMapper} with an empty presence condition map.
+     */
+    public FilePresenceConditionMapper() {
+    }
+
     private void createKmaxallScript(@NotNull Path tmpDir) throws IOException {
         if (tmpDir.resolve("run-kmaxall.py").toFile().exists()) return;
         String script = ResourcesUtil.getResourceAsString("kmax/run-kmaxall.py");
