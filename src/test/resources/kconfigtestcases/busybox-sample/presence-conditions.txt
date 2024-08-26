@@ -20,3 +20,6 @@ file: src/hello-cpp.cc, USE_CPP_FILE
 
 file: src/included.c, -
 1-3!    -
+
+file: src/no-presence-condition.c, -
+1-4!    -

@@ -50,6 +50,14 @@ class KbuildComposerTest {
                 standardIncludePaths,
                 standardSystemIncludePaths
         );
+        Path noPresenceConditionCPath = Path.of("src/no-presence-condition.c");
+        InclusionInformation noPresenceConditionC = new InclusionInformation(
+                noPresenceConditionCPath,
+                standardIncludedFiles,
+                standardBusyboxDefinesForFile("no_presence_condition"),
+                standardIncludePaths,
+                standardSystemIncludePaths
+        );
         InclusionInformation includedCByMain = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
@@ -76,10 +84,12 @@ class KbuildComposerTest {
                                 FileAbsentVerifier.originalSourceAndHeader("src/hello-cpp"),
                                 FileAbsentVerifier.originalSourceAndHeader("src/io-file"),
                                 new FileContentVerifier(mainC),
+                                new FileContentVerifier(noPresenceConditionC),
                                 new FileContentVerifier(includedCByMain),
                                 new FileContentVerifier(Path.of("src/main.h")),
                                 new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
-                        )
+                        ),
+                        Set.of(noPresenceConditionCPath)
                 ),
                 new TestCase(
                         "busybox-sample",
@@ -113,10 +123,12 @@ class KbuildComposerTest {
                                 new FileContentVerifier(includedCByIO),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
+                                new FileContentVerifier(noPresenceConditionC),
                                 new FileContentVerifier(includedCByMain),
                                 new FileContentVerifier(Path.of("src/main.h")),
                                 new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
-                        )
+                        ),
+                        Set.of(noPresenceConditionCPath)
                 )
         );
         return testCases.flatMap(
@@ -361,7 +373,8 @@ class KbuildComposerTest {
 
         CompositionInformation compositionInformation;
         try {
-            Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system, composerTmpDirectory);
+            Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system, composerTmpDirectory,
+                    testCase.presenceConditionExcludes);
             compositionInformation = composer.compose(featureMap,
                     destinationDirectory,
                     testCaseManager.getCorrectFeatureModel()
@@ -381,13 +394,25 @@ class KbuildComposerTest {
     /**
      * A test case for the {@link KbuildComposer}.
      *
-     * @param name            the name of the test case
-     * @param system          the Kconfig/Kbuild implementation of the test case
-     * @param enabledFeatures the features to enable for the test case
-     * @param verifiers       the verifiers to run on the composition
+     * @param name                      the name of the test case
+     * @param system                    the Kconfig/Kbuild implementation of the test case
+     * @param enabledFeatures           the features to enable for the test case
+     * @param verifiers                 the verifiers to run on the composition
+     * @param presenceConditionExcludes the paths to exclude from presence condition determination
      */
     private record TestCase(String name, String system, List<String> enabledFeatures,
-                            List<Verifier> verifiers) {
+                            List<Verifier> verifiers, Set<Path> presenceConditionExcludes) {
+        /**
+         * Creates a new test case for the {@link KbuildComposer}.
+         *
+         * @param name            the name of the test case
+         * @param system          the Kconfig/Kbuild implementation of the test case
+         * @param enabledFeatures the features to enable for the test case
+         * @param verifiers       the verifiers to run on the composition
+         */
+        public TestCase(String name, String system, List<String> enabledFeatures, List<Verifier> verifiers) {
+            this(name, system, enabledFeatures, verifiers, Set.of());
+        }
     }
 
     /**

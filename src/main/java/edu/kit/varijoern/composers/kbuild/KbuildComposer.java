@@ -102,23 +102,33 @@ public class KbuildComposer implements Composer {
     private final @NotNull String system;
     private final @NotNull Path tmpPath;
     private final @NotNull Path tmpSourcePath;
+    private final @NotNull Set<Path> presenceConditionExcludes;
     private @Nullable FilePresenceConditionMapper filePresenceConditionMapper = null;
 
     /**
      * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
      *
-     * @param sourcePath the path to the source directory. Must be an absolute path.
-     * @param system     the variant of the Kbuild/Kconfig system. Use {@link KbuildComposer#isSupportedSystem(String)}
-     *                   to determine if a given system is supported.
-     * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer. Must be absolute.
+     * @param sourcePath                 the path to the source directory. Must be an absolute path.
+     * @param system                     the variant of the Kbuild/Kconfig system. Use
+     *                                   {@link KbuildComposer#isSupportedSystem(String)}
+     *                                   to determine if a given system is supported.
+     * @param tmpPath                    a {@link Path} to a temporary directory that can be used by the composer. Must
+     *                                   be absolute.
+     * @param presenceConditionExcludes a list of paths to exclude from presence condition extraction. Must be relative
+     *                                   to the source directory.
      * @throws IOException          if an I/O error occurs
      * @throws ComposerException    if the composer could not be created for another reason
      * @throws InterruptedException if the current thread is interrupted
      */
-    public KbuildComposer(@NotNull Path sourcePath, @NotNull String system, @NotNull Path tmpPath)
+    public KbuildComposer(@NotNull Path sourcePath, @NotNull String system, @NotNull Path tmpPath,
+                          @NotNull Set<Path> presenceConditionExcludes)
             throws IOException, ComposerException, InterruptedException {
         this.system = system;
         this.tmpPath = tmpPath;
+        this.presenceConditionExcludes = presenceConditionExcludes
+                .stream()
+                .map(Path::normalize)
+                .collect(Collectors.toSet());
         this.tmpSourcePath = this.tmpPath.resolve("source");
         this.copySourceTo(sourcePath, this.tmpSourcePath);
         // Make sure that there are no compilation artifacts.
@@ -598,8 +608,13 @@ public class KbuildComposer implements Composer {
             if (!(dependency instanceof CompiledDependency)) {
                 continue;
             }
-            LOGGER.debug("Creating line presence condition mapper for {}", entry.getKey());
             InclusionInformation inclusionInformation = ((CompiledDependency) dependency).getInclusionInformation();
+            if (this.presenceConditionExcludes.contains(inclusionInformation.filePath())) {
+                LOGGER.debug("File {} has been excluded from presence condition extraction",
+                        inclusionInformation.filePath());
+                continue;
+            }
+            LOGGER.debug("Creating line presence condition mapper for {}", entry.getKey());
             linePresenceConditionMappers.put(
                     generatedFilePath,
                     new LinePresenceConditionMapper(inclusionInformation, tmpSourcePath,

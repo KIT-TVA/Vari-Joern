@@ -6,11 +6,17 @@ import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
 import org.jetbrains.annotations.NotNull;
+import org.tomlj.TomlArray;
+import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
 
 import java.io.IOException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Contains the configuration of the Kbuild composer.
@@ -18,9 +24,11 @@ import java.nio.file.Path;
 public class KbuildComposerConfig extends ComposerConfig {
     private static final String SOURCE_FIELD_NAME = "source";
     private static final String SYSTEM_FIELD_NAME = "system";
+    private static final String PRESENCE_CONDITION_EXCLUDES_FIELD_NAME = "presence_condition_excludes";
 
     private final @NotNull Path sourceLocation;
     private final @NotNull String system;
+    private final @NotNull Set<Path> presenceConditionExcludes;
 
     /**
      * Creates a new {@link KbuildComposerConfig} by extracting data from the specified TOML section.
@@ -56,11 +64,44 @@ public class KbuildComposerConfig extends ComposerConfig {
         if (!KbuildComposer.isSupportedSystem(this.system)) {
             throw new InvalidConfigException("System for Kbuild composer is not supported");
         }
+
+        if (toml.contains(PRESENCE_CONDITION_EXCLUDES_FIELD_NAME)) {
+            if (!toml.isArray(PRESENCE_CONDITION_EXCLUDES_FIELD_NAME)) {
+                throw new InvalidConfigException("Presence conditions excludes for Kbuild composer are not an array");
+            }
+
+            List<Path> excludedPathsList = new ArrayList<>();
+            TomlArray excludedPathsTomlArray = Objects.requireNonNull(
+                    toml.getArray(PRESENCE_CONDITION_EXCLUDES_FIELD_NAME)
+            );
+
+            for (int i = 0; i < excludedPathsTomlArray.size(); i++) {
+                String pathString;
+                try {
+                    pathString = excludedPathsTomlArray.getString(i);
+                } catch (TomlInvalidTypeException e) {
+                    throw new InvalidConfigException("A specified presence conditions exclude path is not a string", e);
+                }
+                Path path;
+                try {
+                    path = Path.of(pathString);
+                } catch (InvalidPathException e) {
+                    throw new InvalidConfigException("A specified presence conditions exclude path is not a valid path",
+                            e);
+                }
+                if (path.isAbsolute())
+                    throw new InvalidConfigException("A specified presence conditions exclude path is not relative");
+                excludedPathsList.add(path);
+            }
+            this.presenceConditionExcludes = Set.copyOf(excludedPathsList);
+        } else {
+            this.presenceConditionExcludes = Set.of();
+        }
     }
 
     @Override
     public @NotNull Composer newComposer(@NotNull Path tmpPath)
             throws IOException, ComposerException, InterruptedException {
-        return new KbuildComposer(this.sourceLocation, this.system, tmpPath);
+        return new KbuildComposer(this.sourceLocation, this.system, tmpPath, this.presenceConditionExcludes);
     }
 }

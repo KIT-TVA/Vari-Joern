@@ -155,7 +155,7 @@ class JoernAnalyzerTest {
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
-        Composer composer = new KbuildComposer(testCaseManager.getPath(), system, composerTempDirectory);
+        Composer composer = new KbuildComposer(testCaseManager.getPath(), system, composerTempDirectory, Set.of());
 
         for (int i = 0; i < configurations.size(); i++) {
             Map<String, Boolean> configuration = configurations.get(i);
