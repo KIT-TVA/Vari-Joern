@@ -30,14 +30,17 @@ public class AntennaComposer implements Composer {
     private static final Logger LOGGER = LogManager.getLogger();
 
     private final @NotNull Path sourceLocation;
+    private final boolean shouldSkipPresenceConditionExtraction;
 
     /**
      * Creates a new {@link AntennaComposer} which preprocesses all files in the specified root directory.
      *
-     * @param sourceLocation the root directory. Must be an absolute path.
+     * @param sourceLocation                        the root directory. Must be an absolute path.
+     * @param shouldSkipPresenceConditionExtraction whether the presence condition extraction should be skipped
      */
-    public AntennaComposer(@NotNull Path sourceLocation) {
+    public AntennaComposer(@NotNull Path sourceLocation, boolean shouldSkipPresenceConditionExtraction) {
         this.sourceLocation = sourceLocation;
+        this.shouldSkipPresenceConditionExtraction = shouldSkipPresenceConditionExtraction;
     }
 
     @Override
@@ -55,36 +58,41 @@ public class AntennaComposer implements Composer {
         } catch (PPException e) {
             throw new ComposerException(e);
         }
+
         ConditionTreePresenceConditionMapper presenceConditionMapper = new ConditionTreePresenceConditionMapper();
 
-        try (Stream<Path> sourceFiles = Files.walk(this.sourceLocation)) {
-            for (Path sourcePath : (Iterable<Path>) sourceFiles::iterator) {
-                if (!sourcePath.getFileName().toString().endsWith(".java")) continue;
-                if (!Files.isRegularFile(sourcePath)) continue;
+        if (!this.shouldSkipPresenceConditionExtraction) {
+            try (Stream<Path> sourceFiles = Files.walk(this.sourceLocation)) {
+                for (Path sourcePath : (Iterable<Path>) sourceFiles::iterator) {
+                    if (!sourcePath.getFileName().toString().endsWith(".java")) continue;
+                    if (!Files.isRegularFile(sourcePath)) continue;
 
-                Path relativePath = this.sourceLocation.relativize(sourcePath);
-                Path destinationPath = destination.resolve(relativePath);
+                    Path relativePath = this.sourceLocation.relativize(sourcePath);
+                    Path destinationPath = destination.resolve(relativePath);
 
-                Vector<String> lineVector = new Vector<>(Files.readAllLines(sourcePath, StandardCharsets.UTF_8));
+                    Vector<String> lineVector = new Vector<>(Files.readAllLines(sourcePath, StandardCharsets.UTF_8));
 
-                try {
-                    preprocessor.preprocess(
-                            lineVector,
-                            StandardCharsets.UTF_8.name()
+                    try {
+                        preprocessor.preprocess(
+                                lineVector,
+                                StandardCharsets.UTF_8.name()
+                        );
+                    } catch (PPException e) {
+                        throw new ComposerException(String.format("Could not preprocess %s", relativePath), e);
+                    }
+
+                    Files.createDirectories(destinationPath.getParent());
+                    Files.writeString(destinationPath,
+                            lineVector.stream().collect(Collectors.joining(System.lineSeparator()))
                     );
-                } catch (PPException e) {
-                    throw new ComposerException(String.format("Could not preprocess %s", relativePath), e);
+
+                    presenceConditionMapper.tryAddFile(relativePath, lineVector.stream().toList());
                 }
-
-                Files.createDirectories(destinationPath.getParent());
-                Files.writeString(destinationPath,
-                        lineVector.stream().collect(Collectors.joining(System.lineSeparator()))
-                );
-
-                presenceConditionMapper.tryAddFile(relativePath, lineVector.stream().toList());
             }
         }
+
         LOGGER.info("Composer finished successfully");
+
         return new CompositionInformation(
                 destination,
                 features,
