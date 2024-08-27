@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Joern(AbstractTool):
-    whitelist_function_names = ["gets", "getwd", "strtok", "access" "chdir", "chmod", "chown", "creat", "faccessat",
+    whitelist_function_names: list[str] = ["gets", "getwd", "strtok", "access" "chdir", "chmod", "chown", "creat", "faccessat",
                                 "fchmodat", "fopen", "fstatat", "lchown", "linkat", "link", "lstat", "mkdirat", "mkdir",
                                 "mkfifoat", "mkfifo", "mknodat", "mknod", "openat", "open", "readlinkat", "readlink",
                                 "renameat", "rename", "rmdir", "stat", "unlinkat", "unlink", "printf", "sprintf",
@@ -22,13 +22,13 @@ class Joern(AbstractTool):
                                 "setegid", "setgroups", "setresuid", "setreuid", "seteuid", "setgid", "send", "strlen",
                                 "strncpy", "read", "recv"]
 
-    joern_parse_command = ["/usr/bin/time", "-v",
+    joern_parse_command: list[str] = ["/usr/bin/time", "-v",
                            "joern-parse", "{maximum_heap_size_option}", "{input}", "-o", "{output}", "--language", "C",
                            "--frontend-args", "{file_includes}", "{dir_includes}", "{macro_defs}"]
-    joern_analyze_command = ["/usr/bin/time", "-v",
+    joern_analyze_command: list[str] = ["/usr/bin/time", "-v",
                              "joern", "{maximum_heap_size_option}", "--script", "{script}",
                              "--param", "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
-    joern_script_path = importlib.resources.path(f'resources.joern', "scan.sc")
+    joern_script_path: Path = importlib.resources.files('resources.joern') / "scan.sc"
 
     def __init__(self, intermediary_results_path: Path, maximum_heap_size: int = None):
         super().__init__(JoernReader(), name='joern',
@@ -82,7 +82,7 @@ class Joern(AbstractTool):
             ### Analyze CPG.
             ############################################
             cmd = " ".join(str(s) for s in Joern.joern_analyze_command)
-            cmd = cmd.format(script=Joern.joern_script_path,
+            cmd = cmd.format(script=str(Joern.joern_script_path),
                              cpg_path=cpg_file,
                              report_path=dest_file,
                              maximum_heap_size_option=maximum_heap_size_option)

@@ -68,18 +68,21 @@ class Tester:
             :param file: The program file to read.
             :return: The JSON representation of the program file. Throws an exception if the file is malformed.
             """
-            with open(importlib.resources.path(f'resources.sugarlyzer.programs', 'program_schema.json'),
-                      'r') as schema_file:
-                resolver = RefResolver.from_schema(schema := json.load(schema_file))
-                validator = Draft7Validator(schema, resolver)
+            with importlib.resources.path(f'resources.sugarlyzer.programs', 'program_schema.json') as schema_path:
+                with open(schema_path, 'r') as schema_file:
+                    resolver = RefResolver.from_schema(schema := json.load(schema_file))
+                    validator = Draft7Validator(schema, resolver)
             with open(file, 'r') as program_file:
                 result = json.load(program_file)
             validator.validate(result)
             return result
 
         # Program (subject system).
-        program_specification_json = read_json_and_validate(
-            importlib.resources.path(f'resources.sugarlyzer.programs.{args.program}', 'program.json'))
+        #program_specification_json = read_json_and_validate(
+        #    importlib.resources.path(f'resources.sugarlyzer.programs.{args.program}', 'program.json'))
+        with importlib.resources.path(f"resources.sugarlyzer.programs.{args.program}", 'program.json') as schema_path:
+            program_specification_json = read_json_and_validate(schema_path)
+
         self.program: ProgramSpecification = ProgramSpecificationFactory.get_program_specification(
             name=args.program,
             project_root=Path(args.program_path),
@@ -498,6 +501,11 @@ def set_up_logging(args: argparse.Namespace) -> None:
 def main():
     start = time.monotonic()
     args = get_arguments()
+
+    # Allows to add additional paths to the PATH environment variable via the SUGARLYZER_PATH variable, if manual
+    # changes are not possible (e.g., because a virtual env sets the PATH).
+    if os.getenv("SUGARLYZER_PATH") is not None:
+        os.environ["PATH"] += os.pathsep + os.environ["SUGARLYZER_PATH"]
 
     set_up_logging(args)
     t = Tester(args)

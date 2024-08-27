@@ -7,7 +7,7 @@ Its goal is to find weaknesses by running [Joern](https://joern.io) on a subset 
 
 ### Family-Based Strategy
 - A Java JDK >= 19 is installed.
-- A working installation of KIT-TVA/superc
+- A working installation of [KIT-TVA/superc](https://github.com/KIT-TVA/superc)
   - Corresponding jars are expected to be part of PATH
   - See the `scripts/install_superc.bash` script 
 - A working installation of Joern >= 4
