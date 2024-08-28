@@ -1,14 +1,14 @@
 import importlib
 import logging
-import subprocess
 import os
 import re
+import subprocess
 from pathlib import Path
-from typing import Iterable, Dict
+from typing import Iterable
 
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
-from python.sugarlyzer.util.Subprocessing import get_resource_usage_of_process
 from python.sugarlyzer.readers.JoernReader import JoernReader
+from python.sugarlyzer.util.Subprocessing import get_resource_usage_of_process
 
 logger = logging.getLogger(__name__)
 

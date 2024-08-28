@@ -257,6 +257,8 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
         else:
             to_hash.extend(tok)
 
+    # TODO Change file naming in cache folder from hash + name to name + hash to allow for fore meaning ful sorting.
+
     hasher = sha256()
     for st in sorted(to_hash):
         hasher.update(bytes(st, 'utf-8'))

@@ -22,7 +22,8 @@ class AxtlsSpecification(ProgramSpecification):
 
         # Go through the Kconfig files and adjust problematic syntax.
         for kconfig_file in kconfig_files:
-            with open(kconfig_file, "r") as input_file, open(Path(str(kconfig_file) + ".tmp"), "w") as output_file:
+            transformed_file_path: str = str(kconfig_file) + ".tmp"
+            with open(kconfig_file, "r") as input_file, open(transformed_file_path, "w") as output_file:
                 for line in input_file:
                     if re.fullmatch(problematic_pattern_source_directive, line.strip()):
                         source_left_right: list[str] = line.split("source")
@@ -37,10 +38,13 @@ class AxtlsSpecification(ProgramSpecification):
                     else:
                         output_file.write(f"{line}")
 
-        # TODO Replace old Kconfig file with transformed one but retain the old one.
+            # Replace old Kconfig file with transformed one but retain the old one to restore it after the analysis.
+            os.rename(src=kconfig_file, dst=str(kconfig_file) + ".sugarlyzer.orig")
+            os.rename(src=transformed_file_path, dst=kconfig_file)
 
     def collect_make_includes(self) -> List[Dict]:
         # TODO Extract make calls into their own function in the base class.
+        # TODO Preserve initial config.h is existent and restore it after the analysis.
         # Clean output of potential previous make call.
         cmd = ["make", "clean"]
         subprocess.run(" ".join(str(s) for s in cmd),

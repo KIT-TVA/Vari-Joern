@@ -1,5 +1,6 @@
 import functools
 import importlib.resources
+import json
 import logging
 import os
 import re
@@ -9,7 +10,9 @@ from dataclasses import dataclass
 from io import StringIO
 from os.path import isfile
 from pathlib import Path
-from typing import List, Iterable, Optional, Dict, Tuple
+from typing import List, Iterable, Optional, Dict, Tuple, Any
+
+from jsonschema.validators import RefResolver, Draft7Validator
 
 from python.kgenerateBeta.kgenerate import run_kgenerate
 from python.sugarlyzer.util.MacroDiscoveryPreprocessor import MacroDiscoveryPreprocessor
@@ -132,31 +135,34 @@ class ProgramSpecification(ABC):
                         yield Path(root) / f
 
     def clean_intermediary_results(self):
-        # Clean system and project headers as well as associated intermediary results in the project root.
-        for child in os.listdir(self.project_root):
-            child_path: Path = self.project_root / Path(child)
-            if isfile(child_path) and ".sugarlyzer." in child:
-                child_path.unlink()
+        """
+        Walks through the program and cleans up all intermediary results/files created by Sugarlyzer.
+        """
+        for root, dirs, files in os.walk(self.project_root):
+            for file in files:
+                try:
+                    if file.endswith(".sugarlyzer.orig"):
+                        # Reinstate the old Kconfig file.
+                        original_file_name: str = file.split(".sugarlyzer.orig")[0]
+                        transformed_file: Path = Path(root) / original_file_name
+                        transformed_file.unlink()
 
-        # Clean desugared files.
-        for source_dir in self.source_dirs:
-            for root, dirs, files in os.walk(source_dir):
-                for f in files:
-                    if ".sugarlyzer." in f:
-                        file_to_delete = Path(root) / f
-                        try:
-                            file_to_delete.unlink()
-                        except FileNotFoundError:
-                            logger.warning(f"Tried to clean up {file_to_delete} but could not find file.")
-                        except PermissionError:
-                            logger.warning(
-                                f"Tried to clean up {file_to_delete} but did not have sufficient permissions.")
-                        except Exception as e:
-                            logger.exception(
-                                f"Tried to clean up {file_to_delete} but encountered unexpected exception: {e}")
+                        os.rename(src=str(Path(root) / file), dst=str(Path(root) / original_file_name))
+                        continue
 
-        # Clean transformed Kconfig files and reinstate the old ones.
-        # TODO
+                    if ".sugarlyzer." in file:
+                        file_to_delete = Path(root) / file
+                        file_to_delete.unlink()
+                        continue
+                except FileNotFoundError:
+                    logger.warning(f"Tried to clean up {file} in {root} or associated intermediary results but could not a file.")
+                except PermissionError:
+                    logger.warning(
+                        f"Tried to clean up {file} in {root} or associated intermediary results but did not have sufficient permissions.")
+                except Exception as e:
+                    logger.exception(
+                        f"Tried to clean up {file} in {root} or associated intermediary results but encountered unexpected exception: {e}")
+
 
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
@@ -353,3 +359,23 @@ class ProgramSpecification(ABC):
                         project_macro_header.write(f"{operator} {name} {value if value is not None else ''}\n")
 
         return project_macro_header_path
+
+    @staticmethod
+    def validate_and_read_program_specification(program_specification_file: Path) -> Dict[str, Any]:
+        """
+        Given a JSON file that corresponds to a program specification,
+        we read it in and validate that it conforms to the schema (resources.programs.program_schema.json)
+
+        :param program_specification_file: The program file to read.
+        :return: The JSON representation of the program file. Throws an exception if the file is malformed.
+        """
+        schema_path: Path = importlib.resources.files("resources.sugarlyzer.programs") / "program_schema.json"
+        with open(schema_path, 'r') as schema_file:
+            resolver = RefResolver.from_schema(schema := json.load(schema_file))
+            validator = Draft7Validator(schema, resolver)
+
+        with open(program_specification_file, 'r') as program_file:
+            result = json.load(program_file)
+        validator.validate(result)
+
+        return result
