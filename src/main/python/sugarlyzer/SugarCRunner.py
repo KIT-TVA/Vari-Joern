@@ -205,8 +205,6 @@ def desugar_file(file_to_desugar: Path,
         case _:
             log_file = Path(log_file)
 
-    # TODO Make JVM heap size configurable or read the available RAM from the system.
-
     whitelist_function_names = list(itertools.chain(*zip(['-renaming-whitelist'] * len(desugaring_function_whitelist),
                                                          desugaring_function_whitelist))) \
         if desugaring_function_whitelist is not None else []
@@ -246,9 +244,10 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
     os.chdir(file_to_desugar.parent)
     logger.debug(f"In run_sugarc, running cmd {cmd_str} from directory {os.curdir}")
     start = time.monotonic()
-    to_hash = list()
+
+    to_hash: List[str] = list()
     for tok in cmd_str.split(' ')[1:]:  # Skip /usr/bin/time
-        if (path := Path(tok)).exists() and path.is_file():
+        if (path := Path(tok)).exists() and path.is_file(): # Collect all files relevant to desugaring.
             with open(path, 'r') as infile:
                 try:
                     to_hash.extend(infile.readlines())
@@ -256,8 +255,6 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
                     print(f'failed to extend hash ::{infile.name}::')
         else:
             to_hash.extend(tok)
-
-    # TODO Change file naming in cache folder from hash + name to name + hash to allow for fore meaning ful sorting.
 
     hasher = sha256()
     for st in sorted(to_hash):
@@ -267,7 +264,7 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
     usr_time = 0
     sys_time = 0
     try:
-        if (cached_file := (cache_dir_path / Path((hex_digest + desugared_output.name)))).exists():
+        if (cached_file := (cache_dir_path / Path(f"{desugared_output.name}_{hex_digest}"))).exists():
             logger.debug("Cache hit!")
             with open(desugared_output, 'wb') as outfile:
                 with open(cached_file, 'rb') as infile:
