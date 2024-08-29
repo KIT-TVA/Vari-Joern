@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict
 
-from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.models.alarm.Alarm import Alarm
 
 
 class JoernAlarm(Alarm):

@@ -1,0 +1,19 @@
+{
+  "remove_errors": false,
+  "config_prefix": "KGENMACRO_",
+
+  "make_target": "defconfig",
+  "kconfig_root_file_path": "Config.in",
+  "config_header_path": "generated/config.h",
+
+  "included_files_and_directories": [
+    {
+      "macro_definitions": [
+        "-D __extension__",
+        "-D restrict",
+        "-D __restrict",
+        "-D chtype=char"
+      ]
+    }
+  ]
+}

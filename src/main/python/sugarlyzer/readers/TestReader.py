@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Iterable
 
-from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.models.alarm.Alarm import Alarm
 from python.sugarlyzer.readers.AbstractReader import AbstractReader
 
 

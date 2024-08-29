@@ -13,7 +13,7 @@ from typing import List, Optional, Dict, Iterable
 # noinspection PyUnresolvedReferences
 from z3.z3 import Solver, sat, Bool, Int, Not, And, Or
 
-from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.models.alarm.Alarm import Alarm
 from python.sugarlyzer.util.Subprocessing import parse_bash_time
 
 USER_DEFS = '/tmp/__sugarlyzerPredefs.h'

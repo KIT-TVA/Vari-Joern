@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 from typing import Iterable
 
-from python.sugarlyzer.models.Alarm import Alarm
-from python.sugarlyzer.models.InferAlarm import InferAlarm
+from python.sugarlyzer.models.alarm.Alarm import Alarm
+from python.sugarlyzer.models.alarm.InferAlarm import InferAlarm
 from python.sugarlyzer.readers.AbstractReader import AbstractReader
 
 logger = logging.getLogger(__name__)

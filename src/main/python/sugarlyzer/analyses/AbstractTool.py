@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, List
 
-from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.models.alarm.Alarm import Alarm
 from python.sugarlyzer.readers.AbstractReader import AbstractReader
 
 logger = logging.getLogger(__name__)

@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import List, Dict
 
-from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
+from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification
 
 
 class AxtlsSpecification(ProgramSpecification):

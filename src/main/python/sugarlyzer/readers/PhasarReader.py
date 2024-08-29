@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from python.sugarlyzer.models.Alarm import Alarm
-from python.sugarlyzer.models.PhasarAlarm import PhasarAlarm
+from python.sugarlyzer.models.alarm.Alarm import Alarm
+from python.sugarlyzer.models.alarm.PhasarAlarm import PhasarAlarm
 from python.sugarlyzer.readers.AbstractReader import AbstractReader
 
 logger = logging.getLogger(__name__)

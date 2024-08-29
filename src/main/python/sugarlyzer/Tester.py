@@ -25,9 +25,9 @@ from python.sugarlyzer import SugarCRunner
 from python.sugarlyzer.SugarCRunner import process_alarms
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from python.sugarlyzer.analyses.AnalysisToolFactory import AnalysisToolFactory
-from python.sugarlyzer.models.Alarm import Alarm, same_range
-from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
-from python.sugarlyzer.models.ProgramSpecificationFactory import ProgramSpecificationFactory
+from python.sugarlyzer.models.alarm.Alarm import Alarm, same_range
+from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification
+from python.sugarlyzer.models.program.ProgramSpecificationFactory import ProgramSpecificationFactory
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Any
 
-from python.sugarlyzer.models.AxtlsSpecification import AxtlsSpecification
-from python.sugarlyzer.models.ProgramSpecification import ProgramSpecification
+from python.sugarlyzer.models.program.AxtlsSpecification import AxtlsSpecification
+from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification
 
 
 class ProgramSpecificationFactory:

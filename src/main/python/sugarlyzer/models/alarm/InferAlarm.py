@@ -2,14 +2,15 @@ import re
 from pathlib import Path
 from typing import Iterable, Dict
 
-from python.sugarlyzer.models.Alarm import Alarm
+from python.sugarlyzer.models.alarm.Alarm import Alarm
 
 
-class ClangAlarm(Alarm):
+class InferAlarm(Alarm):
 
     def __init__(self,
                  input_file: Path = None,
                  line_in_input_file: int = None,
+                 bug_type: str = None,
                  message: str = None,
                  warning_path: Iterable[int] = None,
                  alarm_type: str = None
@@ -19,11 +20,13 @@ class ClangAlarm(Alarm):
             warning_path = []
         self.warning_path: Iterable[int] = [int(i) for i in warning_path]
         self.alarm_type = alarm_type
+        self.bug_type = bug_type
 
     def as_dict(self) -> Dict[str, str]:
         result = super().as_dict()
         result['warning_path'] = self.warning_path,
         result['alarm_type'] = self.alarm_type
+        result['bug_type'] = self.bug_type
         return result
 
     def sanitize(self, message: str):
@@ -31,6 +34,9 @@ class ClangAlarm(Alarm):
         san = re.sub(r'__(\S*)_\d+', r'\1', san)
         if san.endswith(']'):
             san = re.sub(r' \[.*\]$', '', san)
+
+        san = re.sub("line \d*", "SANITIZED", san)
+        san = re.sub("column \d*", "SANITIZED", san)
         return san
 
     @property
@@ -41,4 +47,3 @@ class ClangAlarm(Alarm):
         :return: An iterator over the lines Clang returns as the path in the desugared file.
         """
         return self.warning_path  ## We expect desugared_path to contain desugared_line
-

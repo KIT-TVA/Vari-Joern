@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from python.sugarlyzer.models.ClangAlarm import ClangAlarm
+from python.sugarlyzer.models.alarm.ClangAlarm import ClangAlarm
 from python.sugarlyzer.readers.AbstractReader import AbstractReader
 
 logger = logging.getLogger(__name__)
