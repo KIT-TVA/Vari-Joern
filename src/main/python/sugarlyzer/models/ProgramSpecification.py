@@ -4,11 +4,11 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from io import StringIO
-from os.path import isfile
 from pathlib import Path
 from typing import List, Iterable, Optional, Dict, Tuple, Any
 
@@ -141,8 +141,8 @@ class ProgramSpecification(ABC):
         for root, dirs, files in os.walk(self.project_root):
             for file in files:
                 try:
+                    # Reinstate initial versions of altered files and delete the altered version.
                     if file.endswith(".sugarlyzer.orig"):
-                        # Reinstate the old Kconfig file.
                         original_file_name: str = file.split(".sugarlyzer.orig")[0]
                         transformed_file: Path = Path(root) / original_file_name
                         transformed_file.unlink()
@@ -150,19 +150,20 @@ class ProgramSpecification(ABC):
                         os.rename(src=str(Path(root) / file), dst=str(Path(root) / original_file_name))
                         continue
 
+                    # Delete intermediary files.
                     if ".sugarlyzer." in file:
                         file_to_delete = Path(root) / file
                         file_to_delete.unlink()
                         continue
                 except FileNotFoundError:
-                    logger.warning(f"Tried to clean up {file} in {root} or associated intermediary results but could not a file.")
+                    logger.warning(
+                        f"Tried to clean up {file} in {root} or associated intermediary results but could not a file.")
                 except PermissionError:
                     logger.warning(
                         f"Tried to clean up {file} in {root} or associated intermediary results but did not have sufficient permissions.")
                 except Exception as e:
                     logger.exception(
                         f"Tried to clean up {file} in {root} or associated intermediary results but encountered unexpected exception: {e}")
-
 
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
@@ -307,8 +308,53 @@ class ProgramSpecification(ABC):
                           tmp_directory_path=self.__tmp_dir,
                           source_tree_path=self.kconfig_root_path)
 
-    @abstractmethod
     def collect_make_includes(self) -> List[Dict]:
+        """
+        Collects the included files and directories on a per-file basis by running make and scanning for compile calls in the output.
+        :return: A List of Dicts with the following fields: file_pattern, included_files, included_directories and build_location.
+        """
+
+        # Preserve old config header, if necessary.
+        if self.config_header_path.exists():
+            shutil.copyfile(src=self.config_header_path, dst=str(self.config_header_path) + ".sugarlyzer.orig")
+
+        # Clean output of potential previous make call.
+        cmd = ["make", "clean"]
+        subprocess.run(" ".join(str(s) for s in cmd),
+                       shell=True,
+                       executable='/bin/bash',
+                       cwd=self.makefile_dir_path,
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
+
+        # Collect information from make call.
+        make_output_file: Path = self.project_root / Path("make_output.sugarlyzer.txt")
+        cmd = ["make", "-i", self.make_target if self.make_target is not None else "", ">", str(make_output_file),
+               "2>&1"]
+        ps = subprocess.run(" ".join(str(s) for s in cmd),
+                            shell=True,
+                            executable='/bin/bash',
+                            cwd=self.makefile_dir_path)
+
+        includes_per_file_pattern: List[Dict] = []
+
+        if ps.returncode == 0:
+            # Parse the make output.
+            includes_per_file_pattern = self.parse_make_output(make_output_file)
+        else:
+            logger.warning(f"Call to make with command \"{" ".join(str(s) for s in cmd)}\" returned with exit "
+                           f"status {ps.returncode}.")
+
+        return includes_per_file_pattern
+
+    @abstractmethod
+    def parse_make_output(self, make_output_file: Path) -> List[Dict]:
+        """
+        Scans each line contained in the specified file containing make output and extracts -I and -include options
+        passed to the compile calls for c source files.
+        :param make_output_file: A Path describing the file containing the output of calling make.
+        :return: A List of Dicts with the following fields: file_pattern, included_files, included_directories and build_location.
+        """
         pass
 
     def __collect_system_includes(self) -> List[Path]:
