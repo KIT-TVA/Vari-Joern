@@ -9,12 +9,12 @@ import shutil
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Iterable, List, Dict, Any, Tuple
 
 # noinspection PyUnresolvedReferences
 from dill import pickle
-from jsonschema.validators import RefResolver, Draft7Validator
 from pathos.pools import ProcessPool
 # noinspection PyUnresolvedReferences
 from tqdm import tqdm
@@ -61,10 +61,11 @@ class Tester:
         self.output_file_path.parent.mkdir(exist_ok=True, parents=True)
 
         # Read program specification file (program.json).
-        program_specification_file: Path = (importlib.resources.files(f"resources.sugarlyzer.programs.{args.program}")
-                                            / "program.json")
-        program_specification_json: Dict[str, Any] = ProgramSpecification.validate_and_read_program_specification(
-            program_specification_file)
+        program_specification: Traversable = importlib.resources.files(
+            f"resources.sugarlyzer.programs.{args.program}") / "program.json"
+        with importlib.resources.as_file(program_specification) as program_specification_path:
+            program_specification_json: Dict[str, Any] = ProgramSpecification.validate_and_read_program_specification(
+                program_specification_path)
 
         self.program: ProgramSpecification = ProgramSpecificationFactory.get_program_specification(
             name=args.program,

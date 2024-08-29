@@ -8,6 +8,7 @@ import shutil
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from importlib.resources.abc import Traversable
 from io import StringIO
 from pathlib import Path
 from typing import List, Iterable, Optional, Dict, Tuple, Any
@@ -166,7 +167,7 @@ class ProgramSpecification(ABC):
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
         Iterates through the program.json's get_recommended_space field,
-        returning the first match. See program_schema.json for more info.
+        returning the first match. See program_specification_schema.json for more info.
         :param file: The source file to search for.
         :return: included_files, included_directories for the first object in
         get_recommended_space with a regular expression that matches the **absolute** file name.
@@ -408,13 +409,13 @@ class ProgramSpecification(ABC):
     def validate_and_read_program_specification(program_specification_file: Path) -> Dict[str, Any]:
         """
         Given a JSON file that corresponds to a program specification,
-        we read it in and validate that it conforms to the schema (resources.programs.program_schema.json)
+        we read it in and validate that it conforms to the schema (resources.programs.program_specification_schema.json)
 
         :param program_specification_file: The program file to read.
         :return: The JSON representation of the program file. Throws an exception if the file is malformed.
         """
-        schema_path: Path = importlib.resources.files("resources.sugarlyzer.programs") / "program_schema.json"
-        with open(schema_path, 'r') as schema_file:
+        schema_path: Traversable = importlib.resources.files("resources.sugarlyzer.programs") / "program_specification_schema.json"
+        with schema_path.open('r') as schema_file:
             resolver = RefResolver.from_schema(schema := json.load(schema_file))
             validator = Draft7Validator(schema, resolver)
 

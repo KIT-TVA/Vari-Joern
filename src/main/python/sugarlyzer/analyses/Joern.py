@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import subprocess
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Iterable
 
@@ -14,21 +15,23 @@ logger = logging.getLogger(__name__)
 
 
 class Joern(AbstractTool):
-    whitelist_function_names: list[str] = ["gets", "getwd", "strtok", "access" "chdir", "chmod", "chown", "creat", "faccessat",
-                                "fchmodat", "fopen", "fstatat", "lchown", "linkat", "link", "lstat", "mkdirat", "mkdir",
-                                "mkfifoat", "mkfifo", "mknodat", "mknod", "openat", "open", "readlinkat", "readlink",
-                                "renameat", "rename", "rmdir", "stat", "unlinkat", "unlink", "printf", "sprintf",
-                                "vsprintf", "free", "memset", "bzero", "malloc", "memcpy", "setresgid", "setregid",
-                                "setegid", "setgroups", "setresuid", "setreuid", "seteuid", "setgid", "send", "strlen",
-                                "strncpy", "read", "recv"]
+    whitelist_function_names: list[str] = ["gets", "getwd", "strtok", "access" "chdir", "chmod", "chown", "creat",
+                                           "faccessat", "fchmodat", "fopen", "fstatat", "lchown", "linkat", "link",
+                                           "lstat", "mkdirat", "mkdir", "mkfifoat", "mkfifo", "mknodat", "mknod",
+                                           "openat", "open", "readlinkat", "readlink", "renameat", "rename", "rmdir",
+                                           "stat", "unlinkat", "unlink", "printf", "sprintf", "vsprintf", "free",
+                                           "memset", "bzero", "malloc", "memcpy", "setresgid", "setregid", "setegid",
+                                           "setgroups", "setresuid", "setreuid", "seteuid", "setgid", "send", "strlen",
+                                           "strncpy", "read", "recv"]
 
     joern_parse_command: list[str] = ["/usr/bin/time", "-v",
-                           "joern-parse", "{maximum_heap_size_option}", "{input}", "-o", "{output}", "--language", "C",
-                           "--frontend-args", "{file_includes}", "{dir_includes}", "{macro_defs}"]
+                                      "joern-parse", "{maximum_heap_size_option}", "{input}", "-o", "{output}",
+                                      "--language", "C", "--frontend-args", "{file_includes}", "{dir_includes}",
+                                      "{macro_defs}"]
     joern_analyze_command: list[str] = ["/usr/bin/time", "-v",
-                             "joern", "{maximum_heap_size_option}", "--script", "{script}",
-                             "--param", "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
-    joern_script_path: Path = importlib.resources.files('resources.joern') / "scan.sc"
+                                        "joern", "{maximum_heap_size_option}", "--script", "{script}", "--param",
+                                        "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
+    joern_script: Traversable = importlib.resources.files('resources.joern') / "scan.sc"
 
     def __init__(self, intermediary_results_path: Path, maximum_heap_size: int = None):
         super().__init__(JoernReader(), name='joern',
@@ -82,10 +85,12 @@ class Joern(AbstractTool):
             ### Analyze CPG.
             ############################################
             cmd = " ".join(str(s) for s in Joern.joern_analyze_command)
-            cmd = cmd.format(script=str(Joern.joern_script_path),
-                             cpg_path=cpg_file,
-                             report_path=dest_file,
-                             maximum_heap_size_option=maximum_heap_size_option)
+            with importlib.resources.as_file(Joern.joern_script) as joern_script_path:
+                cmd = cmd.format(script=str(joern_script_path),
+                                 cpg_path=cpg_file,
+                                 report_path=dest_file,
+                                 maximum_heap_size_option=maximum_heap_size_option)
+
             logger.debug(f"Analyzing CPG \"{cpg_file.absolute()}\" and writing analysis report to \"{dest_file}\"")
             logger.debug(f"Command for analysis: \"{cmd}\"")
             ps = subprocess.run(cmd, text=True, shell=True,
