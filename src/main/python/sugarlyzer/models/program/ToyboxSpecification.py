@@ -5,6 +5,10 @@ from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecifi
 
 
 class ToyboxSpecification(ProgramSpecification):
+    def run_make(self, output_path: Path) -> int:
+        # TODO Implement
+        pass
+
     def transform_kconfig_into_kextract_format(self):
         # TODO Implement
         pass

@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import List, Dict
 
@@ -7,6 +8,23 @@ from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecifi
 
 
 class AxtlsSpecification(ProgramSpecification):
+    def run_make(self, output_path: Path):
+        # Clean output of potential previous make call.
+        cmd = ["make", "clean"]
+        subprocess.run(" ".join(str(s) for s in cmd),
+                       shell=True,
+                       executable='/bin/bash',
+                       cwd=self.makefile_dir_path,
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
+
+        # Collect information from make call into dedicated file.
+        cmd = ["make", "-i", self.make_target, ">", str(output_path), "2>&1"]
+        return subprocess.run(" ".join(str(s) for s in cmd),
+                              shell=True,
+                              executable='/bin/bash',
+                              cwd=self.makefile_dir_path).returncode
+
     def transform_kconfig_into_kextract_format(self):
         kconfig_files: list[Path] = []
         for dir_path, dir_names, file_names in os.walk(self.project_root):

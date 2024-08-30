@@ -76,7 +76,7 @@ def process_let(cond, predefs):
     firstClause = findClause(stripped, 0)
     firstClause = stripped[0:firstClause]
     # find xvars
-    var = re.search('\(\((\$x\d+) ', stripped)
+    var = re.search(r'\(\((\$x\d+) ', stripped)
     var = var.group(1)
     # if x var already exists, ignore
     if var not in predefs.keys():
@@ -366,7 +366,6 @@ def run_kgenerate(kconfig_file_path: Path,
     configuration_variables: list[ConfigurationVariable] = parse_kextract_output(kextract_tmp)
     genvars, choice = parse_kclause_output(kclause_tmp, configuration_variables)
 
-
     for k in configuration_variables:
         k.cond = format_cond(k.cond, configuration_variables, define_false)
 
@@ -390,9 +389,9 @@ def read_arguments() -> argparse.Namespace:
     p.add_argument('-o', '--header-output',
                    help='Path to output the config header to. If pointing to a directory, the default name config.h will be used.',
                    default=f"{Path.cwd()}")
-    p.add_argument('-m', '--mapping-output', help="The location where to put the mapping file.",
+    p.add_argument('-p', '--mapping-output', help="The location where to put the mapping file.",
                    default=f"{Path.cwd()}")
-    p.add_argument('-f', '--format', help='Format of the output', required=True)
+    p.add_argument('-f', '--format', help='Path to a file specifying the format of the output', required=True)
     p.add_argument('--define-false', action='store_true',
                    help='Instead of bools being either defined or undefined, define them as 1 or 0')
     p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
@@ -416,11 +415,11 @@ def main() -> None:
                       }
     logging.basicConfig(**logging_kwargs)
 
-    run_kgenerate(kconfig_file_path=args.input,
-                  format_file_path=args.format,
-                  header_output_path=args.header_output,
-                  mapping_file_output_dir_path=args.mapping_output,
-                  source_tree_path=args.directory,
+    run_kgenerate(kconfig_file_path=Path(args.input),
+                  format_file_path=Path(args.format),
+                  header_output_path=Path(args.header_output),
+                  mapping_file_output_dir_path=Path(args.mapping_output),
+                  source_tree_path=Path(args.directory),
                   module_version=args.module_version,
                   define_false=args.define_false)
 

@@ -317,34 +317,20 @@ class ProgramSpecification(ABC):
         if self.config_header_path.exists():
             shutil.copyfile(src=self.config_header_path, dst=str(self.config_header_path) + ".sugarlyzer.orig")
 
-        # Clean output of potential previous make call.
-        cmd = ["make", "clean"]
-        subprocess.run(" ".join(str(s) for s in cmd),
-                       shell=True,
-                       executable='/bin/bash',
-                       cwd=self.makefile_dir_path,
-                       stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
-
-        # Collect information from make call.
         make_output_file: Path = self.project_root / Path("make_output.sugarlyzer.txt")
-        cmd = ["make", "-i", self.make_target if self.make_target is not None else "", ">", str(make_output_file),
-               "2>&1"]
-        ps = subprocess.run(" ".join(str(s) for s in cmd),
-                            shell=True,
-                            executable='/bin/bash',
-                            cwd=self.makefile_dir_path)
-
         includes_per_file_pattern: List[Dict] = []
 
-        if ps.returncode == 0:
+        if return_code := self.run_make(make_output_file) == 0:
             # Parse the make output.
             includes_per_file_pattern = self.parse_make_output(make_output_file)
         else:
-            logger.warning(f"Call to make with command \"{" ".join(str(s) for s in cmd)}\" returned with exit "
-                           f"status {ps.returncode}.")
+            logger.warning(f"Call to make with returned with exit status {return_code}.")
 
         return includes_per_file_pattern
+
+    @abstractmethod
+    def run_make(self, output_path: Path) -> int:
+        pass
 
     @abstractmethod
     def parse_make_output(self, make_output_file: Path) -> List[Dict]:
