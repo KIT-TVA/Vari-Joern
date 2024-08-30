@@ -5,32 +5,13 @@ from pathlib import Path
 from typing import List, Dict
 
 from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification
+from python.sugarlyzer.util.Kconfig import collect_kconfig_files
 
 
 class AxtlsSpecification(ProgramSpecification):
-    def run_make(self, output_path: Path):
-        # Clean output of potential previous make call.
-        cmd = ["make", "clean"]
-        subprocess.run(" ".join(str(s) for s in cmd),
-                       shell=True,
-                       executable='/bin/bash',
-                       cwd=self.makefile_dir_path,
-                       stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
-
-        # Collect information from make call into dedicated file.
-        cmd = ["make", "-i", self.make_target, ">", str(output_path), "2>&1"]
-        return subprocess.run(" ".join(str(s) for s in cmd),
-                              shell=True,
-                              executable='/bin/bash',
-                              cwd=self.makefile_dir_path).returncode
-
     def transform_kconfig_into_kextract_format(self):
-        kconfig_files: list[Path] = []
-        for dir_path, dir_names, file_names in os.walk(self.project_root):
-            for file_name in file_names:
-                if file_name == "Config.in":
-                    kconfig_files.append(Path(dir_path) / Path(file_name))
+        kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_name="Config.in",
+                                                          root_directory=self.project_root)
 
         # Problem: Missing quotation marks surrounding the file path.
         problematic_pattern_source_directive: str = r'source [^"\s]*Config\.in'
@@ -58,6 +39,23 @@ class AxtlsSpecification(ProgramSpecification):
             # Replace old Kconfig file with transformed one but retain the old one to restore it after the analysis.
             os.rename(src=kconfig_file, dst=str(kconfig_file) + ".sugarlyzer.orig")
             os.rename(src=transformed_file_path, dst=kconfig_file)
+
+    def run_make(self, output_path: Path):
+        # Clean output of potential previous make call.
+        cmd = ["make", "clean"]
+        subprocess.run(" ".join(str(s) for s in cmd),
+                       shell=True,
+                       executable='/bin/bash',
+                       cwd=self.makefile_dir_path,
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
+
+        # Collect information from make call into dedicated file.
+        cmd = ["make", "-i", self.make_target, ">", str(output_path), "2>&1"]
+        return subprocess.run(" ".join(str(s) for s in cmd),
+                              shell=True,
+                              executable='/bin/bash',
+                              cwd=self.makefile_dir_path).returncode
 
     def parse_make_output(self, make_output_file: Path) -> List[Dict]:
         includes_per_file_pattern: List[Dict] = []
