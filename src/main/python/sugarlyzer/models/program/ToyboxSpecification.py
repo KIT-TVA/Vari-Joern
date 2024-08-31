@@ -11,13 +11,15 @@ from python.sugarlyzer.util.Kconfig import collect_kconfig_files
 
 class ToyboxSpecification(ProgramSpecification):
     def transform_kconfig_into_kextract_format(self):
-        kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_name="Config.in",
+        kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_names=["Config.in", "Config.probed"],
                                                           root_directory=self.project_root)
 
         # Problem: Missing quotation marks surrounding the file path.
         # Examples: "source generated/Config.probed" and "source generated/Config.in".
-        problematic_pattern_source_directive: str = r'source [^"\s]*Config\.\s+\n'
-        problematic_pattern_bool_directive: str = r'bool [^"\s]*\s+\n'
+        problematic_pattern_source_directive: str = r'source [^"\s]*Config\.[^"\s]+'
+        # Problem: Missing quotation marks surrounding the name of the boolean variable.
+        # Example: "bool stat"
+        problematic_pattern_bool_directive: str = r'bool [^"\s]+'
 
         # Go through the Kconfig files and adjust problematic syntax.
         for kconfig_file in kconfig_files:
@@ -68,7 +70,7 @@ class ToyboxSpecification(ProgramSpecification):
                            f"exit code {process.returncode}")
         else:
             # Collect information from make call into the specified output file.
-            cmd: List[str] = ["make", "-i", "V=1"]
+            cmd: List[str] = ["make", "-i", "V=1", ">", str(output_path), "2>&1"]
             process: CompletedProcess = subprocess.run(" ".join(str(s) for s in cmd),
                                                        shell=True,
                                                        executable='/bin/bash',
@@ -80,5 +82,35 @@ class ToyboxSpecification(ProgramSpecification):
         return process.returncode
 
     def parse_make_output(self, make_output_file: Path) -> List[Dict]:
-        # TODO Implement
-        pass
+        includes_per_file_pattern: List[Dict] = []
+        # Toybox does not change directories when building the source files.
+        building_directory: Path = self.makefile_dir_path
+
+        with open(make_output_file, "r") as make_output:
+            for line in make_output:
+                if line.startswith("cc "):
+                    file_name_match = re.search(r' (\S+\.c)', line)
+                    if file_name_match is not None:
+                        relative_file_path = file_name_match.group(1)
+
+                        # Resolve full paths of the included files.
+                        included_files = []
+                        for included_file in re.findall(r'-include ?\S+', line):
+                            included_file = included_file.lstrip("-include").strip()
+                            full_file_path = (Path(building_directory) / Path(included_file)).resolve()
+                            included_files.append(full_file_path)
+
+                        # Resolve full paths of the included dirs.
+                        included_dirs = []
+                        for included_dir in re.findall(r'-I ?\S+', line):
+                            included_dir = included_dir.lstrip("-I").strip()
+                            full_dir_path = (Path(building_directory) / Path(included_dir)).resolve()
+                            included_dirs.append(full_dir_path)
+
+                        make_entry = {'file_pattern': relative_file_path.replace('.', r'\.') + '$',
+                                      'included_files': included_files,
+                                      'included_directories': included_dirs,
+                                      'build_location': building_directory}
+                        includes_per_file_pattern.append(make_entry)
+
+        return includes_per_file_pattern

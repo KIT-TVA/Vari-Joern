@@ -10,7 +10,7 @@ from python.sugarlyzer.util.Kconfig import collect_kconfig_files
 
 class AxtlsSpecification(ProgramSpecification):
     def transform_kconfig_into_kextract_format(self):
-        kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_name="Config.in",
+        kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_names=["Config.in"],
                                                           root_directory=self.project_root)
 
         # Problem: Missing quotation marks surrounding the file path.

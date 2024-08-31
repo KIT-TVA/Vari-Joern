@@ -209,7 +209,7 @@ class ProgramSpecification(ABC):
         for spec in inc_dirs_and_files:
             # Note the difference between s[a] and s.get(a) is the former will
             #  raise an exception if a is not in s, while s.get will return None.
-            if spec.get('file_pattern') is None or re.search(spec.get('file_pattern'), str(file.absolute())):
+            if spec.get('file_pattern') is None or re.search(pattern=spec.get('file_pattern'), string=str(file.absolute())):
                 if (rt := spec.get('relative_to')) is not None:
                     relative_to = Path(rt)
                 else:
@@ -284,12 +284,6 @@ class ProgramSpecification(ABC):
     def search_context(self, value):
         self.__search_context = value
 
-    @abstractmethod
-    def transform_kconfig_into_kextract_format(self):
-        # TODO Pull base functionality (collecting kconfig files and iterating over their lines to find potential problems)
-        #  into base class and have the subclasses specify their problem cases and a correction (lambda?) via an abstract method.
-        pass
-
     def create_config_header_and_mapping(self):
         """
         Creates the config header (usually config.h) and mapping fie (kgenerate_macro_mapping.json) based on the
@@ -311,11 +305,18 @@ class ProgramSpecification(ABC):
                           tmp_directory_path=self.__tmp_dir,
                           source_tree_path=self.kconfig_root_path)
 
+    @abstractmethod
+    def transform_kconfig_into_kextract_format(self):
+        # TODO Pull base functionality (collecting kconfig files and iterating over their lines to find potential problems)
+        #  into base class and have the subclasses specify their problem cases and a correction (lambda?) via an abstract method.
+        pass
+
     def collect_make_includes(self) -> List[Dict]:
         """
         Collects the included files and directories on a per-file basis by running make and scanning for compile calls in the output.
         :return: A List of Dicts with the following fields: file_pattern, included_files, included_directories and build_location.
         """
+        logger.info("Collecting make includes for desugaring.")
 
         # Preserve old config header, if necessary.
         if self.config_header_path.exists():
@@ -324,8 +325,10 @@ class ProgramSpecification(ABC):
         make_output_file: Path = self.project_root / Path("make_output.sugarlyzer.txt")
         includes_per_file_pattern: List[Dict] = []
 
+        logger.info("Running make.")
         if return_code := self.run_make(make_output_file) == 0:
             # Parse the make output.
+            logger.info("Parsing the output produced by make.")
             includes_per_file_pattern = self.parse_make_output(make_output_file)
         else:
             logger.warning(f"Call to make with returned with exit status {return_code}. Make includes will not be "
