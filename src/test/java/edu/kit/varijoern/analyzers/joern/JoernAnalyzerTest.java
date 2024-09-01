@@ -24,6 +24,7 @@ import org.prop4j.Literal;
 import org.prop4j.Node;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -155,7 +156,8 @@ class JoernAnalyzerTest {
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
-        Composer composer = new KbuildComposer(testCaseManager.getPath(), system, composerTempDirectory, Set.of(),
+        Composer composer = new KbuildComposer(testCaseManager.getPath(), system,
+                Charset.forName(testCaseManager.getMetadata().encoding()), composerTempDirectory, Set.of(),
                 false);
 
         for (int i = 0; i < configurations.size(); i++) {

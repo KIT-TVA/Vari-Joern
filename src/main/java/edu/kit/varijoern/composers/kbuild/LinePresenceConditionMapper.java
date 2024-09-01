@@ -12,6 +12,7 @@ import superc.cparser.CTokenCreator;
 import xtc.tree.Location;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -39,6 +40,8 @@ public class LinePresenceConditionMapper {
             = Pattern.compile("(?:CONFIG_|ENABLE_)([A-Za-z0-9_]+)");
     private static final Logger LOGGER = LogManager.getLogger();
 
+    private final Charset encoding;
+
     private final Map<Integer, Node> linePresenceConditions = new HashMap<>();
     private final int addedLines;
     private final int totalLines;
@@ -55,14 +58,17 @@ public class LinePresenceConditionMapper {
      *                             composer
      * @param knownFeatures        the features recorded in the feature model
      * @param system               the system the file belongs to. Currently, only {@code busybox} is supported.
+     * @param encoding             the encoding of the file
      */
     public LinePresenceConditionMapper(@NotNull InclusionInformation inclusionInformation, @NotNull Path sourcePath,
-                                       int addedLines, @NotNull Set<String> knownFeatures, @NotNull String system)
+                                       int addedLines, @NotNull Set<String> knownFeatures, @NotNull String system,
+                                       Charset encoding)
             throws IOException {
+        this.encoding = encoding;
         if (!isSupportedSystem(system)) throw new UnsupportedOperationException("Only busybox is supported");
 
         this.addedLines = addedLines;
-        this.totalLines = Files.readAllLines(sourcePath.resolve(inclusionInformation.filePath())).size();
+        this.totalLines = Files.readAllLines(sourcePath.resolve(inclusionInformation.filePath()), this.encoding).size();
         this.determinePresenceConditions(inclusionInformation, sourcePath, knownFeatures, system);
     }
 
@@ -98,6 +104,7 @@ public class LinePresenceConditionMapper {
                     lexerCreator,
                     tokenCreator,
                     new StopWatch(),
+                    this.encoding.name(),
                     presenceConditionManager
             )) {
                 headerFileManager.showErrors(false);
