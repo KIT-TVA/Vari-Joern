@@ -17,6 +17,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.prop4j.Node;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -373,7 +374,8 @@ class KbuildComposerTest {
 
         CompositionInformation compositionInformation;
         try {
-            Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system, composerTmpDirectory,
+            Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system,
+                    Charset.forName(testCaseManager.getMetadata().encoding()), composerTmpDirectory,
                     testCase.presenceConditionExcludes, false);
             compositionInformation = composer.compose(featureMap,
                     destinationDirectory,
@@ -400,8 +402,8 @@ class KbuildComposerTest {
      * @param verifiers                 the verifiers to run on the composition
      * @param presenceConditionExcludes the paths to exclude from presence condition determination
      */
-    private record TestCase(String name, String system, List<String> enabledFeatures,
-                            List<Verifier> verifiers, Set<Path> presenceConditionExcludes) {
+    private record TestCase(String name, String system, List<String> enabledFeatures, List<Verifier> verifiers,
+                            Set<Path> presenceConditionExcludes) {
         /**
          * Creates a new test case for the {@link KbuildComposer}.
          *
@@ -617,8 +619,9 @@ class KbuildComposerTest {
                     "File " + this.composedRelativePath + " should exist");
             verifySourceMap(compositionInformation);
 
-            List<String> compositionLines = Files.readAllLines(compositionPath);
-            List<String> originalLines = Files.readAllLines(originalPath);
+            Charset charset = Charset.forName(testCaseManager.getMetadata().encoding());
+            List<String> compositionLines = Files.readAllLines(compositionPath, charset);
+            List<String> originalLines = Files.readAllLines(originalPath, charset);
             assertEquals(new HashSet<>(this.expectedPrependedLines),
                     new HashSet<>(compositionLines.subList(0, this.expectedPrependedLines.size()))
             );

@@ -20,3 +20,5 @@ int main(void) {
 	sayHello();
 #endif
 }
+
+// This comment includes special characters to verify that the encoding is respected: äöüß

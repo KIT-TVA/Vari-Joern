@@ -12,6 +12,7 @@ import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -24,10 +25,12 @@ import java.util.Set;
  */
 public class KbuildComposerConfig extends ComposerConfig {
     private static final String SOURCE_FIELD_NAME = "source";
+    private static final String ENCODING_FIELD_NAME = "encoding";
     private static final String SYSTEM_FIELD_NAME = "system";
     private static final String PRESENCE_CONDITION_EXCLUDES_FIELD_NAME = "presence_condition_excludes";
 
     private final @NotNull Path sourceLocation;
+    private final @NotNull Charset encoding;
     private final @NotNull String system;
     private final @NotNull Set<Path> presenceConditionExcludes;
     private final ComposerArgs composerArgs;
@@ -50,6 +53,15 @@ public class KbuildComposerConfig extends ComposerConfig {
                 toml,
                 "Source location for Kbuild composer is missing or not a string"
         );
+
+        try {
+            this.encoding = Charset.forName(toml.getString(ENCODING_FIELD_NAME, () -> "UTF-8"));
+        } catch (IllegalArgumentException e) {
+            throw new InvalidConfigException("Encoding for Kbuild composer is not supported", e);
+        } catch (TomlInvalidTypeException e) {
+            throw new InvalidConfigException("Encoding for Kbuild composer is not a string", e);
+        }
+
         Path sourcePath;
         try {
             sourcePath = Path.of(sourceLocation);
@@ -107,7 +119,7 @@ public class KbuildComposerConfig extends ComposerConfig {
     @Override
     public @NotNull Composer newComposer(@NotNull Path tmpPath)
             throws IOException, ComposerException, InterruptedException {
-        return new KbuildComposer(this.sourceLocation, this.system, tmpPath, this.presenceConditionExcludes,
-                this.composerArgs.shouldSkipPCs());
+        return new KbuildComposer(this.sourceLocation, this.system, this.encoding, tmpPath,
+                this.presenceConditionExcludes, this.composerArgs.shouldSkipPCs());
     }
 }
