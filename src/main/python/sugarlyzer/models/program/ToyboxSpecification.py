@@ -10,7 +10,8 @@ from python.sugarlyzer.util.Kconfig import collect_kconfig_files
 
 
 class ToyboxSpecification(ProgramSpecification):
-    def transform_kconfig_into_kextract_format(self):
+    def transform_kconfig_into_kextract_format(self) -> dict[str, str]:
+        transformed_to_old_files: dict[str, str] = {}
         kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_names=["Config.in", "Config.probed"],
                                                           root_directory=self.project_root)
 
@@ -42,8 +43,13 @@ class ToyboxSpecification(ProgramSpecification):
                         output_file.write(f"{line}")
 
             # Replace old Kconfig file with transformed one but retain the old one to restore it after the analysis.
-            os.rename(src=kconfig_file, dst=str(kconfig_file) + ".sugarlyzer.orig")
-            os.rename(src=transformed_file_path, dst=kconfig_file)
+            original_file_path: str = str(kconfig_file)
+            tmp_save_file_path:str = str(kconfig_file) + ".sugarlyzer.orig"
+            os.rename(src=original_file_path, dst=tmp_save_file_path)
+            os.rename(src=transformed_file_path, dst=original_file_path)
+            transformed_to_old_files[original_file_path] = tmp_save_file_path
+
+        return transformed_to_old_files
 
     def run_make(self, output_path: Path) -> int:
         # Clean output of potential previous make call.

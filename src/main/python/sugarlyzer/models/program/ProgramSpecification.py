@@ -293,7 +293,11 @@ class ProgramSpecification(ABC):
 
         # Bring the program's Kconfig files into the format required by kextract, if necessary.
         logger.info("Transforming the kconfig files of the program into a suitable form.")
-        self.transform_kconfig_into_kextract_format()
+        transformed_to_original_kconfig_files: dict[str, str] = self.transform_kconfig_into_kextract_format()
+
+        # Preserve old config header, if necessary.
+        if self.config_header_path.exists():
+            shutil.copyfile(src=self.config_header_path, dst=str(self.config_header_path) + ".sugarlyzer.orig")
 
         logger.info("Running kgenerate.")
         with (importlib.resources.path(f'resources.sugarlyzer.programs.{self.name}', 'kgenerate_format.txt')
@@ -305,8 +309,13 @@ class ProgramSpecification(ABC):
                           tmp_directory_path=self.__tmp_dir,
                           source_tree_path=self.kconfig_root_path)
 
+        # Revert the changes to the Kconfig files as they can interfere with make calls.
+        for transformed, original in transformed_to_original_kconfig_files.items():
+            os.unlink(transformed)
+            os.rename(src=original, dst=transformed)
+
     @abstractmethod
-    def transform_kconfig_into_kextract_format(self):
+    def transform_kconfig_into_kextract_format(self) -> dict[str, str]:
         # TODO Pull base functionality (collecting kconfig files and iterating over their lines to find potential problems)
         #  into base class and have the subclasses specify their problem cases and a correction (lambda?) via an abstract method.
         pass
@@ -317,10 +326,6 @@ class ProgramSpecification(ABC):
         :return: A List of Dicts with the following fields: file_pattern, included_files, included_directories and build_location.
         """
         logger.info("Collecting make includes for desugaring.")
-
-        # Preserve old config header, if necessary.
-        if self.config_header_path.exists():
-            shutil.copyfile(src=self.config_header_path, dst=str(self.config_header_path) + ".sugarlyzer.orig")
 
         make_output_file: Path = self.project_root / Path("make_output.sugarlyzer.txt")
         includes_per_file_pattern: List[Dict] = []
