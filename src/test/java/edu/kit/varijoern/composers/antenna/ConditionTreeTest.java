@@ -1,12 +1,12 @@
 package edu.kit.varijoern.composers.antenna;
 
+import edu.kit.varijoern.ConditionUtils;
 import org.junit.jupiter.api.Test;
 import org.prop4j.*;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ConditionTreeTest {
     @Test
@@ -15,7 +15,7 @@ class ConditionTreeTest {
             abc
             def""".lines().toList();
         ConditionTree conditionTree = new ConditionTree(lines);
-        assertLineConditionsEqual(conditionTree, List.of(
+        assertLineConditionsAreEquivalent(conditionTree, List.of(
             new True(),
             new True()
         ));
@@ -30,7 +30,7 @@ class ConditionTreeTest {
             //#endif
             ghi""".lines().toList();
         ConditionTree conditionTree = new ConditionTree(lines);
-        assertLineConditionsEqual(conditionTree, List.of(
+        assertLineConditionsAreEquivalent(conditionTree, List.of(
             new True(),
             new True(),
             new And(new True(), new And(new Literal("foo"))),
@@ -47,7 +47,7 @@ class ConditionTreeTest {
             def
             //#endif""".lines().toList();
         ConditionTree conditionTree = new ConditionTree(lines);
-        assertLineConditionsEqual(conditionTree, List.of(
+        assertLineConditionsAreEquivalent(conditionTree, List.of(
             new True(),
             new True(),
             new And(new True(), new And(
@@ -69,7 +69,7 @@ class ConditionTreeTest {
             //#endif
             jkl""".lines().toList();
         ConditionTree conditionTree = new ConditionTree(lines);
-        assertLineConditionsEqual(conditionTree, List.of(
+        assertLineConditionsAreEquivalent(conditionTree, List.of(
             new True(),
             new And(new True(), new And(new Literal("foo"))),
             new True(),
@@ -90,7 +90,7 @@ class ConditionTreeTest {
             def
             //#endif""".lines().toList();
         ConditionTree conditionTree = new ConditionTree(lines);
-        assertLineConditionsEqual(conditionTree, List.of(
+        assertLineConditionsAreEquivalent(conditionTree, List.of(
             new True(),
             new And(new True(), new And(new Literal("foo"))),
             new True(),
@@ -115,7 +115,7 @@ class ConditionTreeTest {
             mno
             //#endif""".lines().toList();
         ConditionTree conditionTree = new ConditionTree(lines);
-        assertLineConditionsEqual(conditionTree, List.of(
+        assertLineConditionsAreEquivalent(conditionTree, List.of(
             new True(),
             new And(new True(), new And(new Literal("foo"))),
             new True(),
@@ -145,7 +145,7 @@ class ConditionTreeTest {
             //#endif
             jkl""".lines().toList();
         ConditionTree conditionTree = new ConditionTree(lines);
-        assertLineConditionsEqual(conditionTree, List.of(
+        assertLineConditionsAreEquivalent(conditionTree, List.of(
             new True(),
             new And(new True(), new And(new Literal("foo"))),
             new And(new True(), new And(new Literal("foo"))),
@@ -167,7 +167,7 @@ class ConditionTreeTest {
             //#endif""".lines().toList();
         ConditionTree conditionTree = new ConditionTree(lines);
         And fileCondition = new And(new Literal("foo"), new Literal("bar"));
-        assertLineConditionsEqual(conditionTree, List.of(
+        assertLineConditionsAreEquivalent(conditionTree, List.of(
             fileCondition,
             fileCondition,
             fileCondition,
@@ -176,9 +176,9 @@ class ConditionTreeTest {
         ));
     }
 
-    private void assertLineConditionsEqual(ConditionTree conditionTree, List<Node> lineConditions) {
+    private void assertLineConditionsAreEquivalent(ConditionTree conditionTree, List<Node> lineConditions) {
         for (int i = 0; i < lineConditions.size(); i++) {
-            assertEquals(lineConditions.get(i), conditionTree.getConditionOfLine(i + 1),
+            assertTrue(ConditionUtils.areEquivalent(lineConditions.get(i), conditionTree.getConditionOfLine(i + 1)),
                 "Unequal conditions for line %d".formatted(i + 1));
         }
         assertThrows(IndexOutOfBoundsException.class,
