@@ -245,8 +245,8 @@ public class LinePresenceConditionMapper {
      */
     private @NotNull Optional<Node> convertBDD(@NotNull BDD bdd,
                                                @NotNull PresenceConditionManager presenceConditionManager) {
-        if (bdd.isOne()) return Optional.of(new True());
-        if (bdd.isZero()) return Optional.of(new False());
+        if (bdd.isOne()) return Optional.of(new And());
+        if (bdd.isZero()) return Optional.of(new Or());
 
         String rawCondition = presenceConditionManager.getVariableManager().getName(bdd.var());
 

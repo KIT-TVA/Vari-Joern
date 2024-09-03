@@ -40,7 +40,7 @@ public class ConditionTree {
         this.length = lines.size();
         ParsingResult parsingResult = parse(lines, 0, false);
         this.children = parsingResult.children;
-        this.condition = Objects.requireNonNullElseGet(parsingResult.condition, True::new);
+        this.condition = Objects.requireNonNullElseGet(parsingResult.condition, And::new);
     }
 
     /**
