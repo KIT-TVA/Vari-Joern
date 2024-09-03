@@ -18,7 +18,7 @@ public class JSONOutputFormatter implements OutputFormatter {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new Jdk8Module());
         SimpleModule nodeModule = new SimpleModule("NodeSerializer");
-        nodeModule.addSerializer(Node.class, new NodeSerializer());
+        nodeModule.addSerializer(Node.class, new JacksonNodeSerializer());
         nodeModule.addSerializer(Path.class, new PathSerializer());
         objectMapper.registerModule(nodeModule);
         objectMapper.writeValue(outStream, results);
