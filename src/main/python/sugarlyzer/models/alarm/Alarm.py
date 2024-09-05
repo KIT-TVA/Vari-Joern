@@ -39,24 +39,57 @@ def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
 
 def map_source_line(desugared_file: Path, line: int) -> IntegerRange:
     """
-    Given an alarm, map it back to original source and associate it with conditionals
+    Given an alarm, map it back to original source.
 
-    :param line: The linenumber to map
-    :return: The source line
+    :param desugared_file: The desugared file in which the line is present.
+    :param line: The linen umber to map (starts at 1 for the first line).
+    :return: The line range in the original source file.
     """
     with open(desugared_file, 'r') as infile:
+        line_range_pattern: str = r"// L(.*):L(.*)$"
+        single_line_pattern: str = r"// L(.*)$"
+
         lines: List[str] = list(map(lambda x: x.strip('\n'), infile.readlines()))
         try:
             the_line: str = lines[line - 1]
         except IndexError as ie:
             logger.exception(f"Trying to find {line} in file {desugared_file}.")
             raise
-        if mat := re.search("// L(.*):L(.*)$", the_line):
+        if mat := re.search(line_range_pattern, the_line):
             return IntegerRange(int(mat.group(1)), int(mat.group(2)))
-        if mat := re.search("// L(.*)$", the_line):
+        if mat := re.search(single_line_pattern, the_line):
             return IntegerRange(int(mat.group(1)), int(mat.group(1)))
         else:
-            raise ValueError(f"Could not find source line for line {desugared_file}:{line} ({the_line})")
+            # Search for a line number specified by the enclosing block. This is necessary given that arrays containing
+            # entries specified by macros will be desugared to multiple lines contained in a block that specifies the
+            # line number. Example:
+            # int abc[] = {VALUE_A, VALUE_B, VALUE_C}; will be desugared to:
+            # if (1) {
+            # {
+            # __abc_1159[0] = 5677;
+            # __abc_1159[1] = 535655;
+            # __abc_1159[2] = 12345;
+            # } } ;// L21
+            curren_line_number: int = line
+            open_parentheses: int = 0
+
+            while curren_line_number < len(lines):
+                current_line:str = lines[curren_line_number]
+                if "{" in current_line:
+                    open_parentheses += current_line.count("{")
+                if "}" in current_line:
+                    open_parentheses += current_line.count("{")
+
+                if open_parentheses <= 0:
+                    if match := re.search(line_range_pattern, current_line):
+                        return IntegerRange(int(match.group(1)), int(match.group(2)))
+                    if match := re.search(single_line_pattern, current_line):
+                        return IntegerRange(int(match.group(1)), int(match.group(1)))
+
+                curren_line_number += 1
+
+
+        raise ValueError(f"Could not find source line for line {desugared_file}:{line} ({the_line})")
 
 
 class Alarm:

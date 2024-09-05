@@ -239,7 +239,7 @@ def desugar_file(file_to_desugar: Path,
     return desugared_file, log_file
 
 
-def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file, cache_dir_path: Path):
+def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file, cache_dir_path: Path | None):
     current_directory = os.curdir
     os.chdir(file_to_desugar.parent)
     logger.debug(f"In run_sugarc, running cmd {cmd_str} from directory {os.curdir}")
@@ -264,7 +264,11 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
     usr_time = 0
     sys_time = 0
     try:
-        if (cached_file := (cache_dir_path / Path(f"{desugared_output.name}_{hex_digest}"))).exists():
+        cached_file: Path | None = None
+        if cache_dir_path is not None:
+            cached_file = cache_dir_path / Path(f"{desugared_output.name}_{hex_digest}")
+
+        if cached_file.exists():
             logger.debug("Cache hit!")
             with open(desugared_output, 'wb') as outfile:
                 with open(cached_file, 'rb') as infile:
@@ -288,10 +292,11 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
                 f.write(ps.stdout)
 
             # Add file to cache.
-            if not os.path.exists(cache_dir_path):
-                os.makedirs(cache_dir_path)
-            with open(cached_file, 'w') as f:
-                f.write(ps.stdout)
+            if cache_dir_path is not None:
+                if not os.path.exists(cache_dir_path):
+                    os.makedirs(cache_dir_path)
+                with open(cached_file, 'w') as f:
+                    f.write(ps.stdout)
 
             logger.debug(f"Wrote to {desugared_output}")
             with open(log_file, 'w') as f:

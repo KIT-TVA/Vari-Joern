@@ -271,7 +271,7 @@ class Tester:
                                       commandline_declarations=cmd_decs,
                                       keep_mem=self.tool.keep_mem,
                                       make_main=self.tool.make_main,
-                                      cache_dir_path=self.cache_dir_path,
+                                      cache_dir_path=self.cache_dir_path / Path(self.program.name),
                                       desugaring_function_whitelist=self.tool.desugaring_function_whitelist,
                                       maximum_heap_size=self.maximum_heap_per_job))
 
