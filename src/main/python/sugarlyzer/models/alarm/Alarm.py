@@ -37,29 +37,36 @@ def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
     return range1.start_line == range2.start_line and range1.end_line == range2.end_line
 
 
-def map_source_line(desugared_file: Path, line: int) -> IntegerRange:
+def map_source_line(desugared_file: Path, line_number: int) -> IntegerRange:
     """
     Given an alarm, map it back to original source.
 
     :param desugared_file: The desugared file in which the line is present.
-    :param line: The linen umber to map (starts at 1 for the first line).
+    :param line_number: The linen umber to map (starts at 1 for the first line).
     :return: The line range in the original source file.
     """
     with open(desugared_file, 'r') as infile:
-        line_range_pattern: str = r"// L(.*):L(.*)$"
-        single_line_pattern: str = r"// L(.*)$"
+        line_range_pattern: str = r"// L(.*):L(.*)$" # Example: "int  (__cmds_8183)[] ;// L41:L42"
+        single_line_pattern: str = r"// L(.*)$" # Example: "int  __i_8187 ;// L49"
+        array_access_fixed_index_pattern: str = r"\s*__\S+_\d+\[\d+\] = .+$" # Example: "__cmds_8183[0] = 128"
+
+        def check_for_line_number_comment(line: str) -> IntegerRange | None:
+            if match := re.search(line_range_pattern, line):
+                return IntegerRange(int(match.group(1)), int(match.group(2)))
+            if match := re.search(single_line_pattern, line):
+                return IntegerRange(int(match.group(1)), int(match.group(1)))
 
         lines: List[str] = list(map(lambda x: x.strip('\n'), infile.readlines()))
         try:
-            the_line: str = lines[line - 1]
+            the_line: str = lines[line_number - 1]
         except IndexError as ie:
-            logger.exception(f"Trying to find {line} in file {desugared_file}.")
+            logger.exception(f"Trying to find {line_number} in file {desugared_file}.")
             raise
-        if mat := re.search(line_range_pattern, the_line):
-            return IntegerRange(int(mat.group(1)), int(mat.group(2)))
-        if mat := re.search(single_line_pattern, the_line):
-            return IntegerRange(int(mat.group(1)), int(mat.group(1)))
-        else:
+
+        if original_line_range := check_for_line_number_comment(the_line) is not None:
+            return original_line_range
+
+        if re.search(array_access_fixed_index_pattern, the_line) is not None:
             # Search for a line number specified by the enclosing block. This is necessary given that arrays containing
             # entries specified by macros will be desugared to multiple lines contained in a block that specifies the
             # line number. Example:
@@ -70,7 +77,7 @@ def map_source_line(desugared_file: Path, line: int) -> IntegerRange:
             # __abc_1159[1] = 535655;
             # __abc_1159[2] = 12345;
             # } } ;// L21
-            curren_line_number: int = line
+            curren_line_number: int = line_number
             open_parentheses: int = 0
 
             while curren_line_number < len(lines):
@@ -80,16 +87,12 @@ def map_source_line(desugared_file: Path, line: int) -> IntegerRange:
                 if "}" in current_line:
                     open_parentheses += current_line.count("{")
 
-                if open_parentheses <= 0:
-                    if match := re.search(line_range_pattern, current_line):
-                        return IntegerRange(int(match.group(1)), int(match.group(2)))
-                    if match := re.search(single_line_pattern, current_line):
-                        return IntegerRange(int(match.group(1)), int(match.group(1)))
+                if open_parentheses <= 0 and (original_line_range := check_for_line_number_comment(current_line) is not None):
+                    return original_line_range
 
                 curren_line_number += 1
 
-
-        raise ValueError(f"Could not find source line for line {desugared_file}:{line} ({the_line})")
+    raise ValueError(f"Could not find source line for line {desugared_file}:{line_number} ({the_line})")
 
 
 class Alarm:
