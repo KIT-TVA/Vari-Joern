@@ -402,11 +402,14 @@ class ProgramSpecification(ABC):
                 if spec.get('file_pattern') is None:
                     macros: Iterable[str] = spec['macro_definitions']
                     for macro in macros:
-                        macro_split = re.split(r'[ =]', macro)
-                        operator = "#undef" if macro_split[0] == "-U" else "#define"
-                        name = macro_split[1]
-                        value = None if len(macro_split) < 3 else macro_split[2]
-                        project_macro_header.write(f"{operator} {name} {value if value is not None else ''}\n")
+                        #Example line: "-D chtype=char"
+                        operator: str = "#define" if macro[:2] == "-D" else "#undef"
+
+                        macro_split: list[str] = re.split(r'=', macro[2:].strip())
+                        macro_name: str = macro_split[0]
+                        macro_value: str | None = None if len(macro_split) < 2 else macro_split[1]
+
+                        project_macro_header.write(f"{operator} {macro_name} {macro_value if macro_value is not None else ''}\n")
 
         return project_macro_header_path
 
