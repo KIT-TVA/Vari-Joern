@@ -76,6 +76,8 @@ class Tester:
         # Analysis tool.
         self.tool: AbstractTool = AnalysisToolFactory().get_tool(tool_name=args.tool,
                                                                  intermediary_results_path=self.intermediary_results_path,
+                                                                 cache_dir=self.cache_dir_path / Path(args.tool) / Path(
+                                                                     self.program.name),
                                                                  maximum_heap_size=self.maximum_heap_per_job)
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
@@ -271,7 +273,7 @@ class Tester:
                                       commandline_declarations=cmd_decs,
                                       keep_mem=self.tool.keep_mem,
                                       make_main=self.tool.make_main,
-                                      cache_dir_path=self.cache_dir_path / Path(self.program.name),
+                                      cache_dir_path=self.cache_dir_path / Path("SugarC") / Path(self.program.name),
                                       desugaring_function_whitelist=self.tool.desugaring_function_whitelist,
                                       maximum_heap_size=self.maximum_heap_per_job))
 

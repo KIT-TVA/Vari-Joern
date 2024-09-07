@@ -181,8 +181,8 @@ def desugar_file(file_to_desugar: Path,
     outfile = tempfile.NamedTemporaryFile(delete=False, mode="w")
     if recommended_space not in ['', None]:
         outfile.write(recommended_space)
-    included_files.append(outfile.name)
-    outfile.flush()
+        included_files.append(outfile.name)
+        outfile.flush()
 
     included_files = list(itertools.chain(*zip(['-include'] * len(included_files), included_files)))
     included_directories = list(itertools.chain(*zip(['-I'] * len(included_directories), included_directories)))

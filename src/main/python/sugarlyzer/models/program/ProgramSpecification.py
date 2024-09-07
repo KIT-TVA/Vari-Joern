@@ -132,7 +132,7 @@ class ProgramSpecification(ABC):
         for source_dir in self.source_dirs:
             for root, dirs, files in os.walk(source_dir):
                 for f in files:
-                    if (f.endswith(".c") or f.endswith(".i")) and not f.endswith(".desugared.c"):
+                    if (f.endswith(".c") or f.endswith(".i")) and not ("sugarlyzer.desugared" in f):
                         yield Path(root) / f
 
     def clean_intermediary_results(self):

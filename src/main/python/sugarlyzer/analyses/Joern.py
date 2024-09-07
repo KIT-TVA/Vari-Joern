@@ -33,12 +33,14 @@ class Joern(AbstractTool):
                                         "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
     joern_script: Traversable = importlib.resources.files('resources.joern') / "scan.sc"
 
-    def __init__(self, intermediary_results_path: Path, maximum_heap_size: int = None):
-        super().__init__(JoernReader(), name='joern',
+    def __init__(self, intermediary_results_path: Path, cache_dir: Path = None, maximum_heap_size: int = None):
+        super().__init__(JoernReader(),
+                         name='joern',
                          make_main=True,
                          keep_mem=True,
                          remove_errors=True,
                          intermediary_results_path=intermediary_results_path,
+                         results_cache=cache_dir,
                          desugaring_function_whitelist=Joern.whitelist_function_names)
         self.maximum_heap_size = maximum_heap_size
 

@@ -8,6 +8,9 @@
 
   "included_files_and_directories": [
     {
+      "included_directories": [
+        "."
+      ],
       "macro_definitions": [
         "-D __extension__",
         "-D restrict",
