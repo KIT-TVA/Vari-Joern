@@ -63,7 +63,7 @@ def map_source_line(desugared_file: Path, line_number: int) -> IntegerRange:
             logger.exception(f"Trying to find {line_number} in file {desugared_file}.")
             raise
 
-        if original_line_range := check_for_line_number_comment(the_line) is not None:
+        if (original_line_range := check_for_line_number_comment(the_line)) is not None:
             return original_line_range
 
         if re.search(array_access_fixed_index_pattern, the_line) is not None:
@@ -87,7 +87,7 @@ def map_source_line(desugared_file: Path, line_number: int) -> IntegerRange:
                 if "}" in current_line:
                     open_parentheses += current_line.count("{")
 
-                if open_parentheses <= 0 and (original_line_range := check_for_line_number_comment(current_line) is not None):
+                if open_parentheses <= 0 and ((original_line_range := check_for_line_number_comment(current_line)) is not None):
                     return original_line_range
 
                 curren_line_number += 1
