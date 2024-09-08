@@ -7,6 +7,7 @@ import edu.kit.varijoern.PresenceConditionExpectation;
 import edu.kit.varijoern.composers.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -354,7 +355,7 @@ class KbuildComposerTest {
     @ParameterizedTest
     @MethodSource("testCases")
     void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer)
-            throws IOException, GitAPIException, InterruptedException {
+            throws IOException, GitAPIException, InterruptedException, FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name, preparer);
         Map<String, Boolean> featureMap;
         try {

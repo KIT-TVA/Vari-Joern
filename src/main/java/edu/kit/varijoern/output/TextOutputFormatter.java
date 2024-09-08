@@ -14,7 +14,7 @@ public class TextOutputFormatter implements OutputFormatter {
         outStream.println("Summary:");
 
         for (int i = 0; i < results.individualResults().size(); i++) {
-            AnalysisResult analysisResult = results.individualResults().get(i);
+            AnalysisResult<?> analysisResult = results.individualResults().get(i);
             outStream.println(analysisResult);
             if (i != results.individualResults().size() - 1) {
                 outStream.println();

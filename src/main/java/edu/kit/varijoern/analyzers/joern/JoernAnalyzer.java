@@ -3,10 +3,7 @@ package edu.kit.varijoern.analyzers.joern;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.kit.varijoern.analyzers.Analyzer;
-import edu.kit.varijoern.analyzers.AnalyzerFailureException;
-import edu.kit.varijoern.analyzers.Evidence;
-import edu.kit.varijoern.analyzers.ResultAggregator;
+import edu.kit.varijoern.analyzers.*;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.LanguageInformation;
 import jodd.io.StreamGobbler;
@@ -28,7 +25,7 @@ import java.util.*;
 /**
  * An analyzer that uses Joern.
  */
-public class JoernAnalyzer implements Analyzer<JoernAnalysisResult> {
+public class JoernAnalyzer implements Analyzer {
     public static final String NAME = "joern";
     private static final String JOERN_COMMAND = "joern";
     private static final Logger LOGGER = LogManager.getLogger();
@@ -37,7 +34,7 @@ public class JoernAnalyzer implements Analyzer<JoernAnalysisResult> {
     private final @Nullable Path joernPath;
     private final @NotNull Path workspacePath;
     private final @NotNull Path scanScriptPath;
-    private final @Nullable ResultAggregator<JoernAnalysisResult> resultAggregator;
+    private final @Nullable ResultAggregator<JoernAnalysisResult, JoernFinding> resultAggregator;
 
     /**
      * Creates a new {@link JoernAnalyzer} instance which uses the specified command name to run joern-scan.
@@ -48,7 +45,8 @@ public class JoernAnalyzer implements Analyzer<JoernAnalysisResult> {
      * @param resultAggregator the result aggregator to use. May be null if no result aggregation is desired.
      */
     public JoernAnalyzer(@Nullable Path joernPath, @NotNull Path workspacePath,
-                         @Nullable ResultAggregator<JoernAnalysisResult> resultAggregator) throws IOException {
+                         @Nullable ResultAggregator<JoernAnalysisResult, JoernFinding> resultAggregator)
+            throws IOException {
         this.joernPath = joernPath;
         this.workspacePath = workspacePath;
         this.resultAggregator = resultAggregator;

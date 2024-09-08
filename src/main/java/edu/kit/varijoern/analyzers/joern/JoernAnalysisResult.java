@@ -1,5 +1,7 @@
 package edu.kit.varijoern.analyzers.joern;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.AnnotatedFinding;
 import edu.kit.varijoern.analyzers.Evidence;
@@ -18,8 +20,8 @@ import java.util.stream.Collectors;
 /**
  * Contains information about the result of running a Joern scan.
  */
-public class JoernAnalysisResult extends AnalysisResult {
-    private final @NotNull List<JoernFinding> findings;
+public class JoernAnalysisResult extends AnalysisResult<JoernFinding> {
+    private final List<AnnotatedFinding<JoernFinding>> annotatedFindings;
 
     /**
      * Creates a new {@link JoernAnalysisResult} from a list of findings.
@@ -31,8 +33,33 @@ public class JoernAnalysisResult extends AnalysisResult {
      */
     public JoernAnalysisResult(@NotNull List<JoernFinding> findings, @NotNull Map<String, Boolean> enabledFeatures,
                                @NotNull PresenceConditionMapper presenceConditionMapper, @NotNull SourceMap sourceMap) {
-        super(enabledFeatures, presenceConditionMapper, sourceMap);
-        this.findings = List.copyOf(findings);
+        super(enabledFeatures);
+        annotatedFindings = findings.stream()
+                .map(finding -> {
+                    Evidence evidenceForConditionCalculation = finding.getEvidence().size() == 1
+                            ? finding.getEvidence().iterator().next()
+                            : null;
+                    Node condition = evidenceForConditionCalculation == null
+                            ? null
+                            : evidenceForConditionCalculation.getCondition(presenceConditionMapper)
+                            .orElse(null);
+                    Set<SourceLocation> originalLocations = finding.getEvidence().stream()
+                            .map(currentEvidence -> currentEvidence.resolveLocation(sourceMap)
+                                    .orElse(null)
+                            )
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toSet());
+                    return new AnnotatedFinding<>(finding, originalLocations, condition);
+                })
+                .toList();
+    }
+
+    @JsonCreator
+    public JoernAnalysisResult(@NotNull @JsonProperty("findings")
+                               List<AnnotatedFinding<JoernFinding>> annotatedFindings,
+                               @NotNull @JsonProperty("enabledFeatures") Map<String, Boolean> enabledFeatures) {
+        super(enabledFeatures);
+        this.annotatedFindings = annotatedFindings;
     }
 
     /**
@@ -41,31 +68,14 @@ public class JoernAnalysisResult extends AnalysisResult {
      * @return a list of all findings
      */
     @Override
-    public @NotNull List<AnnotatedFinding> getFindings() {
-        return findings.stream()
-                .map(finding -> {
-                    Evidence evidenceForConditionCalculation = finding.getEvidence().size() == 1
-                            ? finding.getEvidence().iterator().next()
-                            : null;
-                    Node condition = evidenceForConditionCalculation == null
-                            ? null
-                            : evidenceForConditionCalculation.getCondition(this.getPresenceConditionMapper())
-                            .orElse(null);
-                    Set<SourceLocation> originalLocations = finding.getEvidence().stream()
-                            .map(currentEvidence -> currentEvidence.resolveLocation(this.getSourceMap())
-                                    .orElse(null)
-                            )
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toSet());
-                    return new AnnotatedFinding(finding, originalLocations, condition);
-                })
-                .toList();
+    public @NotNull List<AnnotatedFinding<JoernFinding>> getFindings() {
+        return annotatedFindings;
     }
 
     @Override
     public @NotNull String toString() {
         StringBuilder sb = new StringBuilder(super.toString());
-        for (AnnotatedFinding finding : this.getFindings()) {
+        for (AnnotatedFinding<?> finding : this.getFindings()) {
             sb.append(System.lineSeparator());
             sb.append(finding.toString());
         }

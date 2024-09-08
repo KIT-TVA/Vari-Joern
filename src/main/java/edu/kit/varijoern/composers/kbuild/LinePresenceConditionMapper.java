@@ -33,7 +33,6 @@ import java.util.regex.Pattern;
  * </ul>
  */
 public class LinePresenceConditionMapper {
-    protected static final Object LOCK = new Object();
     private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)|([A-Za-z0-9_]+)");
     // In busybox, enabled (non-module) tristate features are defined as CONFIG_<feature> as well as ENABLE_<feature>
     private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN

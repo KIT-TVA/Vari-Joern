@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * @param originalEvidenceLocations the locations in the original source code where the finding was found
  * @param condition                 the presence condition of the finding, if available
  */
-public record AnnotatedFinding(@NotNull Finding finding,
+public record AnnotatedFinding<T extends Finding>(@NotNull T finding,
                                @JsonGetter("evidence") @NotNull Set<SourceLocation> originalEvidenceLocations,
                                @Nullable Node condition) {
     @Override

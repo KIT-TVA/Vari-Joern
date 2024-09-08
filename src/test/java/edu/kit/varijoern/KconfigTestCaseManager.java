@@ -2,6 +2,7 @@ package edu.kit.varijoern;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReader;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
@@ -39,13 +40,14 @@ public class KconfigTestCaseManager {
     private final IFeatureModel correctFeatureModel;
     private final Map<Path, List<PresenceConditionExpectation>> presenceConditionExpectations;
 
-    public KconfigTestCaseManager(@NotNull String testCaseName) throws IOException, GitAPIException {
+    public KconfigTestCaseManager(@NotNull String testCaseName)
+            throws IOException, GitAPIException, FeatureModelReaderException {
         this(testCaseName, (path) -> {
         });
     }
 
     public KconfigTestCaseManager(@NotNull String testCaseName, @NotNull KconfigTestCasePreparer preparer)
-            throws IOException, GitAPIException {
+            throws IOException, GitAPIException, FeatureModelReaderException {
         ClassLoader classLoader = this.getClass().getClassLoader();
         URL resourceLocation = classLoader.getResource("kconfigtestcases/%s/source".formatted(testCaseName));
         URL correctFeatureModelLocation = classLoader.getResource(

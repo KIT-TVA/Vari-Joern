@@ -19,5 +19,5 @@ public interface Sampler {
      * @return a list of configurations
      */
     @NotNull
-    List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult> analysisResults) throws SamplerException;
+    List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults) throws SamplerException;
 }

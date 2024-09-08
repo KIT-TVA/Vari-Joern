@@ -40,7 +40,7 @@ public class FixedSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult> analysisResults)
+    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults)
             throws SamplerException {
         List<Map<String, Boolean>> result = new ArrayList<>();
         for (List<String> enabledFeaturesOfConfiguration : this.enabledFeaturesOfConfigurations) {

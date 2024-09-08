@@ -12,6 +12,7 @@ import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.kbuild.KbuildComposer;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
@@ -41,7 +42,8 @@ class JoernAnalyzerTest {
      */
     @Test
     void analyzeBusybox(@TempDir Path tempDirectory)
-            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException {
+            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException,
+            FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("busybox-sample");
 
         List<Map<String, Boolean>> configurations = Stream.of(
@@ -90,7 +92,8 @@ class JoernAnalyzerTest {
      */
     @Test
     void analyzeFiasco(@TempDir Path tempDirectory)
-            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException {
+            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException,
+            FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("fiasco-sample");
 
         List<Map<String, Boolean>> configurations = Stream.of(
@@ -152,7 +155,7 @@ class JoernAnalyzerTest {
             throws IOException, ComposerException, InterruptedException, AnalyzerFailureException {
         Path workspaceDirectory = tempDirectory.resolve("workspace");
         Files.createDirectory(workspaceDirectory);
-        ResultAggregator<JoernAnalysisResult> resultAggregator = new JoernResultAggregator();
+        ResultAggregator<JoernAnalysisResult, JoernFinding> resultAggregator = new JoernResultAggregator();
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
@@ -186,9 +189,9 @@ class JoernAnalyzerTest {
      * @param expectedFindings the expected findings
      * @param configuration    the configuration that was used to generate the findings
      */
-    private void verifyFindings(List<AnnotatedFinding> findings, List<ExpectedFinding> expectedFindings,
+    private void verifyFindings(List<AnnotatedFinding<JoernFinding>> findings, List<ExpectedFinding> expectedFindings,
                                 Map<String, Boolean> configuration) {
-        BiPredicate<ExpectedFinding, AnnotatedFinding> findingsEqual = (expectedFinding, finding) -> {
+        BiPredicate<ExpectedFinding, AnnotatedFinding<JoernFinding>> findingsEqual = (expectedFinding, finding) -> {
             if (!finding.finding().getName().equals(expectedFinding.name)) {
                 return false;
             }

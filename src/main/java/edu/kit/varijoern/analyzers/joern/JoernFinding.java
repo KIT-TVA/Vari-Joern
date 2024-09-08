@@ -1,5 +1,7 @@
 package edu.kit.varijoern.analyzers.joern;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.Finding;
 import org.jetbrains.annotations.NotNull;
@@ -25,12 +27,13 @@ public class JoernFinding implements Finding {
      * @param score       the score of the finding
      * @param evidence    information about the source that caused this finding
      */
+    @JsonCreator
     public JoernFinding(
-            @NotNull String name,
-            @NotNull String title,
-            @NotNull String description,
-            double score,
-            @NotNull Set<Evidence> evidence) {
+            @NotNull @JsonProperty("name") String name,
+            @NotNull @JsonProperty("title") String title,
+            @NotNull @JsonProperty("description") String description,
+            @JsonProperty("score") double score,
+            @NotNull @JsonProperty("evidence") Set<Evidence> evidence) {
         this.name = name;
         this.title = title;
         this.description = description;

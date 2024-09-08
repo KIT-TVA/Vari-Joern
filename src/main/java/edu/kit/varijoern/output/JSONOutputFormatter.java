@@ -3,6 +3,7 @@ package edu.kit.varijoern.output;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import edu.kit.varijoern.serialization.JacksonNodeSerializer;
 import org.prop4j.Node;
 
 import java.io.IOException;

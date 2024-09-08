@@ -3,6 +3,7 @@ package edu.kit.varijoern;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.impl.FeatureModel;
 import edu.kit.varijoern.analyzers.*;
+import edu.kit.varijoern.caching.DummyResultCache;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
@@ -27,7 +28,7 @@ class ParallelIterationRunnerTest {
         List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
         ParallelIterationRunner runner = new ParallelIterationRunner(2, 1, 1,
                 new ComposerConfigMock(false, false, false), new AnalyzerConfigMock(),
-                new FeatureModel("test"), tmpDir);
+                new FeatureModel("test"), new DummyResultCache(), tmpDir);
         ParallelIterationRunner.Output result = runner.run(sample);
         assertNotNull(result.results());
         assertTrue(result.results().stream()
@@ -44,7 +45,7 @@ class ParallelIterationRunnerTest {
                 .toList();
         ParallelIterationRunner runner = new ParallelIterationRunner(3, 2, 1,
                 new ComposerConfigMock(false, false, false), new AnalyzerConfigMock(),
-                new FeatureModel("test"), tmpDir);
+                new FeatureModel("test"), new DummyResultCache(), tmpDir);
         ParallelIterationRunner.Output result = runner.run(sample);
         assertNotNull(result.results());
         for (int i = 0; i < 100; i++) {
@@ -60,7 +61,7 @@ class ParallelIterationRunnerTest {
         List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
         ComposerConfigMock composerConfig = new ComposerConfigMock(true, false, true);
         ParallelIterationRunner runner = new ParallelIterationRunner(1, 1, 1, composerConfig,
-                new AnalyzerConfigMock(), new FeatureModel("test"), tmpDir);
+                new AnalyzerConfigMock(), new FeatureModel("test"), new DummyResultCache(), tmpDir);
         Thread runnerThread = new Thread(() -> {
             try {
                 runner.run(sample);
@@ -83,7 +84,7 @@ class ParallelIterationRunnerTest {
         List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
         ComposerConfigMock composerConfig = new ComposerConfigMock(true, true, true);
         ParallelIterationRunner runner = new ParallelIterationRunner(1, 1, 1, composerConfig,
-                new AnalyzerConfigMock(), new FeatureModel("test"), tmpDir);
+                new AnalyzerConfigMock(), new FeatureModel("test"), new DummyResultCache(), tmpDir);
         Thread runnerThread = new Thread(() -> {
             try {
                 runner.run(sample);
@@ -173,7 +174,7 @@ class ParallelIterationRunnerTest {
         }
     }
 
-    private static final class AnalyzerMock implements Analyzer<EmptyAnalysisResult> {
+    private static final class AnalyzerMock implements Analyzer {
         @Override
         public @NotNull EmptyAnalysisResult analyze(@NotNull CompositionInformation compositionInformation)
                 throws InterruptedException {
@@ -181,7 +182,7 @@ class ParallelIterationRunnerTest {
         }
     }
 
-    private static final class AnalyzerConfigMock extends AnalyzerConfig<EmptyAnalysisResult> {
+    private static final class AnalyzerConfigMock extends AnalyzerConfig<EmptyAnalysisResult, Finding> {
         private final List<AnalyzerMock> analyzers = new ArrayList<>();
 
         private AnalyzerConfigMock() {
@@ -200,21 +201,26 @@ class ParallelIterationRunnerTest {
         }
     }
 
-    private static class EmptyAnalysisResult extends AnalysisResult {
+    private static class EmptyAnalysisResult extends AnalysisResult<Finding> {
         public EmptyAnalysisResult(Map<String, Boolean> enabledFeatures) {
-            super(enabledFeatures, (file, lineNumber) -> Optional.empty(), location -> Optional.empty());
+            super(enabledFeatures);
         }
 
         @Override
-        public @NotNull List<AnnotatedFinding> getFindings() {
+        public @NotNull List<AnnotatedFinding<Finding>> getFindings() {
             return List.of();
         }
     }
 
-    private static class EmptyAnalysisResultAggregator extends ResultAggregator<EmptyAnalysisResult> {
+    private static class EmptyAnalysisResultAggregator extends ResultAggregator<EmptyAnalysisResult, Finding> {
         @Override
         public @NotNull AggregatedAnalysisResult aggregateResults() {
             return new AggregatedAnalysisResult(Set.of());
+        }
+
+        @Override
+        protected Class<EmptyAnalysisResult> getResultClass() {
+            return EmptyAnalysisResult.class;
         }
     }
 }
