@@ -248,7 +248,6 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file:
     to_hash: List[str] = list()
     sugarc_arguments: str = (cmd_str.split("superc.SugarC")[1]).strip()
     sugarc_arguments_split = sugarc_arguments.split(' ')
-    sugarc_arguments_split.sort()
 
     for tok in sugarc_arguments_split:  # Skip /usr/bin/time and everything up to the arguments passed to SugarC.
         if (path := Path(tok)).exists() and path.is_file(): # Collect contents of files relevant to desugaring.
