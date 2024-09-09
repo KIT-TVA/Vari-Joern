@@ -8,7 +8,7 @@ import shutil
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from importlib.resources.abc import Traversable
+from importlib.abc import Traversable
 from io import StringIO
 from pathlib import Path
 from typing import List, Iterable, Optional, Dict, Tuple, Any
@@ -209,7 +209,8 @@ class ProgramSpecification(ABC):
         for spec in inc_dirs_and_files:
             # Note the difference between s[a] and s.get(a) is the former will
             #  raise an exception if a is not in s, while s.get will return None.
-            if spec.get('file_pattern') is None or re.search(pattern=spec.get('file_pattern'), string=str(file.absolute())):
+            if spec.get('file_pattern') is None or re.search(pattern=spec.get('file_pattern'),
+                                                             string=str(file.absolute())):
                 if (rt := spec.get('relative_to')) is not None:
                     relative_to = Path(rt)
                 else:
@@ -402,14 +403,15 @@ class ProgramSpecification(ABC):
                 if spec.get('file_pattern') is None:
                     macros: Iterable[str] = spec['macro_definitions']
                     for macro in macros:
-                        #Example line: "-D chtype=char"
+                        # Example line: "-D chtype=char"
                         operator: str = "#define" if macro[:2] == "-D" else "#undef"
 
                         macro_split: list[str] = re.split(r'=', macro[2:].strip())
                         macro_name: str = macro_split[0]
                         macro_value: str | None = None if len(macro_split) < 2 else macro_split[1]
 
-                        project_macro_header.write(f"{operator} {macro_name} {macro_value if macro_value is not None else ''}\n")
+                        project_macro_header.write(
+                            f"{operator} {macro_name} {macro_value if macro_value is not None else ''}\n")
 
         return project_macro_header_path
 

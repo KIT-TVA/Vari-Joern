@@ -72,7 +72,7 @@ class ToyboxSpecification(ProgramSpecification):
                                                    stderr=subprocess.DEVNULL)
 
         if process.returncode != 0:
-            logger.warning(f"Running make with command \"{" ".join(str(s) for s in cmd)}\" returned with "
+            logger.warning(f"Running make with command \"{' '.join(str(s) for s in cmd)}\" returned with "
                            f"exit code {process.returncode}")
         else:
             # Collect information from make call into the specified output file.
@@ -82,7 +82,7 @@ class ToyboxSpecification(ProgramSpecification):
                                                        executable='/bin/bash',
                                                        cwd=self.makefile_dir_path)
             if process.returncode != 0:
-                logger.warning(f"Running make with command \"{" ".join(str(s) for s in cmd)}\" returned with "
+                logger.warning(f"Running make with command \"{' '.join(str(s) for s in cmd)}\" returned with "
                                f"exit code {process.returncode}")
 
         return process.returncode

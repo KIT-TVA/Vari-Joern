@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import subprocess
-from importlib.resources.abc import Traversable
+from importlib.abc import Traversable
 from pathlib import Path
 from typing import Iterable
 

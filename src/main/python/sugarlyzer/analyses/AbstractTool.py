@@ -90,10 +90,10 @@ class AbstractTool(ABC):
         else:
             logger.debug(f"Cache miss for file {str(source_file)}. Running {self.name}...")
 
-        tool_report_files: Iterable[Path] = cache_dir_hits if cache_hit else self.analyze(file=source_file,
+        tool_report_files: list[Path] = cache_dir_hits if cache_hit else list(self.analyze(file=source_file,
                                                                                           command_line_defs=command_line_defs,
                                                                                           included_dirs=included_dirs,
-                                                                                          included_files=included_files)
+                                                                                          included_files=included_files))
 
         # Add new entries to cache.
         if self.cache_dir is not None and not cache_hit:

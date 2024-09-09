@@ -9,7 +9,7 @@ import shutil
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
-from importlib.resources.abc import Traversable
+from importlib.abc import Traversable
 from pathlib import Path
 from typing import Iterable, List, Dict, Any, Tuple
 
