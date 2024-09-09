@@ -239,15 +239,19 @@ def desugar_file(file_to_desugar: Path,
     return desugared_file, log_file
 
 
-def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file, cache_dir_path: Path | None):
+def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file: Path, cache_dir_path: Path | None):
     current_directory = os.curdir
     os.chdir(file_to_desugar.parent)
     logger.debug(f"In run_sugarc, running cmd {cmd_str} from directory {os.curdir}")
     start = time.monotonic()
 
     to_hash: List[str] = list()
-    for tok in cmd_str.split(' ')[1:]:  # Skip /usr/bin/time
-        if (path := Path(tok)).exists() and path.is_file(): # Collect all files relevant to desugaring.
+    sugarc_arguments: str = (cmd_str.split("superc.SugarC")[1]).strip()
+    sugarc_arguments_split = sugarc_arguments.split(' ')
+    sugarc_arguments_split.sort()
+
+    for tok in sugarc_arguments_split:  # Skip /usr/bin/time and everything up to the arguments passed to SugarC.
+        if (path := Path(tok)).exists() and path.is_file(): # Collect contents of files relevant to desugaring.
             with open(path, 'r') as infile:
                 try:
                     to_hash.extend(infile.readlines())
@@ -263,20 +267,23 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
     hex_digest = hasher.hexdigest()
     usr_time = 0
     sys_time = 0
+    cache_hit: bool = False
+
     try:
         cached_file: Path | None = None
         if cache_dir_path is not None:
             cached_file = cache_dir_path / Path(f"{desugared_output.name}_{hex_digest}")
 
-        if cached_file.exists():
+        if cached_file.exists() and os.path.getsize(cached_file) > 0:
             logger.debug("Cache hit!")
+            cache_hit = True
             with open(desugared_output, 'wb') as outfile:
                 with open(cached_file, 'rb') as infile:
                     outfile.write(infile.read())
         else:
             logger.debug("Cache miss")
-            logger.debug("Cmd string is " + cmd_str)
 
+            logger.debug("Cmd string is " + cmd_str)
             ps = subprocess.run(cmd_str, capture_output=True, text=True, shell=True, executable='/bin/bash',
                                 env=os.environ)
             try:
@@ -311,7 +318,8 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file,
                     f"Could not desugar file {file_to_desugar}. Tried to output what went wrong but couldn't access subprocess output.")
         os.chdir(current_directory)
     logger.info(
-        f"{desugared_output} desugared in time:{time.monotonic() - start} (cpu time {usr_time + sys_time}) to file size:{desugared_output.stat().st_size}")
+        f"{desugared_output} desugared in time:{time.monotonic() - start} (cpu time {usr_time + sys_time}) to "
+        f"file size:{desugared_output.stat().st_size} ({'Cache Hit' if cache_hit else 'Cache Miss'})")
 
 
 def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Alarm]:

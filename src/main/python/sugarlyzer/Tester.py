@@ -138,6 +138,7 @@ class Tester:
             # Run SugarC.
             ###################################
             logger.info(f"Desugaring the source code in {self.program.source_dirs} with {self.jobs} jobs...")
+            start_time_desugaring: float = time.monotonic()
             source_files = list(self.program.get_source_files())
             desugared_files: List[Tuple] = []
 
@@ -146,7 +147,7 @@ class Tester:
                 desugar_tasks = [executor.submit(self.desugar, file) for file in source_files]
 
                 # Collect results.
-                for desugar_task in tqdm(desugar_tasks, total=len(source_files)):
+                for desugar_task in tqdm(desugar_tasks, total=len(source_files), miniters=1):
                     try:
                         desugared_file = desugar_task.result()
                         desugared_files.append(desugared_file)
@@ -154,6 +155,7 @@ class Tester:
                         logger.exception(f"Error during desugaring: {e}")
 
             logger.info(f"Finished desugaring the source code.")
+            logger.info(f"Time elapsed during desugaring: {time.monotonic() - start_time_desugaring}s")
             logger.info(f"From a total of {len(source_files)} source files, collected {len(desugared_files)} "
                         f"desugared .c files.")
 
@@ -168,6 +170,7 @@ class Tester:
             ###################################
             alarms = []
             logger.info(f"Running analysis with tool {self.tool.name}...")
+            start_time_analysis: float = time.monotonic()
 
             with ProcessPoolExecutor(max_workers=self.jobs) as executor:
                 # Submit tasks.
@@ -182,11 +185,14 @@ class Tester:
                     except Exception as e:
                         logger.exception(f"Error during analysis: {e}")
 
+            logger.info(f"Analysis with tool {self.tool.name} finished.")
+            logger.info(f"Elapsed time during analysis: {time.monotonic() - start_time_analysis}s")
             logger.info(f"Got {len(alarms)} unique alarms from the analysis tool.")
 
             ###################################
             # Post processing of alarms.
             ###################################
+            start_time_post_processing: float = time.monotonic()
             buckets: List[List[Alarm]] = [[]]
 
             def alarm_match(a: Alarm, b: Alarm):
@@ -229,10 +235,12 @@ class Tester:
                 logger.debug("Now validating....")
                 with ProcessPool(self.jobs) as p:
                     alarms = list(tqdm(p.imap(self.verify_alarm, alarms)))
+
+            logger.info(f"Time elapsed during post-processing of alarms: {time.monotonic() - start_time_post_processing}s")
         else:
             alarms = self.run_baseline_experiments()
 
-        logger.debug(f"Writing alarms to file \"{self.output_file_path}\"")
+        logger.info(f"Writing alarms to file \"{self.output_file_path}\"")
 
         # Sort alarms w.r.t full file name and original line range to ease comparison of reports between executions.
         alarms.sort(key=lambda alarm_param: f"{alarm_param.input_file}::{str(alarm_param.original_line_range)}")
@@ -465,6 +473,8 @@ def get_arguments() -> argparse.Namespace:
 
 
 def set_up_logging(args: argparse.Namespace) -> None:
+    # TODO Set different logging levels for file and console.
+
     if args.verbosity:
         logging_level = logging.DEBUG
     else:
