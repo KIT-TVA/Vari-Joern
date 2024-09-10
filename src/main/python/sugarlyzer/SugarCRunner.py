@@ -213,6 +213,7 @@ def desugar_file(file_to_desugar: Path,
 
     cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', maximum_heap_size_option, 'superc.SugarC',
            '-showActions', '-useBDD']
+    # TODO Remove -showActions as it blows up the size of the logfiles and isn't really helpful anyway.
     if config_prefix is not None:
         cmd.extend(['-restrictConfigToPrefix', config_prefix])
     elif whitelist is not None:
@@ -255,7 +256,7 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file:
                 try:
                     to_hash.extend(infile.readlines())
                 except UnicodeError:
-                    print(f'failed to extend hash ::{infile.name}::')
+                    logger.warning(f'failed to extend hash ::{infile.name}::')
         else:
             to_hash.extend(tok)
 

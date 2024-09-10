@@ -10,8 +10,9 @@ import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
 from importlib.abc import Traversable
+from logging import FileHandler
 from pathlib import Path
-from typing import Iterable, List, Dict, Any, Tuple
+from typing import Iterable, List, Dict, Any, Tuple, TextIO
 
 # noinspection PyUnresolvedReferences
 from dill import pickle
@@ -178,7 +179,7 @@ class Tester:
                                   for d, _, o, dt in desugared_files]
 
                 # Collect results.
-                for analysis_task in tqdm(analysis_tasks, total=len(desugared_files)):
+                for analysis_task in tqdm(analysis_tasks, total=len(desugared_files), miniters=1):
                     try:
                         results = analysis_task.result()
                         alarms.extend(results)
@@ -473,26 +474,29 @@ def get_arguments() -> argparse.Namespace:
 
 
 def set_up_logging(args: argparse.Namespace) -> None:
-    # TODO Set different logging levels for file and console.
-
-    if args.verbosity:
-        logging_level = logging.DEBUG
-    else:
-        logging_level = logging.INFO
-
-    logging_dir = Path.home() / Path(".vari-joern")
+    # Ensure that directory for logfile exists.
+    logging_dir: Path = Path.home() / Path(".vari-joern")
     logging_dir.mkdir(exist_ok=True, parents=True)
 
-    logging_kwargs = {"level": logging_level,
-                      "format": '%(asctime)s %(name)s [%(levelname)s - %(process)d] %(message)s',
-                      "handlers": [
-                          logging.StreamHandler(),
-                          logging.FileHandler(os.path.join(logging_dir, "sugarlyzer.log"), 'w')
-                      ]
-                      }
+    # Set logging levels.
+    logging_level_console: int = logging.DEBUG if args.verbosity else logging.INFO
+    logging_level_logfile: int = logging.DEBUG # Always use DEBUG level for logfile.
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG) # Default level.
 
-    logging.basicConfig(**logging_kwargs)
+    # Create and customize handlers.
+    console_handler: logging.StreamHandler[TextIO] = logging.StreamHandler()
+    console_handler.setLevel(logging_level_console)
+    logfile_handler: FileHandler = logging.FileHandler(logging_dir / Path("sugarlyzer.log"), 'w')
+    logfile_handler.setLevel(logging_level_logfile)
+    formatter = logging.Formatter("%(asctime)s %(name)s [%(levelname)s - %(process)d] %(message)s")
+    console_handler.setFormatter(formatter)
+    logfile_handler.setFormatter(formatter)
 
+    # Add handlers to logger.
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(logfile_handler)
+    root_logger.propagate = False
 
 def main():
     start = time.monotonic()
