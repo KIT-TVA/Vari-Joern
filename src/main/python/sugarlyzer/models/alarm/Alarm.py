@@ -1,12 +1,10 @@
-import collections
-import logging
-from pathlib import Path
-from typing import List, Dict, Optional, Iterable, Callable, TypeVar, Tuple
-from dataclasses import dataclass
 import itertools
+import logging
 import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Dict, Optional, Iterable, TypeVar, Tuple
 
-import z3
 from z3.z3 import ModelRef
 
 logger = logging.getLogger(__name__)
@@ -16,9 +14,10 @@ logger = logging.getLogger(__name__)
 class IntegerRange:
     start_line: int
     end_line: int
+    approximated: bool = False
 
     def __str__(self):
-        return f"{self.start_line}:{self.end_line}"
+        return f"{self.start_line}:{self.end_line}{' (Approximated)' if self.approximated else ''}"
 
     def is_in(self, i) -> bool:
         if isinstance(i, IntegerRange):
@@ -37,18 +36,19 @@ def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
     return range1.start_line == range2.start_line and range1.end_line == range2.end_line
 
 
-def map_source_line(desugared_file: Path, line_number: int) -> IntegerRange:
+def map_source_line(desugared_file: Path, line_number: int, unpreprocessed_source_file: Path) -> IntegerRange:
     """
     Given an alarm, map it back to original source.
 
     :param desugared_file: The desugared file in which the line is present.
     :param line_number: The linen umber to map (starts at 1 for the first line).
+    :param unpreprocessed_source_file: The unpreprocessed source file from which the desugared file was created.
     :return: The line range in the original source file.
     """
     with open(desugared_file, 'r') as infile:
-        line_range_pattern: str = r"// L(.*):L(.*)$" # Example: "int  (__cmds_8183)[] ;// L41:L42"
-        single_line_pattern: str = r"// L(.*)$" # Example: "int  __i_8187 ;// L49"
-        array_access_fixed_index_pattern: str = r"\s*__\S+_\d+\[\d+\] = .+$" # Example: "__cmds_8183[0] = 128"
+        line_range_pattern: str = r"// L(.*):L(.*)$"  # Example: "int  (__cmds_8183)[] ;// L41:L42"
+        single_line_pattern: str = r"// L(.*)$"  # Example: "int  __i_8187 ;// L49"
+        array_access_fixed_index_pattern: str = r"\s*__\S+_\d+\[\d+\] = .+$"  # Example: "__cmds_8183[0] = 128"
 
         def check_for_line_number_comment(line: str) -> IntegerRange | None:
             if match := re.search(line_range_pattern, line):
@@ -81,16 +81,29 @@ def map_source_line(desugared_file: Path, line_number: int) -> IntegerRange:
             open_parentheses: int = 0
 
             while curren_line_number < len(lines):
-                current_line:str = lines[curren_line_number]
+                current_line: str = lines[curren_line_number]
                 if "{" in current_line:
                     open_parentheses += current_line.count("{")
                 if "}" in current_line:
                     open_parentheses += current_line.count("{")
 
-                if open_parentheses <= 0 and ((original_line_range := check_for_line_number_comment(current_line)) is not None):
+                if open_parentheses <= 0 and (
+                        (original_line_range := check_for_line_number_comment(current_line)) is not None):
                     return original_line_range
 
                 curren_line_number += 1
+
+        # Try to approximate the line number by looking at the successive lines if SugarC failed to include a line number comment.
+        with open(unpreprocessed_source_file, 'r') as file:
+            lines_in_original_source_file: int = sum(1 for _ in file)
+
+        curren_line_number: int = line_number
+        while curren_line_number < len(lines):
+            current_line: str = lines[curren_line_number]
+            if (found_line_range := check_for_line_number_comment(current_line)) is not None and (found_line_range.start_line <= lines_in_original_source_file):
+                found_line_range.approximated = True
+                return found_line_range
+            curren_line_number += 1
 
     raise ValueError(f"Could not find source line for line {desugared_file}:{line_number} ({the_line})")
 
@@ -99,11 +112,13 @@ class Alarm:
     __id_generator = itertools.count()
 
     def __init__(self,
-                 input_file: Path = None,
-                 line_in_input_file: int = None,
-                 message: str = None,
+                 input_file: Path,
+                 line_in_input_file: int,
+                 unpreprocessed_source_file: Path,
+                 message: str,
                  ):
         self.input_file: Path = input_file
+        self.unpreprocessed_source_file: Path = unpreprocessed_source_file
         self.line_in_input_file: int = int(line_in_input_file)
         self.message: str = message
         self.id: int = next(Alarm.__id_generator)
@@ -132,6 +147,7 @@ class Alarm:
             "id": lambda: str(self.id),
             "input_file": lambda: str(self.input_file.absolute()),
             "input_line": lambda: self.line_in_input_file,
+            "original_file": lambda: str(self.unpreprocessed_source_file.absolute()),
             "original_line": lambda: str(self.original_line_range),
             "function_line_range": lambda: f"{self.function_line_range[0]}:{str(self.function_line_range[1])}",
             "message": lambda: self.message,
@@ -173,7 +189,8 @@ class Alarm:
             return IntegerRange(self.line_in_input_file, self.line_in_input_file)
 
         if self.__original_line_range is None:
-            self.__original_line_range = map_source_line(self.input_file, self.line_in_input_file)
+            self.__original_line_range = map_source_line(self.input_file, self.line_in_input_file,
+                                                         self.unpreprocessed_source_file)
             if (self.__original_line_range is not None
                     and not self.function_line_range[0] == "GLOBAL"
                     and not self.__original_line_range.is_in(self.function_line_range[1])):
@@ -199,8 +216,12 @@ class Alarm:
 
             found = False
             for l in lines_to_reverse_iterate_over:
-                if mat := re.search(r"(.*)//\s?M:L(\d*):L(\d*)$", l.strip()):
+                l = l.strip()
+                # Only consider the last 1000 characters since static renamings can be multiple million characters long.
+                if re.search(r"//\s?M:L(\d*):L(\d*)$", l[-1000:]):
                     found = True
+                    # Function defs are not overly long. Can therefore now match on the whole string.
+                    mat = re.search(r"(.*)//\s?M:L(\d*):L(\d*)$", l)
                     self.__function_line_range = (mat.group(1), IntegerRange(int(mat.group(2)), int(mat.group(3))))
                     break
             if not found:

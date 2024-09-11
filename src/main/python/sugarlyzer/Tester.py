@@ -57,10 +57,6 @@ class Tester:
         self.cache_dir_path = Path.home() / Path(".vari-joern/sugarlyzer-cache")
         self.cache_dir_path.mkdir(exist_ok=True, parents=True)
 
-        self.output_file_path = args.output_path if args.output_path is not None else Path.home() / Path(
-            "sugarlyzer-results.json")
-        self.output_file_path.parent.mkdir(exist_ok=True, parents=True)
-
         # Read program specification file (program.json).
         program_specification: Traversable = importlib.resources.files(
             f"resources.sugarlyzer.programs.{args.program}") / "program.json"
@@ -68,18 +64,23 @@ class Tester:
             program_specification_json: Dict[str, Any] = ProgramSpecification.validate_and_read_program_specification(
                 program_specification_path)
 
+        # Subject system to analyze.
         self.program: ProgramSpecification = ProgramSpecificationFactory.get_program_specification(
             name=args.program,
             project_root=Path(args.program_path),
             tmp_dir=self.intermediary_results_path,
             program_specification_json=program_specification_json)
-
         # Analysis tool.
         self.tool: AbstractTool = AnalysisToolFactory().get_tool(tool_name=args.tool,
                                                                  intermediary_results_path=self.intermediary_results_path,
                                                                  cache_dir=self.cache_dir_path / Path(args.tool) / Path(
                                                                      self.program.name),
                                                                  maximum_heap_size=self.maximum_heap_per_job)
+
+        self.output_file_path = args.output_path if args.output_path is not None else Path.home() / Path(
+            f"sugarlyzer_results_{self.tool.name}_{self.program.name}.json")
+        self.output_file_path.parent.mkdir(exist_ok=True, parents=True)
+
         self.remove_errors = self.tool.remove_errors if self.program.remove_errors is None else self.program.remove_errors
         self.config_prefix = self.program.config_prefix
         self.whitelist = None  # TODO Consider removing (Sugarlyzer debt).
@@ -96,9 +97,13 @@ class Tester:
         logger.debug(f"User defined space for file {file} is {recommended_space}")
         return included_directories, included_files, cmd_decs, recommended_space
 
-    def analyze_one_file(self, fi: Path, ps: ProgramSpecification) -> Iterable[Alarm]:
-        inc_files, inc_dirs, cmd_decs = ps.inc_files_and_dirs_for_file(fi)
-        alarms = self.tool.analyze_file_and_read_alarms(fi, command_line_defs=cmd_decs,
+    def analyze_one_file(self, desugared_source_file: Path,
+                         unpreprocessed_source_file: Path,
+                         program_specification: ProgramSpecification) -> Iterable[Alarm]:
+        inc_files, inc_dirs, cmd_decs = program_specification.inc_files_and_dirs_for_file(desugared_source_file)
+        alarms = self.tool.analyze_file_and_read_alarms(source_file=desugared_source_file,
+                                                        unpreprocessed_source_file=unpreprocessed_source_file,
+                                                        command_line_defs=cmd_decs,
                                                         included_files=inc_files,
                                                         included_dirs=inc_dirs)
         return alarms
@@ -205,7 +210,7 @@ class Tester:
             # Collect alarms into "buckets" based on equivalence.
             # Then, for each bucket, we will return one alarm, combining all the
             # models into a list.
-            logger.debug("Now deduplicating results.")
+            logger.info("Now deduplicating results.")
             bucket_matches = 0
             for ba in alarms:
                 for bucket in buckets:
@@ -224,7 +229,7 @@ class Tester:
                          f"({bucket_matches} bucket matches).")
 
             # Aggregate alarms and join their presence conditions via disjunctions.
-            logger.debug("Now aggregating alarms.")
+            logger.info("Now aggregating alarms.")
             alarms = []
             for bucket in (b for b in buckets if len(b) > 0):
                 alarms.append(bucket[0])
@@ -233,7 +238,7 @@ class Tester:
             logger.info(f"{len(alarms)} alarms remain after aggregation.")
 
             if self.validate:
-                logger.debug("Now validating....")
+                logger.info("Now validating....")
                 with ProcessPool(self.jobs) as p:
                     alarms = list(tqdm(p.imap(self.verify_alarm, alarms)))
 
@@ -265,13 +270,13 @@ class Tester:
             logger.debug("Cleaning intermediary results from subject system.")
             self.program.clean_intermediary_results()
 
-    def desugar(self, file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
+    def desugar(self, unpreprocessed_file: Path) -> Tuple[Path, Path, Path, float]:  # God, what an ugly tuple
         included_directories, included_files, cmd_decs, recommended_space = self.get_inc_files_and_dirs_for_file(
-            file)
+            unpreprocessed_file)
         start = time.monotonic()
         # noinspection PyTypeChecker
         desugared_file_location, log_file = (
-            SugarCRunner.desugar_file(file,
+            SugarCRunner.desugar_file(file_to_desugar=unpreprocessed_file,
                                       recommended_space=None,
                                       remove_errors=self.remove_errors,
                                       config_prefix=self.config_prefix,
@@ -286,14 +291,15 @@ class Tester:
                                       desugaring_function_whitelist=self.tool.desugaring_function_whitelist,
                                       maximum_heap_size=self.maximum_heap_per_job))
 
-        return desugared_file_location, log_file, file, time.monotonic() - start
+        return desugared_file_location, log_file, unpreprocessed_file, time.monotonic() - start
 
     def analyze_read_and_process(self, desugared_file: Path, original_file: Path, desugaring_time: float = None) -> \
             Iterable[Alarm]:
         included_directories, included_files, cmd_decs, user_defined_space = (
             self.get_inc_files_and_dirs_for_file(original_file))
 
-        alarms = self.tool.analyze_file_and_read_alarms(desugared_file,
+        alarms = self.tool.analyze_file_and_read_alarms(source_file=desugared_file,
+                                                        unpreprocessed_source_file=original_file,
                                                         included_files=included_files,
                                                         included_dirs=included_directories)
 
@@ -349,12 +355,16 @@ class Tester:
             ntf = tempfile.NamedTemporaryFile(delete=False, mode="w")
             ntf.write(config_string)
             ps: ProgramSpecification = self.clone_program_and_configure(self.program, Path(ntf.name))
+
             updated_file = str(alarm.input_file.absolute()).replace('/targets',
                                                                     f'/targets/{Path(ntf.name).name}').replace(
                 '.desugared', '')
             updated_file = Path(updated_file)
             logger.debug(f"Mapped file {alarm.input_file} to {updated_file}")
-            verify = self.analyze_file_and_associate_configuration(updated_file, Path(ntf.name), ps)
+            verify = self.analyze_file_and_associate_configuration(desugared_source_file=updated_file,
+                                                                   unpreprocessed_source_file=alarm.unpreprocessed_source_file,
+                                                                   config=Path(ntf.name),
+                                                                   program_specification=ps)
             logger.debug(
                 f"Got the following alarms {[json.dumps(b.as_dict()) for b in verify]} when trying to verify alarm {json.dumps(alarm.as_dict())}")
             ntf.close()
@@ -382,7 +392,11 @@ class Tester:
         else:
             return alarm
 
-    def analyze_file_and_associate_configuration(self, file: Path, config: Path, ps: ProgramSpecification) -> Iterable[
+    def analyze_file_and_associate_configuration(self,
+                                                 desugared_source_file: Path,
+                                                 unpreprocessed_source_file: Path,
+                                                 config: Path,
+                                                 program_specification: ProgramSpecification) -> Iterable[
         Alarm]:
         def get_config_object(config: Path) -> List[Tuple[str, str]]:
             with open(config, 'r') as f:
@@ -397,11 +411,14 @@ class Tester:
 
             return result
 
-        alarms_from_one_file = self.analyze_one_file(file, ps)
+        alarms_from_one_file = self.analyze_one_file(desugared_source_file=desugared_source_file,
+                                                     unpreprocessed_source_file=unpreprocessed_source_file,
+                                                     program_specification=program_specification)
         for a in alarms_from_one_file:
             a.model = get_config_object(config)
         return alarms_from_one_file
 
+    # TODO Technical debt inherited from Sugarlyzer.
     def run_baseline_experiments(self) -> Iterable[Alarm]:
         alarms: List[Alarm] = []
         count = 0
@@ -432,7 +449,7 @@ class Tester:
         with ProcessPool(self.jobs) as p:
             alarms = list()
             for i in tqdm(
-                    p.imap(lambda x: self.analyze_file_and_associate_configuration(*x),
+                    p.imap(lambda x: self.analyze_file_and_associate_configuration(*x), # TODO Not yet adjusted to the new signature.
                            source_files_config_spec_triples),
                     total=len(source_files_config_spec_triples)):
                 alarms.extend(i)

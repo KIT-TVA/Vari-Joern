@@ -38,13 +38,15 @@ class AbstractTool(ABC):
 
     def analyze_file_and_read_alarms(self,
                                      source_file: Path,
+                                     unpreprocessed_source_file: Path,
                                      command_line_defs: Iterable[str] = None,
                                      included_dirs: Iterable[Path] = None,
                                      included_files: Iterable[Path] = None,
                                      recommended_space=None) -> Iterable[Alarm]:
         """
         Analyzes a desugared .c file, and returns the alarms generated.
-        :param source_file: The (desugared) source file to analyze.
+        :param source_file: The desugared source file to analyze.
+        :param unpreprocessed_source_file: The unpreprocessed source file.
         :param command_line_defs: Macro (un)definitions that should be set for the analysis.
         :param included_dirs: Directories required for the analysis (e.g., to search for headers).
         :param included_files: Includes to specify to the tool (right now, just used to pass in macro definitions
@@ -107,9 +109,9 @@ class AbstractTool(ABC):
                 index += 1
 
         alarms = \
-            functools.reduce(operator.iconcat, [self.reader.read_output(f) for f in tool_report_files], [])
+            functools.reduce(operator.iconcat, [self.reader.read_output(f, unpreprocessed_source_file) for f in tool_report_files], [])
         total_time = time.monotonic() - start_time
-        logger.info(f"Analyzing file {source_file} took {total_time}s")
+        logger.info(f"Analyzing file {source_file} took {total_time}s ({'Cache Hit' if cache_hit else 'Cache Miss'})")
         for a in alarms:
             a.input_file = source_file
             a.analysis_time = total_time

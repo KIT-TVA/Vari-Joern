@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class PhasarReader(AbstractReader):
 
-    def read_output(self, report_file: Path) -> Iterable[Alarm]:
+    def read_output(self, report_file: Path, unpreprocessed_source_file: Path, ) -> Iterable[Alarm]:
         if not Path(report_file).exists():
             return []
         with open(report_file, 'r') as rf:
@@ -22,7 +22,8 @@ class PhasarReader(AbstractReader):
                 if 'Use  --------' in l:
                     if 'function' in warning.keys() and 'variables' in warning.keys() and 'line' in warning.keys():
                         for var in warning['variables']:
-                            alarmList.append(PhasarAlarm(function=warning['function'],
+                            alarmList.append(PhasarAlarm(unpreprocessed_source_file=unpreprocessed_source_file,
+                                                         function=warning['function'],
                                                          line_in_input_file=warning['line'],
                                                          variable_name=var))
                     warning = {}
@@ -34,7 +35,8 @@ class PhasarReader(AbstractReader):
                     warning['line'] = int(l.split('Line       : ')[1].lstrip().rstrip())
             if 'function' in warning.keys() and 'variables' in warning.keys() and 'line' in warning.keys():
                 for var in warning['variables']:
-                    alarmList.append(PhasarAlarm(function=warning['function'],
+                    alarmList.append(PhasarAlarm(unpreprocessed_source_file=unpreprocessed_source_file,
+                                                 function=warning['function'],
                                                  line_in_input_file=warning['line'],
                                                  variable_name=var))
 

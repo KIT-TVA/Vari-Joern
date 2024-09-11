@@ -8,13 +8,14 @@ from python.sugarlyzer.models.alarm.Alarm import Alarm
 class PhasarAlarm(Alarm):
 
     def __init__(self,
+                 unpreprocessed_source_file: Path,
                  input_file: Path = None,
                  function: str = None,
                  line_in_input_file: int = None,
                  variable_name: str = None,
                  message: str = 'Uninitialized Variable'
                  ):
-        super().__init__(input_file, line_in_input_file, message)
+        super().__init__(input_file, line_in_input_file, unpreprocessed_source_file, message)
         warning_path = [line_in_input_file]
         self.warning_path: Iterable[int] = [int(i) for i in warning_path]
         self.variable_name = variable_name

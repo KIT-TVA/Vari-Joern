@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class JoernReader(AbstractReader):
-    def read_output(self, report_file: Path) -> Iterable[Alarm]:
+    def read_output(self, report_file: Path, unpreprocessed_source_file: Path) -> Iterable[Alarm]:
         res = []
 
         if os.path.getsize(report_file) != 0:
@@ -28,6 +28,7 @@ class JoernReader(AbstractReader):
                         for evidence in evidence_list:
                             res.append(JoernAlarm(input_file=evidence["filename"],
                                                   line_in_input_file=evidence["lineNumber"],
+                                                  unpreprocessed_source_file=unpreprocessed_source_file,
                                                   message=query_title,
                                                   description=description,
                                                   score=score))

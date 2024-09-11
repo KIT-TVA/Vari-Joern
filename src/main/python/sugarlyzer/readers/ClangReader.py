@@ -7,9 +7,10 @@ from python.sugarlyzer.readers.AbstractReader import AbstractReader
 
 logger = logging.getLogger(__name__)
 
+
 class ClangReader(AbstractReader):
 
-    def read_output(self, report_file: Path) -> Iterable[ClangAlarm]:
+    def read_output(self, report_file: Path, unpreprocessed_source_file: Path) -> Iterable[ClangAlarm]:
         res = []
         with open(report_file, 'r') as rf:
             currentAlarm = None
@@ -24,16 +25,16 @@ class ClangReader(AbstractReader):
                     message = ':'.join(l.split(':')[4:])
                     message = '['.join(message.split('[')[:-1])
                     logger.debug(f"l={l}; line={line}; message={message}")
-                    currentAlarm = ClangAlarm(line_in_input_file=line,
+                    currentAlarm = ClangAlarm(unpreprocessed_source_file=unpreprocessed_source_file,
+                                              line_in_input_file=line,
                                               message=message,
-                                              input_file=file,
+                                              input_file=Path(file),
                                               alarm_type='warning',
-                                              warning_path = [])
+                                              warning_path=[])
                 elif ': note:' in l:
                     line = int(l.split(':')[1])
                     if currentAlarm != None and line not in currentAlarm.warning_path:
                         currentAlarm.warning_path.append(line)
         if currentAlarm != None:
-            res.append(currentAlarm)        
+            res.append(currentAlarm)
         return res
-

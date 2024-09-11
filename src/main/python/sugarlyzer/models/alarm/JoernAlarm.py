@@ -6,13 +6,18 @@ from python.sugarlyzer.models.alarm.Alarm import Alarm
 
 class JoernAlarm(Alarm):
     def __init__(self,
-                 input_file: Path = None,
-                 line_in_input_file: int = None,
-                 message: str = None,
-                 description: str = None,
-                 score: int = None
+                 input_file: Path,
+                 line_in_input_file: int,
+                 unpreprocessed_source_file: Path,
+                 message: str,
+                 description: str,
+                 score: int
                  ):
-        super().__init__(input_file, line_in_input_file, message)
+        super().__init__(input_file=input_file,
+                         line_in_input_file=line_in_input_file,
+                         unpreprocessed_source_file=unpreprocessed_source_file,
+                         message=message)
+
         self.description: str = description
         self.score: int = score
 
