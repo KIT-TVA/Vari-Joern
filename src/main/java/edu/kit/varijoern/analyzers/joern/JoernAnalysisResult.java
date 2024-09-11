@@ -73,6 +73,20 @@ public class JoernAnalysisResult extends AnalysisResult<JoernFinding> {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        JoernAnalysisResult that = (JoernAnalysisResult) o;
+        return Objects.equals(annotatedFindings, that.annotatedFindings)
+                && Objects.equals(this.getEnabledFeatures(), that.getEnabledFeatures());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(annotatedFindings, this.getEnabledFeatures());
+    }
+
+    @Override
     public @NotNull String toString() {
         StringBuilder sb = new StringBuilder(super.toString());
         for (AnnotatedFinding<?> finding : this.getFindings()) {

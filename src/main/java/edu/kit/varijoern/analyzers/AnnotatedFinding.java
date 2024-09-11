@@ -18,8 +18,9 @@ import java.util.stream.Collectors;
  * @param condition                 the presence condition of the finding, if available
  */
 public record AnnotatedFinding<T extends Finding>(@NotNull T finding,
-                               @JsonGetter("evidence") @NotNull Set<SourceLocation> originalEvidenceLocations,
-                               @Nullable Node condition) {
+                                                  @JsonGetter("evidence") @NotNull
+                                                  Set<SourceLocation> originalEvidenceLocations,
+                                                  @Nullable Node condition) {
     @Override
     public String toString() {
         return "%s at %s; condition: %s"

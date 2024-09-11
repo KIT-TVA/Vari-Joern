@@ -6,6 +6,7 @@ import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.Finding;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -86,6 +87,21 @@ public class JoernFinding implements Finding {
     @Override
     public @NotNull Set<Evidence> getEvidence() {
         return evidence;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        JoernFinding that = (JoernFinding) o;
+        return Double.compare(score, that.score) == 0 && Objects.equals(name, that.name)
+                && Objects.equals(title, that.title) && Objects.equals(description, that.description)
+                && Objects.equals(evidence, that.evidence);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, title, description, score, evidence);
     }
 
     @Override
