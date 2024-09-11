@@ -1,7 +1,7 @@
 import argparse
 import copy
 import functools
-import importlib
+import importlib.resources
 import json
 import logging
 import os
@@ -9,7 +9,6 @@ import shutil
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
-from importlib.abc import Traversable
 from logging import FileHandler
 from pathlib import Path
 from typing import Iterable, List, Dict, Any, Tuple, TextIO
@@ -58,7 +57,7 @@ class Tester:
         self.cache_dir_path.mkdir(exist_ok=True, parents=True)
 
         # Read program specification file (program.json).
-        program_specification: Traversable = importlib.resources.files(
+        program_specification = importlib.resources.files(
             f"resources.sugarlyzer.programs.{args.program}") / "program.json"
         with importlib.resources.as_file(program_specification) as program_specification_path:
             program_specification_json: Dict[str, Any] = ProgramSpecification.validate_and_read_program_specification(

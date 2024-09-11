@@ -3,10 +3,9 @@ import logging
 import os
 import re
 import subprocess
-from importlib.abc import Traversable
+import importlib.resources
 from pathlib import Path
 from typing import Iterable
-
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from python.sugarlyzer.readers.JoernReader import JoernReader
 from python.sugarlyzer.util.Subprocessing import get_resource_usage_of_process
@@ -31,7 +30,7 @@ class Joern(AbstractTool):
     joern_analyze_command: list[str] = ["/usr/bin/time", "-v",
                                         "joern", "{maximum_heap_size_option}", "--script", "{script}", "--param",
                                         "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
-    joern_script: Traversable = importlib.resources.files('resources.joern') / "scan.sc"
+    joern_script = importlib.resources.files('resources.joern') / "scan.sc"
 
     def __init__(self, intermediary_results_path: Path, cache_dir: Path = None, maximum_heap_size: int = None):
         super().__init__(JoernReader(),
