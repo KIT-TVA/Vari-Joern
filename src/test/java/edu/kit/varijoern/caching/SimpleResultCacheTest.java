@@ -3,8 +3,6 @@ package edu.kit.varijoern.caching;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.impl.FeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
-import edu.kit.varijoern.analyzers.AnnotatedFinding;
-import edu.kit.varijoern.analyzers.Evidence;
 import edu.kit.varijoern.analyzers.joern.JoernAnalysisResult;
 import edu.kit.varijoern.analyzers.joern.JoernFinding;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
@@ -54,23 +52,21 @@ class SimpleResultCacheTest {
 
         Map<String, Boolean> configuration01 = Map.of("F1", false, "F2", true);
         AnalysisResult<JoernFinding> analysisResult01 = new JoernAnalysisResult(
-                List.of(new AnnotatedFinding<>(
-                        new JoernFinding("test", "title", "description", 1, Set.of()), Set.of(), null
-                )),
+                List.of(new JoernFinding("test", "title", "description", 1, Set.of(), null)),
                 configuration01);
         cache.cacheAnalysisResult(analysisResult01, 0, 1);
 
         Map<String, Boolean> configuration10 = Map.of("F1", true, "F2", true);
         AnalysisResult<JoernFinding> analysisResult10 = new JoernAnalysisResult(
-                List.of(new AnnotatedFinding<>(
-                        new JoernFinding(
+                List.of(new JoernFinding(
                                 "test2",
                                 "title2",
                                 "description2",
                                 1,
-                                Set.of(new Evidence("src/main.c", 42))),
-                        Set.of(new SourceLocation(Path.of("src/main.c"), 40)),
-                        new And())),
+                                Set.of(new SourceLocation(Path.of("src/main.c"), 40)),
+                                new And()
+                        )
+                ),
                 configuration10);
         cache.cacheAnalysisResult(analysisResult10, 1, 0);
 
@@ -98,23 +94,22 @@ class SimpleResultCacheTest {
 
         Map<String, Boolean> configuration10 = Map.of("F1", false, "F2", true);
         AnalysisResult<JoernFinding> analysisResult10 = new JoernAnalysisResult(
-                List.of(new AnnotatedFinding<>(
-                        new JoernFinding("test", "title", "description", 1, Set.of()), Set.of(), null
-                )),
+                List.of(new JoernFinding("test", "title", "description", 1, Set.of(), null)),
                 configuration10);
         cache.cacheAnalysisResult(analysisResult10, 1, 0);
 
         Map<String, Boolean> configuration11 = Map.of("F1", true, "F2", true);
         AnalysisResult<JoernFinding> analysisResult11 = new JoernAnalysisResult(
-                List.of(new AnnotatedFinding<>(
+                List.of(
                         new JoernFinding(
                                 "test2",
                                 "title2",
                                 "description2",
                                 1,
-                                Set.of(new Evidence("src/main.c", 42))),
-                        Set.of(new SourceLocation(Path.of("src/main.c"), 40)),
-                        new And())),
+                                Set.of(new SourceLocation(Path.of("src/main.c"), 42)),
+                                new And()
+                        )
+                ),
                 configuration11);
         cache.cacheAnalysisResult(analysisResult11, 1, 1);
 

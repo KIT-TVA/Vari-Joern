@@ -9,14 +9,7 @@ specified. `json` generates a JSON object with the structure described in the ne
   Each object has the following fields:
     - `enabledFeatures`: An object mapping feature names to a boolean indicating whether the feature is enabled in the
       analyzed combination.
-    - `findings`: An array of objects, each representing a finding in the analyzed variant.
-      Each object has the following fields:
-        - `finding`: A [Finding object](#Finding) representing the finding.
-        - `evidence`: An array of [SourceLocation](#SourceLocation) objects representing the evidence supporting the
-          finding.
-        - `condition`: A string representing the determined presence condition of the finding.
-          See [NodeDeserializer.java](../src/main/java/edu/kit/varijoern/serialization/NodeDeserializer.java) for the
-          syntax of the presence condition.
+    - `findings`: An array of [Finding objects](#Finding) representing the findings in the analyzed variant.
 - `aggregatedResult`: Analyzing all variants yields a list of findings for each variant. Since a single finding can
   affect multiple variants, the findings are grouped to identify equal findings with each other across variants. This
   object contains these aggregated results and has the following field:
@@ -39,6 +32,10 @@ specified. `json` generates a JSON object with the structure described in the ne
 A finding is an object with the following fields:
 
 - `name`: The name of the kind of this finding.
+- `evidence`: An array of [SourceLocation](#SourceLocation) objects representing the evidence supporting the finding.
+- `condition`: A string representing the presence condition of the finding. See
+  [NodeDeserializer.java](../src/main/java/edu/kit/varijoern/serialization/NodeDeserializer.java) for the syntax of the
+  presence condition. May be null if the presence condition is unknown.
 - `title` (specific to the Joern analyzer): A short string describing the finding.
 - `description` (specific to the Joern analyzer): A longer description of the finding.
 - `score` (specific to the Joern analyzer): A number indicating the severity of the finding.

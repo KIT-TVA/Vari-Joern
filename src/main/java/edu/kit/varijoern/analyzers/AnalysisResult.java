@@ -29,7 +29,7 @@ public abstract class AnalysisResult<T extends Finding> {
      *
      * @return a list of all findings
      */
-    public abstract @NotNull List<AnnotatedFinding<T>> getFindings();
+    public abstract @NotNull List<T> getFindings();
 
     @Override
     public String toString() {

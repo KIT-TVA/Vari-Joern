@@ -278,7 +278,7 @@ class ParallelIterationRunnerTest {
         }
 
         @Override
-        public @NotNull List<AnnotatedFinding<Finding>> getFindings() {
+        public @NotNull List<Finding> getFindings() {
             return List.of();
         }
     }

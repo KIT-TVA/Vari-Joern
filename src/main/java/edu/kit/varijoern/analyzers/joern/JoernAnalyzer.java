@@ -3,9 +3,14 @@ package edu.kit.varijoern.analyzers.joern;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.kit.varijoern.analyzers.*;
+import edu.kit.varijoern.analyzers.Analyzer;
+import edu.kit.varijoern.analyzers.AnalyzerFailureException;
+import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.LanguageInformation;
+import edu.kit.varijoern.composers.PresenceConditionMapper;
+import edu.kit.varijoern.composers.sourcemap.SourceLocation;
+import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
 import org.apache.logging.log4j.Level;
@@ -14,13 +19,16 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.prop4j.Node;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * An analyzer that uses Joern.
@@ -70,12 +78,10 @@ public class JoernAnalyzer implements Analyzer {
         List<JoernFinding> findings = new ArrayList<>();
         for (LanguageInformation languageInformation : compositionInformation.getLanguageInformation()) {
             this.analyzeWithLanguageInformation(languageInformation, sourceLocation, outFile);
-            findings.addAll(this.parseFindings(outFile));
+            findings.addAll(this.parseFindings(outFile, compositionInformation.getPresenceConditionMapper(),
+                    compositionInformation.getSourceMap()));
         }
-        JoernAnalysisResult result = new JoernAnalysisResult(findings,
-                compositionInformation.getEnabledFeatures(),
-                compositionInformation.getPresenceConditionMapper(),
-                compositionInformation.getSourceMap());
+        JoernAnalysisResult result = new JoernAnalysisResult(findings, compositionInformation.getEnabledFeatures());
         if (this.resultAggregator != null) {
             this.resultAggregator.addResult(result);
         }
@@ -131,7 +137,9 @@ public class JoernAnalyzer implements Analyzer {
             throw new AnalyzerFailureException(String.format("joern exited with %d", joernExitCode));
     }
 
-    private @NotNull List<JoernFinding> parseFindings(@NotNull Path findingsFile)
+    private @NotNull List<JoernFinding> parseFindings(@NotNull Path findingsFile,
+                                                      @NotNull PresenceConditionMapper presenceConditionMapper,
+                                                      @NotNull SourceMap sourceMap)
             throws IOException, AnalyzerFailureException {
         ObjectMapper objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -139,7 +147,7 @@ public class JoernAnalyzer implements Analyzer {
         });
         List<JoernFinding> list = new ArrayList<>();
         for (ParsedFinding parsedFinding : finding) {
-            JoernFinding joernFinding = parsedFinding.toJoernFinding();
+            JoernFinding joernFinding = parsedFinding.toJoernFinding(presenceConditionMapper, sourceMap);
             list.add(joernFinding);
         }
         return list;
@@ -147,24 +155,42 @@ public class JoernAnalyzer implements Analyzer {
 
     protected record ParsedFinding(@Nullable String name, @Nullable String title, @Nullable String description,
                                    double score, @Nullable List<ParsedEvidence> evidence) {
-        public @NotNull JoernFinding toJoernFinding() throws AnalyzerFailureException {
+        public @NotNull JoernFinding toJoernFinding(@NotNull PresenceConditionMapper presenceConditionMapper,
+                                                    @NotNull SourceMap sourceMap) throws AnalyzerFailureException {
             if (this.name == null || this.title == null || this.description == null || this.evidence == null)
                 throw new AnalyzerFailureException("Joern output is missing required fields");
-            Set<Evidence> set = new HashSet<>();
+            Set<SourceLocation> evidenceAsSourceLocation = new HashSet<>();
             for (ParsedEvidence parsedEvidence : this.evidence) {
-                Evidence parsedEvidenceEvidence = parsedEvidence.toEvidence();
-                set.add(parsedEvidenceEvidence);
+                SourceLocation parsedEvidenceSourceLocation = parsedEvidence.toSourceLocation();
+                evidenceAsSourceLocation.add(parsedEvidenceSourceLocation);
             }
-            return new JoernFinding(this.name, this.title, this.description, this.score,
-                    set);
+            SourceLocation evidenceForConditionCalculation = evidenceAsSourceLocation.size() == 1
+                    ? evidenceAsSourceLocation.iterator().next()
+                    : null;
+            Node condition = evidenceForConditionCalculation == null
+                    ? null
+                    : presenceConditionMapper.getPresenceCondition(evidenceForConditionCalculation.file(),
+                            evidenceForConditionCalculation.line())
+                    .orElse(null);
+            Set<SourceLocation> originalLocations = evidenceAsSourceLocation.stream()
+                    .map(location -> sourceMap.getOriginalLocation(location).orElse(null))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            return new JoernFinding(this.name, this.title, this.description, this.score, originalLocations, condition);
         }
     }
 
     protected record ParsedEvidence(@Nullable String filename, int lineNumber) {
-        public @NotNull Evidence toEvidence() throws AnalyzerFailureException {
+        public @NotNull SourceLocation toSourceLocation() throws AnalyzerFailureException {
             if (this.filename == null)
                 throw new AnalyzerFailureException("File name missing in evidence");
-            return new Evidence(this.filename, this.lineNumber);
+            Path file;
+            try {
+                file = Path.of(this.filename);
+            } catch (InvalidPathException e) {
+                throw new AnalyzerFailureException("Invalid file name in evidence", e);
+            }
+            return new SourceLocation(file, this.lineNumber);
         }
     }
 }
