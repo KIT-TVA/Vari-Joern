@@ -12,9 +12,10 @@ import java.nio.file.Path;
  * The base class for all analyzer configurations.
  *
  * @param <T> the type of the analysis results produced by the analyzers created from this configuration
+ * @param <F> the type of the findings in the analysis results
  */
-public abstract class AnalyzerConfig<T extends AnalysisResult> extends NamedComponentConfig {
-    private final @NotNull ResultAggregator<T> resultAggregator;
+public abstract class AnalyzerConfig<T extends AnalysisResult<F>, F extends Finding> extends NamedComponentConfig {
+    private final @NotNull ResultAggregator<T, F> resultAggregator;
 
     /**
      * Creates a new {@link AnalyzerConfig} by extracting data from the specified TOML section.
@@ -23,7 +24,7 @@ public abstract class AnalyzerConfig<T extends AnalysisResult> extends NamedComp
      * @param resultAggregator the result aggregator to use
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
-    protected AnalyzerConfig(@NotNull TomlTable toml, @NotNull ResultAggregator<T> resultAggregator)
+    protected AnalyzerConfig(@NotNull TomlTable toml, @NotNull ResultAggregator<T, F> resultAggregator)
             throws InvalidConfigException {
         super(toml);
         this.resultAggregator = resultAggregator;
@@ -35,7 +36,7 @@ public abstract class AnalyzerConfig<T extends AnalysisResult> extends NamedComp
      * @param name             the name of the implementation
      * @param resultAggregator the result aggregator to use
      */
-    protected AnalyzerConfig(@NotNull String name, @NotNull ResultAggregator<T> resultAggregator) {
+    protected AnalyzerConfig(@NotNull String name, @NotNull ResultAggregator<T, F> resultAggregator) {
         super(name);
         this.resultAggregator = resultAggregator;
     }
@@ -51,7 +52,7 @@ public abstract class AnalyzerConfig<T extends AnalysisResult> extends NamedComp
      * @param tempPath the directory to use for temporary data. Must be an absolute path.
      * @return the new {@link Analyzer}
      */
-    public abstract @NotNull Analyzer<T> newAnalyzer(@NotNull Path tempPath) throws IOException;
+    public abstract @NotNull Analyzer newAnalyzer(@NotNull Path tempPath) throws IOException;
 
     /**
      * Returns the result aggregate that all analyzers created from this configuration should use. The analyzers should
@@ -59,7 +60,7 @@ public abstract class AnalyzerConfig<T extends AnalysisResult> extends NamedComp
      *
      * @return the result aggregator
      */
-    public @NotNull ResultAggregator<T> getResultAggregator() {
+    public @NotNull ResultAggregator<T, F> getResultAggregator() {
         return resultAggregator;
     }
 }

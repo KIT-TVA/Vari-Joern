@@ -7,10 +7,8 @@ import java.io.IOException;
 
 /**
  * Analyzers scan composed source code for weaknesses.
- *
- * @param <T> the type of the analysis results this analyzer produces
  */
-public interface Analyzer<T extends AnalysisResult> {
+public interface Analyzer {
     /**
      * Analyzes the source code referenced in the given {@link CompositionInformation}.
      *
@@ -21,6 +19,6 @@ public interface Analyzer<T extends AnalysisResult> {
      * @throws InterruptedException     if the current thread is interrupted
      */
     @NotNull
-    T analyze(@NotNull CompositionInformation compositionInformation)
+    AnalysisResult<?> analyze(@NotNull CompositionInformation compositionInformation)
             throws IOException, AnalyzerFailureException, InterruptedException;
 }

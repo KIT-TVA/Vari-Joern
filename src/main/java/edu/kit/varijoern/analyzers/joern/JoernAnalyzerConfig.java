@@ -13,7 +13,7 @@ import java.nio.file.Path;
 /**
  * Contains the configuration of the Joern analyzer.
  */
-public class JoernAnalyzerConfig extends AnalyzerConfig<JoernAnalysisResult> {
+public class JoernAnalyzerConfig extends AnalyzerConfig<JoernAnalysisResult, JoernFinding> {
     private final @Nullable Path joernPath;
 
     /**
@@ -29,7 +29,7 @@ public class JoernAnalyzerConfig extends AnalyzerConfig<JoernAnalysisResult> {
     }
 
     @Override
-    public @NotNull Analyzer<JoernAnalysisResult> newAnalyzer(@NotNull Path workspacePath) throws IOException {
+    public @NotNull Analyzer newAnalyzer(@NotNull Path workspacePath) throws IOException {
         return new JoernAnalyzer(this.joernPath, workspacePath, this.getResultAggregator());
     }
 

@@ -44,7 +44,7 @@ public class TWiseSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult> analysisResults)
+    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults)
             throws SamplerException {
         LOGGER.info("Calculating {}-wise sample", this.t);
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
