@@ -12,7 +12,7 @@ from subprocess import CompletedProcess
 from typing import TextIO
 
 logger = logging.getLogger(__name__)
-
+config_macro_prefix:str = "KGENMACRO_"
 
 class ConfigurationVariable:
     def __init__(self, name: str, data_type: str):
@@ -23,13 +23,15 @@ class ConfigurationVariable:
         self.cond: str | None = None
 
     def define(self, format):
+        global config_macro_prefix
+
         default = str(self.default)
         alt = ''
         if self.default == None:
             default = '"X"' if self.type == 'string' else '1'
         alt = '""' if self.type == 'string' else '0'
         values = [self.name, default, alt]
-        start = f'#ifdef KGENMACRO_{self.name}\n'
+        start = f'#ifdef {config_macro_prefix}{self.name}\n'
         end = f'#endif\n'
         key = 'default'
         if self.type in format.keys():
@@ -37,17 +39,19 @@ class ConfigurationVariable:
         return start + format[key].replace('$0', self.name).replace('$1', default).replace('$2', alt) + end
 
     def addMap(self, maps, defining):
+        global config_macro_prefix
+
         if self.type == 'bool' and not defining:
-            maps[f'DEF_KGENMACRO_{self.name}'] = f'DEF_{self.name}'
-            maps[f'!DEF_KGENMACRO_{self.name}'] = f'!DEF_{self.name}'
+            maps[f'DEF_{config_macro_prefix}{self.name}'] = f'DEF_{self.name}'
+            maps[f'!DEF_{config_macro_prefix}{self.name}'] = f'!DEF_{self.name}'
         else:
             default = str(self.default)
             alt = ''
             if self.default == None:
                 default = '"X"' if self.type == 'string' else '1'
             alt = '""' if self.type == 'string' else '0'
-            maps[f'DEF_KGENMACRO_{self.name}'] = f'USE_{self.name} == {default}'
-            maps[f'!DEF_KGENMACRO_{self.name}'] = f'USE_{self.name} == {alt}'
+            maps[f'DEF_{config_macro_prefix}{self.name}'] = f'USE_{self.name} == {default}'
+            maps[f'!DEF_{config_macro_prefix}{self.name}'] = f'USE_{self.name} == {alt}'
 
     def __str__(self):
         return f'{self.name}({self.type})={self.default}{" or ?" if self.promptable else ""}'
@@ -112,7 +116,8 @@ def process_not(cond, predefs):
 
 
 def process_solo(cond, predefs):
-    return 'defined KGENMACRO_' + cond[len('CONFIG_'):]
+    global config_macro_prefix
+    return f'defined {config_macro_prefix}' + cond[len('CONFIG_'):]
 
 
 def processPredef(cond, predefs) -> str:
@@ -234,7 +239,9 @@ def parse_kextract_output(kextract_file: str):
                 # ignoreForNow
                 continue
                 vars = line.split('|')[0].split(' ')[1:]
-                choiceName = 'KGENMACRO_CHOICE' + str(choices_encountered)
+
+                global config_macro_prefix
+                choiceName = f'{config_macro_prefix}CHOICE' + str(choices_encountered)
                 choices_encountered += 1
                 options = 1
                 for v in vars:
@@ -321,8 +328,14 @@ def run_kgenerate(kconfig_file_path: Path,
                   mapping_file_output_dir_path: Path = Path.cwd(),
                   tmp_directory_path: Path = None,
                   source_tree_path: Path = None,
+                  config_prefix: str = None,
                   module_version: str = "3.19",
                   define_false: bool = True):
+    # Set config macro prefix to something other than "KGENMACRO_" if desired.
+    if config_prefix is not None:
+        global config_macro_prefix
+        config_macro_prefix = config_prefix
+
     # Create full header_output_path if only a target directory is provided.
     if header_output_path.is_dir():
         header_output_path = header_output_path / Path("config.h")
@@ -392,6 +405,8 @@ def read_arguments() -> argparse.Namespace:
     p.add_argument('-p', '--mapping-output', help="The location where to put the mapping file.",
                    default=f"{Path.cwd()}")
     p.add_argument('-f', '--format', help='Path to a file specifying the format of the output', required=True)
+    p.add_argument('-c', '--config-prefix',
+                   help="The prefix that should be used for configuration related macros. Default is KGENMACRO_",)
     p.add_argument('--define-false', action='store_true',
                    help='Instead of bools being either defined or undefined, define them as 1 or 0')
     p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
@@ -420,6 +435,7 @@ def main() -> None:
                   header_output_path=Path(args.header_output),
                   mapping_file_output_dir_path=Path(args.mapping_output),
                   source_tree_path=Path(args.directory),
+                  config_prefix=args.config_prefix,
                   module_version=args.module_version,
                   define_false=args.define_false)
 
