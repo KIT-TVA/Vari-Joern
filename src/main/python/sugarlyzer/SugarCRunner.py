@@ -210,10 +210,8 @@ def desugar_file(file_to_desugar: Path,
         if desugaring_function_whitelist is not None else []
 
     maximum_heap_size_option = f"-Xmx{maximum_heap_size}g" if maximum_heap_size is not None else ""
+    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', maximum_heap_size_option, 'superc.SugarC', '-useBDD']
 
-    cmd = ['/usr/bin/time', '-v', 'timeout -k 10 10m', 'java', maximum_heap_size_option, 'superc.SugarC',
-           '-showActions', '-useBDD']
-    # TODO Remove -showActions as it blows up the size of the logfiles and isn't really helpful anyway.
     if config_prefix is not None:
         cmd.extend(['-restrictConfigToPrefix', config_prefix])
     elif whitelist is not None:

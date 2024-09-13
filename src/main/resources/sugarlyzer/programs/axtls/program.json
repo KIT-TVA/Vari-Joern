@@ -16,6 +16,24 @@
         "-U MB_LEN_MAX",
         "-D __extension__"
       ]
+    },
+    {
+      "file_pattern": "axtlswrap\\.c$",
+      "included_files": [],
+      "included_directories": [
+        "axtls-code/config",
+        "axtls-code/crypto",
+        "axtls-code/ssl"
+      ]
+    },
+    {
+      "file_pattern": "ssltest\\.c$",
+      "included_files": [],
+      "included_directories": [
+        "axtls-code/config",
+        "axtls-code/crypto",
+        "axtls-code/ssl"
+      ]
     }
   ]
 }

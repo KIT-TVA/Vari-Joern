@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from importlib.abc import Traversable
 from io import StringIO
 from pathlib import Path
-from typing import List, Iterable, Optional, Dict, Tuple, Any
+from typing import List, Iterable, Dict, Tuple, Any
 
 from jsonschema.validators import RefResolver, Draft7Validator
 
@@ -36,7 +36,7 @@ class ProgramSpecification(ABC):
                  kconfig_root_file_path: str = None,
                  kconfig_root_path: str = None,
                  config_header_path: str = None,
-                 included_files_and_directories: Optional[Iterable[Dict]] = None):
+                 included_files_and_directories: Iterable[Dict] | None = None):
         """
         Constructs a new ProgramSpecification.
 
@@ -308,7 +308,8 @@ class ProgramSpecification(ABC):
                           header_output_path=self.config_header_path,
                           mapping_file_output_dir_path=self.__tmp_dir,
                           tmp_directory_path=self.__tmp_dir,
-                          source_tree_path=self.kconfig_root_path)
+                          source_tree_path=self.kconfig_root_path,
+                          config_prefix=self.config_prefix)
 
         # Revert the changes to the Kconfig files as they can interfere with make calls.
         for transformed, original in transformed_to_original_kconfig_files.items():
