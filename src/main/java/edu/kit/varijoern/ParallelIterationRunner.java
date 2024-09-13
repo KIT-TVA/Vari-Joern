@@ -7,6 +7,7 @@ import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -272,6 +273,7 @@ public class ParallelIterationRunner {
                 throws InterruptedException {
             LOGGER.info("Composing variant with features {}", arguments.features);
             try {
+                Files.createDirectories(arguments.destination());
                 CompositionInformation compositionInformation
                         = this.composer.compose(arguments.features(), arguments.destination(), featureModel);
                 return Message.of(compositionInformation, configurationIndex);
@@ -300,6 +302,7 @@ public class ParallelIterationRunner {
 
             try {
                 AnalysisResult<?> result = this.analyzer.analyze(compositionInformation);
+                FileUtils.deleteDirectory(compositionInformation.getLocation().toFile());
                 return Message.of(result, configurationIndex);
             } catch (IOException e) {
                 LOGGER.atError().withThrowable(e).log("An IO error occurred:");
