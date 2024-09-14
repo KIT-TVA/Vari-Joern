@@ -209,7 +209,7 @@ class Tester:
             # Collect alarms into "buckets" based on equivalence.
             # Then, for each bucket, we will return one alarm, combining all the
             # models into a list.
-            logger.info("Now deduplicating results.")
+            logger.info(f"Sorting the {len(alarms)} into buckets...")
             bucket_matches = 0
             for ba in alarms:
                 for bucket in buckets:
@@ -224,11 +224,11 @@ class Tester:
                     buckets[-1].append(ba)
                     buckets.append([])
 
-            logger.debug(f"Sorted the {len(alarms)} alarms into {len(buckets) - 1} buckets "
-                         f"({bucket_matches} bucket matches).")
+            logger.info(f"Sorted the {len(alarms)} alarms into {len(buckets) - 1} buckets "
+                         f"({bucket_matches} matches on existing buckets).")
 
             # Aggregate alarms and join their presence conditions via disjunctions.
-            logger.info("Now aggregating alarms.")
+            logger.info("Now aggregating alarms within the buckets...")
             alarms = []
             for bucket in (b for b in buckets if len(b) > 0):
                 alarms.append(bucket[0])

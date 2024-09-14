@@ -34,6 +34,12 @@
         "axtls-code/crypto",
         "axtls-code/ssl"
       ]
+    },
+    {
+      "file_pattern": "crypto_misc\\.c$",
+      "predefined_config_macros": [
+        "-U CONFIG_WIN32_USE_CRYPTO_LIB"
+      ]
     }
   ]
 }
