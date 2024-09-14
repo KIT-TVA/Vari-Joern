@@ -1,7 +1,11 @@
 package edu.kit.varijoern.composers.kbuild;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +82,26 @@ public record InclusionInformation(Path filePath, Set<Path> includedFiles, Map<S
         String baseName = dotIndex == -1 ? fileName : fileName.substring(0, dotIndex);
         String extension = dotIndex == -1 ? "" : fileName.substring(dotIndex);
         return this.filePath.getParent()
-                .resolve(baseName + "-" + this.hashCode() + extension);
+                .resolve(baseName + "-" + this.getComposedFileNameHash() + extension);
+    }
+
+    private HashCode getComposedFileNameHash() {
+        Hasher hasher = Hashing.sha256().newHasher();
+        hasher.putString(this.filePath.toString(), StandardCharsets.UTF_8);
+        hasher.putByte((byte) 0);
+        for (String includedFile : this.includedFiles.stream().map(Path::toString).sorted().toList()) {
+            hasher.putString(includedFile, StandardCharsets.UTF_8);
+            hasher.putByte((byte) 0);
+        }
+        hasher.putByte((byte) 0);
+        for (Map.Entry<String, String> define : this.defines.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                .toList()) {
+            hasher.putString(define.getKey(), StandardCharsets.UTF_8);
+            hasher.putByte((byte) 0);
+            hasher.putString(define.getValue(), StandardCharsets.UTF_8);
+            hasher.putByte((byte) 0);
+        }
+        return hasher.hash();
     }
 
     @Override
