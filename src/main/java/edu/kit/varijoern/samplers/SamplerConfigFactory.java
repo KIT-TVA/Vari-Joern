@@ -44,6 +44,7 @@ public final class SamplerConfigFactory extends NamedComponentConfigFactory<Samp
         return switch (componentName) {
             case FixedSampler.NAME -> new FixedSamplerConfig(toml);
             case TWiseSampler.NAME -> new TWiseSamplerConfig(toml);
+            case UniformSampler.NAME -> new UniformSamplerConfig(toml);
             default -> throw new InvalidConfigException(String.format("Unknown sampler \"%s\"", componentName));
         };
     }

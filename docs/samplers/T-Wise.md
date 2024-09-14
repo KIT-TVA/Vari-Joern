@@ -11,7 +11,7 @@ The t-wise sampler is configured using the following option:
     - The parameter t for t-wise coverage.
     - Optional: no
 - `max-samples`
-    - The maximum number of samples to generate.
+    - The maximum number of configurations to generate.
     - Optional: yes
     - Default: 2_147_483_647
 
