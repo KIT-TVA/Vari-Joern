@@ -34,6 +34,7 @@ dependencies {
     implementation 'com.beust:jcommander:1.82'
     implementation files('lib/superc.jar', 'lib/xtc.jar', 'lib/javabdd.jar')
     implementation 'com.microsoft.z3:java-jar:4.11.2'
+    implementation 'com.google.guava:guava:33.3.0-jre'
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
