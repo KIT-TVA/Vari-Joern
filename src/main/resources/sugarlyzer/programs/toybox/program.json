@@ -18,6 +18,22 @@
         "-D chtype=char",
         "-D _Float128=double",
         "-D _Noreturn=__attribute__ ((__noreturn__))"
+      ],
+      "predefined_config_macros": [
+        "-U TOYBOX_SELINUX",
+        "-U TOYBOX_SMACK"
+      ]
+    },
+    {
+      "file_pattern": "kconfig/util\\.c$",
+      "macro_definitions": [
+        "-D LKC_DIRECT_LINK"
+      ]
+    },
+    {
+      "file_pattern": "wget\\.c$",
+      "predefined_config_macros": [
+        "-U WGET_LIBTLS"
       ]
     }
   ]
