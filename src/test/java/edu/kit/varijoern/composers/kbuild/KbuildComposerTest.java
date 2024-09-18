@@ -12,6 +12,7 @@ import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -354,13 +355,13 @@ class KbuildComposerTest {
 
     @ParameterizedTest
     @MethodSource("testCases")
-    void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer)
+    void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer, @TempDir Path tempDir)
             throws IOException, GitAPIException, InterruptedException, FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name, preparer);
         Map<String, Boolean> featureMap;
         try {
             featureMap = new FixedSampler(List.of(testCase.enabledFeatures), testCaseManager.getCorrectFeatureModel())
-                    .sample(List.of())
+                    .sample(null, tempDir.resolve("sampler"))
                     .get(0);
         } catch (SamplerException e) {
             throw new RuntimeException(e);

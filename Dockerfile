@@ -52,10 +52,14 @@ RUN ./gradlew distTar
 
 FROM base-system
 RUN apt-get install -y \
+    # Required for installing Smarch
+    cmake \
     # Required by torte
     docker-ce-cli \
     # Required by torte
     git \
+    # Required by Smarch
+    libgmp-dev \
     # Required by Vari-Joern and Joern
     openjdk-21-jre \
     # Required for installing kmax
@@ -77,7 +81,7 @@ RUN chmod +x joern-install.sh \
 ENV PATH="/opt/joern/joern-cli:${PATH}"
 RUN joern-scan --updatedb --dbversion 4.0.48
 
-RUN pipx install --python=$(which python3.11) kmax
+RUN pipx install --python=$(which python3.11) kmax git+https://github.com/duckymirror/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
 
 COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar
 RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \

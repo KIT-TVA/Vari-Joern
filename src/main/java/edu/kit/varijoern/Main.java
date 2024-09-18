@@ -122,10 +122,13 @@ public class Main {
     private static int runUsingConfig(@NotNull Config config, @NotNull Args args) {
         Path tmpDir;
         Path featureModelReaderTmpDirectory;
+        Path samplerTmpDirectory;
         try {
             tmpDir = Files.createTempDirectory("vari-joern");
             featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
             Files.createDirectories(featureModelReaderTmpDirectory);
+            samplerTmpDirectory = tmpDir.resolve("sampler");
+            Files.createDirectories(samplerTmpDirectory);
         } catch (IOException e) {
             LOGGER.atFatal().withThrowable(e).log("Failed to create temporary directory");
             return STATUS_IO_ERROR;
@@ -181,10 +184,15 @@ public class Main {
                 List<Map<String, Boolean>> sample = resultCache.getSample(i);
                 if (sample == null) {
                     try {
-                        sample = sampler.sample(iterationAnalysisResults);
+                        sample = sampler.sample(iterationAnalysisResults, samplerTmpDirectory);
+                    } catch (IOException e) {
+                        LOGGER.atFatal().withThrowable(e).log("An I/O error occurred while sampling");
+                        return STATUS_IO_ERROR;
                     } catch (SamplerException e) {
                         LOGGER.atFatal().withThrowable(e).log("A sampler error occurred");
                         return STATUS_INTERNAL_ERROR;
+                    } catch (InterruptedException e) {
+                        return STATUS_INTERRUPTED;
                     }
                     resultCache.cacheSample(sample, i);
                 }

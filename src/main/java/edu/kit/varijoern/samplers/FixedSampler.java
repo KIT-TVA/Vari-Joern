@@ -7,6 +7,7 @@ import edu.kit.varijoern.analyzers.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +41,8 @@ public class FixedSampler implements Sampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults)
+    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults,
+                                                      @NotNull Path tmpPath)
             throws SamplerException {
         List<Map<String, Boolean>> result = new ArrayList<>();
         for (List<String> enabledFeaturesOfConfiguration : this.enabledFeaturesOfConfigurations) {
