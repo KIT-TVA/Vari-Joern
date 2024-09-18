@@ -53,8 +53,8 @@ class JoernAnalyzerTest {
                     Sampler sampler = new FixedSampler(List.of(configuration),
                             testCaseManager.getCorrectFeatureModel());
                     try {
-                        return sampler.sample(null).get(0);
-                    } catch (SamplerException e) {
+                        return sampler.sample(null, tempDirectory.resolve("sampler")).get(0);
+                    } catch (SamplerException | InterruptedException | IOException e) {
                         throw new RuntimeException(e);
                     }
                 })
@@ -121,8 +121,8 @@ class JoernAnalyzerTest {
                     Sampler sampler = new FixedSampler(List.of(configuration),
                             testCaseManager.getCorrectFeatureModel());
                     try {
-                        return sampler.sample(null).get(0);
-                    } catch (SamplerException e) {
+                        return sampler.sample(null, tempDirectory.resolve("sampler")).get(0);
+                    } catch (SamplerException | InterruptedException | IOException e) {
                         throw new RuntimeException(e);
                     }
                 })

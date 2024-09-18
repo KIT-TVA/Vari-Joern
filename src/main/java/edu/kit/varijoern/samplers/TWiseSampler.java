@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +36,8 @@ public class TWiseSampler extends FeatureIDEGeneratorSampler {
     }
 
     @Override
-    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults)
+    public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults,
+                                                      @NotNull Path tmpPath)
             throws SamplerException {
         LOGGER.info("Calculating {}-wise sample", this.t);
         List<Map<String, Boolean>> result
