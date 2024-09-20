@@ -6,7 +6,9 @@ import com.beust.jcommander.Parameter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -43,9 +45,26 @@ public class GCCCallExtractor {
      */
     public @NotNull List<GCCCall> getCalls() throws ParseException {
         List<GCCCall> calls = new ArrayList<>();
+        List<Path> makePathStack = new ArrayList<>();
         for (List<String> command : this.parser.parse()) {
+            if (command.size() > 1 && command.get(0).matches("make\\[\\d+]:")) {
+                Path path = Path.of(command.get(3));
+                if (command.get(1).equals("Entering")) {
+                    makePathStack.add(path);
+                } else if (command.get(1).equals("Leaving")) {
+                    if (!makePathStack.get(makePathStack.size() - 1).equals(path)) {
+                        LOGGER.warn("Mismatched make path: {}", String.join(" ", command));
+                    }
+                    makePathStack.remove(makePathStack.size() - 1);
+                } else {
+                    LOGGER.warn("Ignoring make information: {}", String.join(" ", command));
+                }
+                continue;
+            }
             if (!isRelevantCommand(command.get(0))) continue;
-            calls.add(this.parseCall(command));
+            calls.add(this.parseCall(command, makePathStack.isEmpty()
+                    ? null
+                    : makePathStack.get(makePathStack.size() - 1)));
         }
         return calls;
     }
@@ -57,7 +76,7 @@ public class GCCCallExtractor {
                 );
     }
 
-    private @NotNull GCCCall parseCall(@NotNull List<String> command) {
+    private @NotNull GCCCall parseCall(@NotNull List<String> command, @Nullable Path currentDirectory) {
         RawGCCCall rawCall = new RawGCCCall();
         List<String> unsupportedIncludeOptions = new ArrayList<>();
         List<String> preprocessedArguments = command.stream()
@@ -83,16 +102,15 @@ public class GCCCallExtractor {
                 .build()
                 .parse(preprocessedArguments.subList(1, preprocessedArguments.size()).toArray(String[]::new));
         return new GCCCall(
-                Optional.of(rawCall.compiledFiles)
-                        .map(files -> files.stream()
-                                .filter(file -> SOURCE_FILE_PATTERN.matcher(file).matches())
-                                .toList()
-                        )
-                        .orElseGet(List::of),
+                rawCall.compiledFiles
+                        .stream()
+                        .filter(file -> SOURCE_FILE_PATTERN.matcher(file).matches())
+                        .toList(),
                 rawCall.includePaths,
                 rawCall.systemIncludePaths,
                 rawCall.includes,
-                rawCall.defines
+                rawCall.defines,
+                currentDirectory
         );
     }
 

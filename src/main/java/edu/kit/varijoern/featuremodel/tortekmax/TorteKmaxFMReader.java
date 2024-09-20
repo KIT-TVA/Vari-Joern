@@ -40,7 +40,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     private static final Map<String, String> EXPERIMENT_SCRIPT_FILES = Map.of(
             "linux", "linux-working-tree-kmax.sh",
             "busybox", "busybox-working-tree-kmax.sh",
-            "fiasco", "fiasco-working-tree-kmax.sh"
+            "fiasco", "fiasco-working-tree-kmax.sh",
+            "axtls", "axtls-working-tree-kmax.sh"
     );
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();

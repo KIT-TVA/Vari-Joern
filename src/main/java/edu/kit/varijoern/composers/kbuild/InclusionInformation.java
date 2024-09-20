@@ -34,28 +34,29 @@ public record InclusionInformation(Path filePath, Set<Path> includedFiles, Map<S
     }
 
     /**
-     * Creates a list of {@link InclusionInformation} objects from a {@link GCCCall}.
+     * Creates a list of {@link InclusionInformation} objects from a {@link GCCCall}. The handling of included files is
+     * slightly different from the GCC call: The paths are interpreted to be relative to the working directory of the
+     * GCC process if they are not absolute. If GCC finds no file at this path, it will try to find it in the include
+     * paths, which is not modelled here.
      *
      * @param call            the GCC call to extract the information from
-     * @param buildDirectory  the directory where the build is executed. The paths in the GCC call are relative to this
-     *                        directory. For example, fiasco by default uses the `build` directory as the output
-     *                        directory and executes `make` within it.
      * @param sourceDirectory the root directory of the source files. The paths in the created objects will be relative
      *                        to this directory if they are within it.
      * @return a list of {@link InclusionInformation} objects
      */
-    public static List<InclusionInformation> fromGCCCall(GCCCall call, Path buildDirectory, Path sourceDirectory) {
+    public static List<InclusionInformation> fromGCCCall(GCCCall call, Path sourceDirectory) {
+        Path workingDirectory = call.workingDirectory() != null ? call.workingDirectory() : sourceDirectory;
         Stream<Path> filePaths = call.compiledFiles().stream()
-                .map(filePath -> normalizePath(Path.of(filePath), buildDirectory, sourceDirectory));
+                .map(filePath -> normalizePath(Path.of(filePath), workingDirectory, sourceDirectory));
         List<Path> includedFiles = call.includes().stream()
-                .map(filePath -> normalizePath(Path.of(filePath), buildDirectory, sourceDirectory))
+                .map(filePath -> normalizePath(Path.of(filePath), workingDirectory, sourceDirectory))
                 .toList();
         Map<String, String> defines = call.defines();
         List<Path> includePaths = call.includePaths().stream()
-                .map(path -> normalizePath(Path.of(path), buildDirectory, sourceDirectory))
+                .map(path -> normalizePath(Path.of(path), workingDirectory, sourceDirectory))
                 .toList();
         List<Path> systemIncludePaths = call.systemIncludePaths().stream()
-                .map(path -> normalizePath(Path.of(path), buildDirectory, sourceDirectory))
+                .map(path -> normalizePath(Path.of(path), workingDirectory, sourceDirectory))
                 .toList();
         return filePaths.map(filePath -> new InclusionInformation(filePath, Set.copyOf(includedFiles), defines,
                         includePaths, systemIncludePaths))
@@ -81,13 +82,13 @@ public record InclusionInformation(Path filePath, Set<Path> includedFiles, Map<S
         int dotIndex = fileName.lastIndexOf('.');
         String baseName = dotIndex == -1 ? fileName : fileName.substring(0, dotIndex);
         String extension = dotIndex == -1 ? "" : fileName.substring(dotIndex);
-        return this.filePath.getParent()
-                .resolve(baseName + "-" + this.getComposedFileNameHash() + extension);
+        Path newFileName = Path.of(baseName + "-" + this.getComposedFileNameHash() + extension);
+        return this.filePath.getParent() == null ? newFileName : this.filePath.getParent().resolve(newFileName);
     }
 
     private HashCode getComposedFileNameHash() {
         Hasher hasher = Hashing.sha256().newHasher();
-        hasher.putString(this.filePath.toString(), StandardCharsets.UTF_8);
+        hasher.putString(this.filePath.normalize().toString(), StandardCharsets.UTF_8);
         hasher.putByte((byte) 0);
         for (String includedFile : this.includedFiles.stream().map(Path::toString).sorted().toList()) {
             hasher.putString(includedFile, StandardCharsets.UTF_8);
