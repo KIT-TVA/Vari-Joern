@@ -4,6 +4,7 @@
 
   "make_target": "defconfig",
   "kconfig_root_file_path": "Config.in",
+  "kconfig_file_names": ["Config.in", "Config.probed"],
   "config_header_path": "generated/config.h",
 
   "included_files_and_directories": [

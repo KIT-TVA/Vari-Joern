@@ -1,50 +1,32 @@
-import os
 import re
 import subprocess
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Callable
 
 from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification
-from python.sugarlyzer.util.Kconfig import collect_kconfig_files
+from python.sugarlyzer.util.Kconfig import kconfig_add_quotes_to_source_directive
 
 
 class AxtlsSpecification(ProgramSpecification):
-    def transform_kconfig_into_kextract_format(self) -> dict[str, str]:
-        transformed_to_old_files: dict[str, str] = {}
-        kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_names=["Config.in"],
-                                                          root_directory=self.project_root)
+    @classmethod
+    def __kconfig_remove_colon_after_help(cls, help_directive: str) -> str:
+        """
+        Takes in a source help directive where the help keyword is followed by a colon and returns a version where the
+        colon is removed.
 
-        # Problem: Missing quotation marks surrounding the file path.
-        problematic_pattern_source_directive: str = r'source [^"\s]*Config\.in'
-        # Problem: Colon after help.
-        problematic_pattern_help_directive: str = r'help:'
+        Example: "help:"
 
-        # Go through the Kconfig files and adjust problematic syntax.
-        for kconfig_file in kconfig_files:
-            transformed_file_path: str = str(kconfig_file) + ".tmp"
-            with open(kconfig_file, "r") as input_file, open(transformed_file_path, "w") as output_file:
-                for line in input_file:
-                    if re.fullmatch(problematic_pattern_source_directive, line.strip()):
-                        source_left_right: list[str] = line.split("source")
-                        indentation: str = source_left_right[0]
-                        included_file: str = source_left_right[1].strip()
+        :param help_directive: The malformed help directive.
+        :return: The help directive with the colon removed.
+        """
+        help_left_right: list[str] = help_directive.split("help")
+        indentation: str = help_left_right[0]
 
-                        output_file.write(f"{indentation}source \"{included_file}\"\n")
-                    elif re.fullmatch(problematic_pattern_help_directive, line.strip()):
-                        help_left_right: list[str] = line.split("help")
-                        indentation: str = help_left_right[0]
-                        output_file.write(f"{indentation}help\n")
-                    else:
-                        output_file.write(f"{line}")
+        return f"{indentation}help\n"
 
-            # Replace old Kconfig file with transformed one but retain the old one to restore it after the analysis.
-            original_file_path: str = str(kconfig_file)
-            tmp_save_file_path:str = str(kconfig_file) + ".sugarlyzer.orig"
-            os.rename(src=original_file_path, dst=tmp_save_file_path)
-            os.rename(src=transformed_file_path, dst=original_file_path)
-            transformed_to_old_files[original_file_path] = tmp_save_file_path
-
-        return transformed_to_old_files
+    def problematic_kconfig_lines_and_corrections(self) -> list[(str, Callable[[str], str])]:
+        return [(r'source [^"\s]*Config\.[^"\s]+', kconfig_add_quotes_to_source_directive),
+                (r'help:', AxtlsSpecification.__kconfig_remove_colon_after_help)]
 
     def run_make(self, output_path: Path):
         # Clean output of potential previous make call.

@@ -377,11 +377,14 @@ def process_alarms(alarms: Iterable[Alarm], desugared_file: Path) -> Iterable[Al
             w.presence_condition = varisDefRemoved
             report += str(w) + '\n'
         else:
-            print('impossible constraints')
+            logger.debug(f"Unsatisfiable constraints for alarm {w.message} in {w.unpreprocessed_source_file}:{w.line_in_input_file}")
             w.feasible = False
             w.model = None
             # Use None and make correNum an Optional type
             # w.correNum = '-1'
+
+    # TODO Filter out infeasible alarms.
+
     return alarms
 
 

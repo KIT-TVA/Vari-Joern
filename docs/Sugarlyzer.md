@@ -29,3 +29,7 @@ The list also contains remarks on required libraries for the analysis of individ
 - **Version**: 
 - **Category**: Collection of UNIX utilities
 - **C Lines of Code** (as reported by Cloc): > 182,000
+
+### Remarks
+- Requires the SELinux development headers to be installed for executing make
+  - Can be achieved by ``sudo apt-get install selinux-basics selinux-utils libselinux*``

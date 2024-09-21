@@ -3,53 +3,36 @@ import subprocess
 import re
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import List, Dict
+from typing import List, Dict, Callable
 
 from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification, logger
-from python.sugarlyzer.util.Kconfig import collect_kconfig_files
+from python.sugarlyzer.util.Kconfig import collect_kconfig_files, kconfig_add_quotes_to_source_directive
 
 
 class ToyboxSpecification(ProgramSpecification):
-    def transform_kconfig_into_kextract_format(self) -> dict[str, str]:
-        transformed_to_old_files: dict[str, str] = {}
-        kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_names=["Config.in", "Config.probed"],
-                                                          root_directory=self.project_root)
+    @classmethod
+    def __kconfig_add_quotes_to_bool_directive(self, bool_directive: str) -> str:
+        """
+        Takes in a bool directive that does not surround the contained name with quotation marks and returns a version
+        where the name is correctly surrounded.
 
+        :param bool_directive: The malformed bool directive.
+        :return: The bool directive with the name enclosed in quotation marks.
+        """
+        bool_left_right: list[str] = bool_directive.split("bool")
+        indentation: str = bool_left_right[0]
+        name: str = bool_left_right[1].strip()
+
+        return f"{indentation}bool \"{name}\"\n"
+
+    def problematic_kconfig_lines_and_corrections(self) -> list[(str, Callable[[str], str])]:
+        # Problematic cases:
         # Problem: Missing quotation marks surrounding the file path.
         # Examples: "source generated/Config.probed" and "source generated/Config.in".
-        problematic_pattern_source_directive: str = r'source [^"\s]*Config\.[^"\s]+'
         # Problem: Missing quotation marks surrounding the name of the boolean variable.
         # Example: "bool stat"
-        problematic_pattern_bool_directive: str = r'bool [^"\s]+'
-
-        # Go through the Kconfig files and adjust problematic syntax.
-        for kconfig_file in kconfig_files:
-            transformed_file_path: str = str(kconfig_file) + ".tmp"
-            with open(kconfig_file, "r") as input_file, open(transformed_file_path, "w") as output_file:
-                for line in input_file:
-                    if re.fullmatch(problematic_pattern_source_directive, line.strip()):
-                        source_left_right: list[str] = line.split("source")
-                        indentation: str = source_left_right[0]
-                        included_file: str = source_left_right[1].strip()
-
-                        output_file.write(f"{indentation}source \"{included_file}\"\n")
-                    elif re.fullmatch(problematic_pattern_bool_directive, line.strip()):
-                        bool_left_right: list[str] = line.split("bool")
-                        indentation: str = bool_left_right[0]
-                        name: str = bool_left_right[1].strip()
-
-                        output_file.write(f"{indentation}bool \"{name}\"\n")
-                    else:
-                        output_file.write(f"{line}")
-
-            # Replace old Kconfig file with transformed one but retain the old one to restore it after the analysis.
-            original_file_path: str = str(kconfig_file)
-            tmp_save_file_path:str = str(kconfig_file) + ".sugarlyzer.orig"
-            os.rename(src=original_file_path, dst=tmp_save_file_path)
-            os.rename(src=transformed_file_path, dst=original_file_path)
-            transformed_to_old_files[original_file_path] = tmp_save_file_path
-
-        return transformed_to_old_files
+        return [(r'source [^"\s]*Config\.[^"\s]+', kconfig_add_quotes_to_source_directive),
+                (r'bool [^"\s]+', ToyboxSpecification.__kconfig_add_quotes_to_bool_directive)]
 
     def run_make(self, output_path: Path) -> int:
         # Clean output of potential previous make call.

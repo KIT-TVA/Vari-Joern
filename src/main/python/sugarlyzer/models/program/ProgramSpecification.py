@@ -11,11 +11,12 @@ from dataclasses import dataclass
 from importlib.abc import Traversable
 from io import StringIO
 from pathlib import Path
-from typing import List, Iterable, Dict, Tuple, Any
+from typing import List, Iterable, Dict, Tuple, Any, Callable
 
 from jsonschema.validators import RefResolver, Draft7Validator
 
 from python.kgenerateBeta.kgenerate import run_kgenerate
+from python.sugarlyzer.util.Kconfig import collect_kconfig_files
 from python.sugarlyzer.util.MacroDiscoveryPreprocessor import MacroDiscoveryPreprocessor
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class ProgramSpecification(ABC):
                  makefile_dir_path: str = None,
                  kconfig_root_file_path: str = None,
                  kconfig_root_path: str = None,
+                 kconfig_file_names: list[str] = None,
                  config_header_path: str = None,
                  included_files_and_directories: Iterable[Dict] | None = None):
         """
@@ -77,6 +79,7 @@ class ProgramSpecification(ABC):
             if kconfig_root_file_path is not None else self.project_root / Path("Config.in")
         self.kconfig_root_path: Path = self.try_resolve_path(path=kconfig_root_path, root=self.project_root) \
             if kconfig_root_path is not None else self.project_root
+        self.kconfig_file_names: list[str] = ["Config.in"] if kconfig_file_names is None else kconfig_file_names
 
         if config_header_path is None:
             self.config_header_path: Path = self.project_root / Path("config.h")
@@ -201,7 +204,9 @@ class ProgramSpecification(ABC):
     def process_inc_dirs_and_files(self, inc_dirs_and_files: Iterable[dict],
                                    file: Path,
                                    include_only_file_specific_macros: bool) -> tuple[list[Path], list[Path], list[str]]:
-        inc_files: list[Path] = []; inc_dirs: list[Path] = []; cmd_decs: list[str] = []
+        inc_files: list[Path] = []
+        inc_dirs: list[Path] = []
+        cmd_decs: list[str] = []
 
         for spec in inc_dirs_and_files:
             # Note the difference between s[a] and s.get(a) is the former will
@@ -225,7 +230,8 @@ class ProgramSpecification(ABC):
                     if 'predefined_config_macros' in spec.keys():
                         macros: list[str] = spec['predefined_config_macros']
                         # Add the config prefix to the macro name.
-                        macros_with_prefix: map = map(lambda macro: f"{macro[:2]} {self.config_prefix}{macro[2:].strip()}", macros)
+                        macros_with_prefix: map = map(
+                            lambda macro: f"{macro[:2]} {self.config_prefix}{macro[2:].strip()}", macros)
                         cmd_decs.extend(list(macros_with_prefix))
 
         return inc_files, inc_dirs, cmd_decs
@@ -297,7 +303,9 @@ class ProgramSpecification(ABC):
         """
         logger.info("Creating config header and mapping.")
 
-        # Bring the program's Kconfig files into the format required by kextract, if necessary.
+        # Bring the program's Kconfig files into the format required by kextract. This is necessary as newer versions of
+        # the Kconfig parser used in kextract (notably next-20200430 and next-20210426) expect the same format as found
+        # in the Linux kernel.
         logger.info("Transforming the kconfig files of the program into a suitable form.")
         transformed_to_original_kconfig_files: dict[str, str] = self.transform_kconfig_into_kextract_format()
 
@@ -314,17 +322,63 @@ class ProgramSpecification(ABC):
                           mapping_file_output_dir_path=self.__tmp_dir,
                           tmp_directory_path=self.__tmp_dir,
                           source_tree_path=self.kconfig_root_path,
-                          config_prefix=self.config_prefix)
+                          config_prefix=self.config_prefix,
+                          module_version="next-20210426")
 
-        # Revert the changes to the Kconfig files as they can interfere with make calls.
+        # Revert the changes to the Kconfig files as they can interfere with subsequent make calls.
         for transformed, original in transformed_to_original_kconfig_files.items():
             os.unlink(transformed)
             os.rename(src=original, dst=transformed)
 
-    @abstractmethod
     def transform_kconfig_into_kextract_format(self) -> dict[str, str]:
-        # TODO Pull base functionality (collecting kconfig files and iterating over their lines to find potential problems)
-        #  into base class and have the subclasses specify their problem cases and a correction (lambda?) via an abstract method.
+        """
+        Transform the kconfig files of the program into the format used within the Linux kernel and expected by newer
+        version of kextract.
+
+        :return: A dict that maps the transformed kconfig files to their original unaltered variant.
+        """
+        transformed_to_old_files: dict[str, str] = {}
+        kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_names=self.kconfig_file_names,
+                                                          root_directory=self.project_root)
+
+        problematic_patterns_and_rewrites: list[
+            (str, Callable[[str], str])] = self.problematic_kconfig_lines_and_corrections()
+
+        # Go through the Kconfig files and adjust problematic syntax.
+        for kconfig_file in kconfig_files:
+            transformed_file_path: str = str(kconfig_file) + ".tmp"
+            with open(kconfig_file, "r") as input_file, open(transformed_file_path, "w") as output_file:
+                for line in input_file:
+                    rewritten: bool = False
+                    for pattern, rewriter in problematic_patterns_and_rewrites:
+                        if re.match(pattern=pattern, string=line.strip()):
+                            output_file.write(rewriter(line))
+                            logger.info(
+                                f"In file {kconfig_file} rewrote \"{line.strip()}\" to \"{rewriter(line).strip()}\"")
+                            rewritten = True
+                            break
+
+                    if rewritten:
+                        continue
+                    output_file.write(f"{line}")
+
+            # Replace old Kconfig file with transformed one but retain the old one to restore it after the analysis.
+            original_file_path: str = str(kconfig_file)
+            tmp_save_file_path: str = str(kconfig_file) + ".sugarlyzer.orig"
+            os.rename(src=original_file_path, dst=tmp_save_file_path)
+            os.rename(src=transformed_file_path, dst=original_file_path)
+            transformed_to_old_files[original_file_path] = tmp_save_file_path
+
+        return transformed_to_old_files
+
+    @abstractmethod
+    def problematic_kconfig_lines_and_corrections(self) -> list[(str, Callable[[str], str])]:
+        """
+        Gets a list of patterns of problematic source code lines and corresponding transformations that turn these
+        problematic lines into the format found within the Linux kernel.
+
+        :return: A list of tuples, where each tuple associates a regex string describing the problematic line with the corresponding transformation.
+        """
         pass
 
     def collect_make_includes(self) -> List[Dict]:
@@ -431,8 +485,8 @@ class ProgramSpecification(ABC):
                     # Macro (un)definitions relating to configuration variables (i.e., features of the SPL).
                     config_macros: Iterable[str] = spec.get('predefined_config_macros')
                     for config_macro in config_macros or []:
-                        project_macro_header.write(f"{rewrite_macro(macro_to_rewrite=config_macro, add_config_prefix=True)}\n")
-
+                        project_macro_header.write(
+                            f"{rewrite_macro(macro_to_rewrite=config_macro, add_config_prefix=True)}\n")
 
         return project_macro_header_path
 

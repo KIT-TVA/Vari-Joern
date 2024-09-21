@@ -200,6 +200,8 @@ class Tester:
             start_time_post_processing: float = time.monotonic()
             buckets: List[List[Alarm]] = [[]]
 
+            # Internal function that checks whether two alarms refer to the same issue in the unpreprocessed
+            # source code.
             def alarm_match(a: Alarm, b: Alarm):
                 return (a.input_file == b.input_file
                         and a.feasible == b.feasible
@@ -248,7 +250,8 @@ class Tester:
         logger.info(f"Writing alarms to file \"{self.output_file_path}\"")
 
         # Sort alarms w.r.t full file name and original line range to ease comparison of reports between executions.
-        alarms.sort(key=lambda alarm_param: f"{alarm_param.input_file}::{str(alarm_param.original_line_range)}")
+        alarms.sort(key=lambda
+            alarm_param: f"{alarm_param.input_file}::{str(alarm_param.original_line_range)}_{alarm_param.message}")
 
         # Assign unique ids to the alarms (ProcessPoolExecutor leads to overlapping ids and postprocessing can
         # create discontinuations).
