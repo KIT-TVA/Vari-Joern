@@ -54,7 +54,7 @@ class AxtlsSpecification(ProgramSpecification):
                 if "Entering directory" in line:
                     current_building_directory = line.split("'")[1]
                 elif line.startswith("cc "):
-                    file_name_match = re.search(r' (\S+\.c)', line)
+                    file_name_match = re.search(r' (\S+\.c)(\s+|$)', line)
                     if file_name_match is not None:
                         file_name = file_name_match.group(1)
 

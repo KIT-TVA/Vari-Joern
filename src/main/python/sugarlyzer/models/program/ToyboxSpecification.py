@@ -1,17 +1,16 @@
-import os
-import subprocess
 import re
+import subprocess
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import List, Dict, Callable
 
 from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification, logger
-from python.sugarlyzer.util.Kconfig import collect_kconfig_files, kconfig_add_quotes_to_source_directive
+from python.sugarlyzer.util.Kconfig import kconfig_add_quotes_to_source_directive
 
 
 class ToyboxSpecification(ProgramSpecification):
     @classmethod
-    def __kconfig_add_quotes_to_bool_directive(self, bool_directive: str) -> str:
+    def __kconfig_add_quotes_to_bool_directive(cls, bool_directive: str) -> str:
         """
         Takes in a bool directive that does not surround the contained name with quotation marks and returns a version
         where the name is correctly surrounded.
@@ -78,7 +77,7 @@ class ToyboxSpecification(ProgramSpecification):
         with open(make_output_file, "r") as make_output:
             for line in make_output:
                 if line.startswith("cc "):
-                    file_name_match = re.search(r' (\S+\.c)', line)
+                    file_name_match = re.search(r' (\S+\.c)(\s+|$)', line)
                     if file_name_match is not None:
                         relative_file_path = file_name_match.group(1)
 
