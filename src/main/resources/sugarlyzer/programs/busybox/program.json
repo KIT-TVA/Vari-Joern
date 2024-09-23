@@ -19,7 +19,7 @@
       ]
     },
     {
-      "file_pattern": "klibc-utils/\S+\\.c$",
+      "file_pattern": "klibc-utils/\\S+\\.c$",
       "included_files": [
         "include/autoconf.h"
       ],
