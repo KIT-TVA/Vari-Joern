@@ -36,10 +36,14 @@ def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
     return range1.start_line == range2.start_line and range1.end_line == range2.end_line
 
 
-def map_source_line(desugared_file: Path, line_number: int, unpreprocessed_source_file: Path) -> IntegerRange:
+def map_source_line(desugared_file: Path,
+                    line_number: int,
+                    global_scope: bool,
+                    unpreprocessed_source_file: Path) -> IntegerRange:
     """
     Given an alarm, map it back to original source.
 
+    :param global_scope: Whether the alarm was encountered in global scope (i.e., outside a function).
     :param desugared_file: The desugared file in which the line is present.
     :param line_number: The linen umber to map (starts at 1 for the first line).
     :param unpreprocessed_source_file: The unpreprocessed source file from which the desugared file was created.
@@ -55,6 +59,7 @@ def map_source_line(desugared_file: Path, line_number: int, unpreprocessed_sourc
                 return IntegerRange(int(match.group(1)), int(match.group(2)))
             if match := re.search(single_line_pattern, line):
                 return IntegerRange(int(match.group(1)), int(match.group(1)))
+            return None
 
         lines: List[str] = list(map(lambda x: x.strip('\n'), infile.readlines()))
         try:
@@ -66,10 +71,11 @@ def map_source_line(desugared_file: Path, line_number: int, unpreprocessed_sourc
         if (original_line_range := check_for_line_number_comment(the_line)) is not None:
             return original_line_range
 
-        if re.search(array_access_fixed_index_pattern, the_line) is not None:
-            # Search for a line number specified by the enclosing block. This is necessary given that arrays containing
-            # entries specified by macros will be desugared to multiple lines contained in a block that specifies the
-            # line number. Example:
+        if re.search(array_access_fixed_index_pattern, the_line) is not None or not global_scope:
+            # Try to approximate line numbers. This is necessary given that some constructs are desugared to multiple
+            # lines, where only the last line (or those of the surrounding scope) is assigned to proper line mapping.
+            # For instance, arrays containing entries specified by macros will be desugared to multiple lines contained
+            # in a block that specifies the line number. Example:
             # int abc[] = {VALUE_A, VALUE_B, VALUE_C}; will be desugared to:
             # if (1) {
             # {
@@ -77,6 +83,9 @@ def map_source_line(desugared_file: Path, line_number: int, unpreprocessed_sourc
             # __abc_1159[1] = 535655;
             # __abc_1159[2] = 12345;
             # } } ;// L21
+            with open(unpreprocessed_source_file, 'r') as file:
+                lines_in_original_source_file: int = sum(1 for _ in file)
+                original_source_file_line_range: IntegerRange = IntegerRange(1, lines_in_original_source_file)
             curren_line_number: int = line_number
             open_parentheses: int = 0
 
@@ -84,26 +93,16 @@ def map_source_line(desugared_file: Path, line_number: int, unpreprocessed_sourc
                 current_line: str = lines[curren_line_number]
                 if "{" in current_line:
                     open_parentheses += current_line.count("{")
-                if "}" in current_line:
-                    open_parentheses += current_line.count("{")
+                if "}" in current_line and open_parentheses > 0:
+                    open_parentheses -= min(current_line.count("}"), open_parentheses)
 
-                if open_parentheses <= 0 and (
-                        (original_line_range := check_for_line_number_comment(current_line)) is not None):
-                    return original_line_range
+                if open_parentheses <= 0:
+                    original_line_range: IntegerRange = check_for_line_number_comment(current_line)
+                    if original_line_range is not None and original_line_range.is_in(original_source_file_line_range):
+                        original_line_range.approximated = True
+                        return original_line_range
 
                 curren_line_number += 1
-
-        # Try to approximate the line number by looking at the successive lines if SugarC failed to include a line number comment.
-        with open(unpreprocessed_source_file, 'r') as file:
-            lines_in_original_source_file: int = sum(1 for _ in file)
-
-        curren_line_number: int = line_number
-        while curren_line_number < len(lines):
-            current_line: str = lines[curren_line_number]
-            if (found_line_range := check_for_line_number_comment(current_line)) is not None and (found_line_range.start_line <= lines_in_original_source_file):
-                found_line_range.approximated = True
-                return found_line_range
-            curren_line_number += 1
 
     raise ValueError(f"Could not find source line for line {desugared_file}:{line_number} ({the_line})")
 
@@ -189,7 +188,9 @@ class Alarm:
             return IntegerRange(self.line_in_input_file, self.line_in_input_file)
 
         if self.__original_line_range is None:
-            self.__original_line_range = map_source_line(self.input_file, self.line_in_input_file,
+            self.__original_line_range = map_source_line(self.input_file,
+                                                         self.line_in_input_file,
+                                                         self.function_line_range[0] == "GLOBAL",
                                                          self.unpreprocessed_source_file)
             if (self.__original_line_range is not None
                     and not self.function_line_range[0] == "GLOBAL"

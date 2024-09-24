@@ -27,6 +27,16 @@
         "include",
         "libbb"
       ]
+    },
+    {
+      "file_pattern": "libbb/hash_md5prime\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
     }
   ]
 }
