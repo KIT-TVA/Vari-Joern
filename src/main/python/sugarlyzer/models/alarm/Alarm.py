@@ -38,15 +38,14 @@ def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
 
 def map_source_line(desugared_file: Path,
                     line_number: int,
-                    global_scope: bool,
-                    unpreprocessed_source_file: Path) -> IntegerRange:
+                    function_line_range: tuple[str, IntegerRange]) -> IntegerRange:
     """
     Given an alarm, map it back to original source.
 
-    :param global_scope: Whether the alarm was encountered in global scope (i.e., outside a function).
+    :param function_line_range: The line range of the enclosing function or a complete range over the file for an alarm
+    raised in global scope.
     :param desugared_file: The desugared file in which the line is present.
     :param line_number: The linen umber to map (starts at 1 for the first line).
-    :param unpreprocessed_source_file: The unpreprocessed source file from which the desugared file was created.
     :return: The line range in the original source file.
     """
     with open(desugared_file, 'r') as infile:
@@ -71,7 +70,7 @@ def map_source_line(desugared_file: Path,
         if (original_line_range := check_for_line_number_comment(the_line)) is not None:
             return original_line_range
 
-        if re.search(array_access_fixed_index_pattern, the_line) is not None or not global_scope:
+        if re.search(array_access_fixed_index_pattern, the_line) or not (function_line_range[0] == "GLOBAL"):
             # Try to approximate line numbers. This is necessary given that some constructs are desugared to multiple
             # lines, where only the last line (or those of the surrounding scope) is assigned to proper line mapping.
             # For instance, arrays containing entries specified by macros will be desugared to multiple lines contained
@@ -83,9 +82,6 @@ def map_source_line(desugared_file: Path,
             # __abc_1159[1] = 535655;
             # __abc_1159[2] = 12345;
             # } } ;// L21
-            with open(unpreprocessed_source_file, 'r') as file:
-                lines_in_original_source_file: int = sum(1 for _ in file)
-                original_source_file_line_range: IntegerRange = IntegerRange(1, lines_in_original_source_file)
             curren_line_number: int = line_number
             open_parentheses: int = 0
 
@@ -98,7 +94,8 @@ def map_source_line(desugared_file: Path,
 
                 if open_parentheses <= 0:
                     original_line_range: IntegerRange = check_for_line_number_comment(current_line)
-                    if original_line_range is not None and original_line_range.is_in(original_source_file_line_range):
+                    if original_line_range is not None and (
+                            original_line_range.start_line <= function_line_range[1].end_line):
                         original_line_range.approximated = True
                         return original_line_range
 
@@ -190,8 +187,7 @@ class Alarm:
         if self.__original_line_range is None:
             self.__original_line_range = map_source_line(self.input_file,
                                                          self.line_in_input_file,
-                                                         self.function_line_range[0] == "GLOBAL",
-                                                         self.unpreprocessed_source_file)
+                                                         self.function_line_range)
             if (self.__original_line_range is not None
                     and not self.function_line_range[0] == "GLOBAL"
                     and not self.__original_line_range.is_in(self.function_line_range[1])):

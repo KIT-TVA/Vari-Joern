@@ -29,13 +29,46 @@
       ]
     },
     {
-      "file_pattern": "libbb/hash_md5prime\\.c$",
+      "file_pattern": "libbb/(bb_strtod|bbunit|die_if_bad_username|hash_md5prime|mtab|selinux_common)\\.c$",
       "included_files": [
         "include/autoconf.h"
       ],
       "included_directories": [
         "include",
         "libbb"
+      ]
+    },
+    {
+      "file_pattern": "util-linux/(last|mkfs_reiser)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "networking/inetd\\.c$",
+      "predefined_config_macros": [
+        "-U FEATURE_INETD_RPC"
+      ]
+    },
+    {
+      "file_pattern": "util-linux/mount\\.c$",
+      "predefined_config_macros": [
+        "-U FEATURE_MOUNT_NFS"
+      ]
+    },
+    {
+      "file_pattern": "util-linux/volume_id/unused_\\S+\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb",
+        "util-linux/volume_id"
       ]
     }
   ]
