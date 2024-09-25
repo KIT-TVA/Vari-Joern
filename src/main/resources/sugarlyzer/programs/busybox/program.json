@@ -70,6 +70,24 @@
         "libbb",
         "util-linux/volume_id"
       ]
+    },
+    {
+      "file_pattern": "networking/httpd\\.c$",
+      "predefined_config_macros": [
+        "-U PAM"
+      ]
+    },
+    {
+      "file_pattern": "loginutils/login\\.c$",
+      "predefined_config_macros": [
+        "-U PAM"
+      ]
+    },
+    {
+      "file_pattern": "networking/ssl_helper/ssl_helper\\.c$",
+      "macro_definitions": [
+        "-U USE_HEADER_KEYS"
+      ]
     }
   ]
 }
