@@ -69,6 +69,16 @@
       ]
     },
     {
+      "file_pattern": "e2fsprogs/tune2fs\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
       "file_pattern": "klibc-utils/\\S+\\.c$",
       "included_files": [
         "include/autoconf.h"
@@ -80,6 +90,16 @@
     },
     {
       "file_pattern": "libbb/(bb_strtod|bbunit|die_if_bad_username|hash_md5prime|mtab|selinux_common)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "miscutils/(bbconfig|devfsd|flashcp|flash_eraseall|flash_lock_unlock|inotifyd|rfkill)\\.c$",
       "included_files": [
         "include/autoconf.h"
       ],
@@ -130,15 +150,9 @@
       ]
     },
     {
-      "file_pattern": "networking/inetd\\.c$",
+      "file_pattern": "loginutils/login\\.c$",
       "predefined_config_macros": [
-        "-U FEATURE_INETD_RPC"
-      ]
-    },
-    {
-      "file_pattern": "util-linux/mount\\.c$",
-      "predefined_config_macros": [
-        "-U FEATURE_MOUNT_NFS"
+        "-U PAM"
       ]
     },
     {
@@ -148,9 +162,15 @@
       ]
     },
     {
-      "file_pattern": "loginutils/login\\.c$",
+      "file_pattern": "networking/inetd\\.c$",
       "predefined_config_macros": [
-        "-U PAM"
+        "-U FEATURE_INETD_RPC"
+      ]
+    },
+    {
+      "file_pattern": "util-linux/mount\\.c$",
+      "predefined_config_macros": [
+        "-U FEATURE_MOUNT_NFS"
       ]
     },
     {
