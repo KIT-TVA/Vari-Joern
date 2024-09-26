@@ -19,6 +19,56 @@
       ]
     },
     {
+      "file_pattern": "applets/individual\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "archival/ar\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "archival/libarchive/(decompress_uncompress|lzo1x_9x)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "coreutils/od_bloaty\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "editors/patch_(bbox|toybox|)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
       "file_pattern": "klibc-utils/\\S+\\.c$",
       "included_files": [
         "include/autoconf.h"
@@ -39,6 +89,26 @@
       ]
     },
     {
+      "file_pattern": "modutils/(modprobe|insmod|rmmod|lsmod|depmod|modutils-24)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "selinux/\\S+\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
       "file_pattern": "util-linux/(last|mkfs_reiser)\\.c$",
       "included_files": [
         "include/autoconf.h"
@@ -46,6 +116,17 @@
       "included_directories": [
         "include",
         "libbb"
+      ]
+    },
+    {
+      "file_pattern": "util-linux/volume_id/unused_\\S+\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb",
+        "util-linux/volume_id"
       ]
     },
     {
@@ -58,17 +139,6 @@
       "file_pattern": "util-linux/mount\\.c$",
       "predefined_config_macros": [
         "-U FEATURE_MOUNT_NFS"
-      ]
-    },
-    {
-      "file_pattern": "util-linux/volume_id/unused_\\S+\\.c$",
-      "included_files": [
-        "include/autoconf.h"
-      ],
-      "included_directories": [
-        "include",
-        "libbb",
-        "util-linux/volume_id"
       ]
     },
     {
