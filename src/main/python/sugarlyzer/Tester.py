@@ -217,7 +217,7 @@ class Tester:
 
             # Internal function that checks whether two alarms refer to the same issue in the unpreprocessed
             # source code.
-            def alarm_match(a: Alarm, b: Alarm):
+            def alarm_match(a: Alarm, b: Alarm) -> bool:
                 return (a.input_file == b.input_file
                         and a.feasible == b.feasible
                         and a.sanitized_message == b.sanitized_message
@@ -227,7 +227,7 @@ class Tester:
             # Then, for each bucket, we will return one alarm, combining all the
             # models into a list.
             logger.info(f"Sorting the {len(alarms)} alarms into buckets...")
-            buckets: List[List[Alarm]] = [[]]
+            buckets: list[list[Alarm]] = [[]]
             bucket_matches = 0
             for ba in alarms:
                 for bucket in buckets:
@@ -251,6 +251,7 @@ class Tester:
             for bucket in (b for b in buckets if len(b) > 0):
                 alarms.append(bucket[0])
                 alarms[-1].presence_condition = f"Or({','.join(str(m.presence_condition) for m in bucket)})"
+                alarms[-1].other_lines_in_input_file = [alarm.line_in_input_file for alarm in bucket[1:]]
             logger.debug("Done.")
             logger.info(f"{len(alarms)} alarms remain after aggregation.")
 

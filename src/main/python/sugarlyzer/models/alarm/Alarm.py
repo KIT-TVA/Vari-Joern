@@ -3,7 +3,7 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict, Optional, Iterable, TypeVar, Tuple
+from typing import List, Dict, Iterable, TypeVar, Tuple
 
 from z3.z3 import ModelRef
 
@@ -64,7 +64,7 @@ def map_source_line(desugared_file: Path,
         try:
             the_line: str = lines[line_number - 1]
         except IndexError as ie:
-            logger.exception(f"Trying to find {line_number} in file {desugared_file}.")
+            logger.exception(f"Trying to find {line_number} in file {desugared_file} failed: {ie}.")
             raise
 
         if (original_line_range := check_for_line_number_comment(the_line)) is not None:
@@ -116,25 +116,24 @@ class Alarm:
         self.input_file: Path = input_file
         self.unpreprocessed_source_file: Path = unpreprocessed_source_file
         self.line_in_input_file: int = int(line_in_input_file)
+        self.other_lines_in_input_file: list[int] = []
         self.message: str = message
         self.id: int = next(Alarm.__id_generator)
 
-        self.__original_line_range: IntegerRange = None
-        self.__function_line_range = None
-        self.__method_mapping = None
-        self.__sanitized_message = None
+        self.__original_line_range: IntegerRange | None = None
+        self.__function_line_range: tuple[str, IntegerRange] | None = None
+        self.__sanitized_message: str | None = None
 
-        self.presence_condition: Optional[str] = None
-        self.feasible: Optional[bool] = None
-        self.model: Optional[ModelRef | str] = None  # TODO: More elegant way to handle the two possible types of model.
+        self.presence_condition: str | None = None
+        self.feasible: bool | None = None
+        self.model: ModelRef | str | None = None  # TODO: More elegant way to handle the two possible types of model.
 
-        self.analysis_time: float = None
-        self.desugaring_time: float = None
+        self.analysis_time: float | None  = None
+        self.desugaring_time: float | None = None
 
-        self.get_recommended_space: bool = None
-        self.remove_errors: bool = None
-
-        self.verified: str = None
+        self.get_recommended_space: bool | None = None
+        self.remove_errors: bool | None = None
+        self.verified: str | None = None
 
     Printable = TypeVar('Printable')
 
@@ -143,6 +142,7 @@ class Alarm:
             "id": lambda: str(self.id),
             "input_file": lambda: str(self.input_file.absolute()),
             "input_line": lambda: self.line_in_input_file,
+            "other_input_lines": lambda: self.other_lines_in_input_file,
             "original_file": lambda: str(self.unpreprocessed_source_file.absolute()),
             "original_line": lambda: str(self.original_line_range),
             "function_line_range": lambda: f"{self.function_line_range[0]}:{str(self.function_line_range[1])}",
@@ -233,7 +233,7 @@ class Alarm:
 
         :return: An iterator of desugared lines.
         """
-        return [self.line_in_input_file]
+        return [self.line_in_input_file] + self.other_lines_in_input_file
 
     # noinspection PyMethodMayBeStatic
     def sanitize(self, message: str):
