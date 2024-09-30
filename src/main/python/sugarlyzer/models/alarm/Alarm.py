@@ -140,10 +140,10 @@ class Alarm:
     def as_dict(self) -> Dict[str, Printable]:
         executor = {
             "id": lambda: str(self.id),
-            "input_file": lambda: str(self.input_file.absolute()),
+            "input_file": lambda: str(self.input_file),
             "input_line": lambda: self.line_in_input_file,
             "other_input_lines": lambda: self.other_lines_in_input_file,
-            "original_file": lambda: str(self.unpreprocessed_source_file.absolute()),
+            "original_file": lambda: str(self.unpreprocessed_source_file),
             "original_line": lambda: str(self.original_line_range),
             "function_line_range": lambda: f"{self.function_line_range[0]}:{str(self.function_line_range[1])}",
             "message": lambda: self.message,

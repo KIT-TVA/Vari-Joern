@@ -46,6 +46,7 @@ class Tester:
         self.validate = args.validate if args.validate is not None else False
         self.verbosity = args.verbosity
         self.keep_intermediary_files: bool = args.keep_intermediary_files if args.keep_intermediary_files is not None else False
+        self.relative_paths: bool = args.relative_paths if args.relative_paths is not None else False
 
         # Set paths.
         self.__tmp_path = args.tmp_path if args.tmp_path is not None else tempfile.TemporaryDirectory(
@@ -270,13 +271,19 @@ class Tester:
         alarms.sort(key=lambda
             alarm_param: f"{alarm_param.input_file}::{str(alarm_param.original_line_range)}_{alarm_param.message}")
 
-        # Assign unique ids to the alarms (ProcessPoolExecutor leads to overlapping ids and postprocessing can
-        # create discontinuations).
         alarm_id: int = 0
         for alarm in alarms:
+            # Assign unique ids to the alarms (ProcessPoolExecutor leads to overlapping ids and postprocessing can
+            # create discontinuations).
             alarm.id = alarm_id
             alarm_id += 1
 
+            # Turn absolute paths to relative ones if desired.
+            if self.relative_paths:
+                alarm.input_file = alarm.input_file.relative_to(self.program.project_root)
+                alarm.unpreprocessed_source_file = alarm.unpreprocessed_source_file.relative_to(self.program.project_root)
+
+        # Write report file.
         with open(self.output_file_path, 'w') as f:
             json.dump([a.as_dict() for a in alarms], f, indent=4)
 
@@ -496,8 +503,11 @@ def get_arguments() -> argparse.Namespace:
     p.add_argument("--jobs", help="The number of jobs to use. If None, will use all CPUs", type=int)
     p.add_argument("--max-heap-per-job", help="The maximum JVM heap size allocated to each job (--jobs) in gigabytes.",
                    type=int)
+
     p.add_argument("--keep-intermediary-files", action="store_true",
                    help="Keep all intermediary files (desugared source files, desugaring logs, system and project headers, ...).")
+    p.add_argument("--relative-paths", action="store_true",
+                   help="Use relative paths to the subject system's root directory in the report file.")
 
     p.add_argument("--baselines", action="store_true",
                    help="""Run the baseline experiments. In these, we configure each 
