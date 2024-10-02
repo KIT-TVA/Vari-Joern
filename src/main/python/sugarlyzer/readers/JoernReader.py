@@ -20,6 +20,7 @@ class JoernReader(AbstractReader):
                 try:
                     warnings = json.load(rf)
                     for warning in warnings:
+                        query_name = warning["name"]
                         query_title = warning["title"]
                         description = warning["description"]
                         score = warning["score"]
@@ -29,6 +30,7 @@ class JoernReader(AbstractReader):
                             res.append(JoernAlarm(input_file=evidence["filename"],
                                                   line_in_input_file=evidence["lineNumber"],
                                                   unpreprocessed_source_file=unpreprocessed_source_file,
+                                                  name=query_name,
                                                   message=query_title,
                                                   description=description,
                                                   score=score))

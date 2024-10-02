@@ -19,5 +19,5 @@ case class EvidenceOutput(filename: String, lineNumber: Option[Integer])
     }).l
     FindingOutput(name, title, description, score, evidence)
   })
-  output.toJson #> outFile
+  output.toJsonPretty #> outFile
 }

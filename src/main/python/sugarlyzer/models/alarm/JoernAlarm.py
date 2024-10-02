@@ -9,6 +9,7 @@ class JoernAlarm(Alarm):
                  input_file: Path,
                  line_in_input_file: int,
                  unpreprocessed_source_file: Path,
+                 name: str,
                  message: str,
                  description: str,
                  score: int
@@ -18,11 +19,13 @@ class JoernAlarm(Alarm):
                          unpreprocessed_source_file=unpreprocessed_source_file,
                          message=message)
 
+        self.name: str = name
         self.description: str = description
         self.score: int = score
 
     def as_dict(self) -> Dict[str, str]:
         result = super().as_dict()
+        result['name'] = self.name
         result['description'] = self.description
         result['score'] = self.score
         return result
