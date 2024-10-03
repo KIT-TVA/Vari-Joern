@@ -54,6 +54,8 @@ FROM base-system
 RUN apt-get install -y \
     # Required by fiasco
     bison \
+    # Required by BusyBox
+    bzip2 \
     # Required for installing Smarch
     cmake \
     # Required by torte
