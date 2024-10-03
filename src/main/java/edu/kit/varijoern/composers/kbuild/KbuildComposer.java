@@ -171,6 +171,14 @@ public class KbuildComposer implements Composer {
         }
 
         this.generateConfig(features, tmpSourcePath);
+
+        if (this.system.equals("busybox")) {
+            // We have to run `make applets` to generate several header files.
+            this.runMake("applets");
+            // `make applets` generates `applets/applets.o`, which is part of the final BusyBox executables and would
+            // break dependency detection. We have to delete it.
+            Files.delete(tmpSourcePath.resolve("applets/applets.o"));
+        }
         Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
         Map<Path, GenerationInformation> generationInformation = this.generateFiles(
                 includedFiles, destination, tmpSourcePath

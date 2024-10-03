@@ -75,6 +75,13 @@ class KbuildComposerTest {
                 standardIncludePaths,
                 standardSystemIncludePaths
         );
+        InclusionInformation appletsC = new InclusionInformation(
+                Path.of("applets/applets.c"),
+                standardIncludedFiles,
+                standardBusyboxDefinesForFile("applets"),
+                standardIncludePaths,
+                standardSystemIncludePaths
+        );
         Stream<TestCase> testCases = Stream.of(
                 new TestCase(
                         "busybox-sample",
@@ -89,6 +96,7 @@ class KbuildComposerTest {
                                 new FileContentVerifier(mainC),
                                 new FileContentVerifier(noPresenceConditionC),
                                 new FileContentVerifier(includedCByMain),
+                                new FileContentVerifier(appletsC),
                                 new FileContentVerifier(Path.of("src/main.h")),
                                 new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
                         ),
@@ -128,6 +136,7 @@ class KbuildComposerTest {
                                 new FileContentVerifier(mainC),
                                 new FileContentVerifier(noPresenceConditionC),
                                 new FileContentVerifier(includedCByMain),
+                                new FileContentVerifier(appletsC),
                                 new FileContentVerifier(Path.of("src/main.h")),
                                 new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
                         ),

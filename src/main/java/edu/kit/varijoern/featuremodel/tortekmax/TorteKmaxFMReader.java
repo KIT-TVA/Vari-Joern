@@ -3,6 +3,7 @@ package edu.kit.varijoern.featuremodel.tortekmax;
 import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
+import de.ovgu.featureide.fm.core.base.impl.Constraint;
 import de.ovgu.featureide.fm.core.base.impl.Feature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
@@ -17,6 +18,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
+import org.prop4j.Literal;
+import org.prop4j.Not;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -173,6 +176,13 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                     featureModel.getStructure().getRoot().addChild(feature.getStructure());
                 }
             }
+
+            if (this.system.equals("busybox")) {
+                // BusyBox fails to build when WERROR is enabled. Since WERROR does not modify the final product, it is
+                // safe to disable it.
+                featureModel.addConstraint(new Constraint(featureModel, new Not(new Literal("WERROR"))));
+            }
+
             deleteFeatures(featureModel, nonTristateFeatures);
         } catch (IOException e) {
             throw new FeatureModelReaderException("Could not add unconstrained features due to an I/O error", e);
