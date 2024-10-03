@@ -72,6 +72,8 @@ RUN apt-get install -y \
     pipx \
     # Required for executing kmax
     python3.11-dev \
+    # Useful for timing Vari-Joern runs
+    time \
     # Required for installing Joern
     unzip \
     # `&& exit` is necessary because otherwise `pipx ensurepath` would not be started in a new `bash` process.
