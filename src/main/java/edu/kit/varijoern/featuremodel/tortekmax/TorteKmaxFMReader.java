@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.prop4j.Literal;
+import org.prop4j.Not;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -179,7 +180,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             if (this.system.equals("busybox")) {
                 // BusyBox fails to build when WERROR is enabled. Since WERROR does not modify the final product, it is
                 // safe to disable it.
-                featureModel.addConstraint(new Constraint(featureModel, new Literal("WERROR", false)));
+                featureModel.addConstraint(new Constraint(featureModel, new Not(new Literal("WERROR"))));
             }
 
             deleteFeatures(featureModel, nonTristateFeatures);

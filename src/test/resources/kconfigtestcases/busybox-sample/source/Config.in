@@ -5,4 +5,10 @@
 
 mainmenu "Configuration"
 
+config WERROR
+    bool "Treat warnings as errors"
+    default n
+    help
+      If you say Y here, then warnings will be treated as errors.
+
 source src/Config.in

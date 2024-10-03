@@ -456,7 +456,8 @@ scripts_basic: include/autoconf.h
 
 # Objects we will link into busybox / subdirs we need to visit
 core-y		:= \
-		src/ \
+			applets/ \
+			src/ \
 
 libs-y		:= \
 
