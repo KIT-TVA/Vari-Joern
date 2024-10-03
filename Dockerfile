@@ -52,14 +52,20 @@ RUN ./gradlew distTar
 
 FROM base-system
 RUN apt-get install -y \
+    # Required by fiasco
+    bison \
     # Required for installing Smarch
     cmake \
     # Required by torte
     docker-ce-cli \
+    # Required by fiasco
+    flex \
     # Required by torte
     git \
     # Required by Smarch
     libgmp-dev \
+    # Required by fiasco
+    libsdl-dev \
     # Required by Vari-Joern and Joern
     openjdk-21-jre \
     # Required for installing kmax
