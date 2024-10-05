@@ -202,19 +202,19 @@ class Tester:
 
             # Prune warnings whose original line range could not be established as these most likely relate to code
             # introduced during desugaring that is not found in the unpreprocessed source file.
-            def line_mapping_exists(alarm: Alarm) -> bool:
-                try:
-                    _ = alarm.original_line_range
-                    return True
-                except ValueError as ve:
-                    logger.debug(f"Could not establish a line mapping for an alarm of type {alarm.message} in "
-                                 f"{alarm.input_file}:{alarm.line_in_input_file}")
-                    logger.debug(ve)
-                return False
-
-            logger.info("Pruning alarms whose line mapping to the unpreprocessed source code could not be established.")
-            alarms = [alarm for alarm in alarms if line_mapping_exists(alarm)]
-            logger.info(f"{len(alarms)} alarms remain after pruning without a line mapping.")
+            # def line_mapping_exists(alarm: Alarm) -> bool:
+            #     try:
+            #         _ = alarm.original_line_range
+            #         return True
+            #     except ValueError as ve:
+            #         logger.debug(f"Could not establish a line mapping for an alarm of type {alarm.message} in "
+            #                      f"{alarm.input_file}:{alarm.line_in_input_file}")
+            #         logger.debug(ve)
+            #     return False
+            #
+            # logger.info("Pruning alarms whose line mapping to the unpreprocessed source code could not be established.")
+            # alarms = [alarm for alarm in alarms if line_mapping_exists(alarm)]
+            # logger.info(f"{len(alarms)} alarms remain after pruning without a line mapping.")
 
             # Internal function that checks whether two alarms refer to the same issue in the unpreprocessed
             # source code.
@@ -269,7 +269,8 @@ class Tester:
 
         # Sort alarms w.r.t full file name and original line range to ease comparison of reports between executions.
         alarms.sort(key=lambda
-            alarm_param: f"{alarm_param.input_file}::{str(alarm_param.original_line_range)}_{alarm_param.message}")
+            alarm_param: f"{alarm_param.input_file}::{'A' if not alarm_param.original_line_range.approximated else 'B'}"
+                         f"::{str(alarm_param.original_line_range)}::{alarm_param.message}")
 
         alarm_id: int = 0
         for alarm in alarms:

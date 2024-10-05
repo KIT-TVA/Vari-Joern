@@ -404,7 +404,9 @@ def read_arguments() -> argparse.Namespace:
                    default=f"{Path.cwd()}")
     p.add_argument('-p', '--mapping-output', help="The location where to put the mapping file.",
                    default=f"{Path.cwd()}")
-    p.add_argument('-f', '--format', help='Path to a file specifying the format of the output', required=True)
+    p.add_argument('-f', '--format', help='Path to a file specifying the format of the output',
+                   required=True)
+    p.add_argument('-t', '--tmp-dir', help='Path to the tmp directory that should be used')
     p.add_argument('-c', '--config-prefix',
                    help="The prefix that should be used for configuration related macros. Default is KGENMACRO_",)
     p.add_argument('--define-false', action='store_true',
@@ -437,7 +439,8 @@ def main() -> None:
                   source_tree_path=Path(args.directory),
                   config_prefix=args.config_prefix,
                   module_version=args.module_version,
-                  define_false=args.define_false)
+                  define_false=args.define_false,
+                  tmp_directory_path=None if args.tmp_dir is None else Path(args.tmp_dir))
 
 
 if __name__ == '__main__':

@@ -19,6 +19,9 @@ class IntegerRange:
     def __str__(self):
         return f"{self.start_line}:{self.end_line}{' (Approximated)' if self.approximated else ''}"
 
+    def is_valid_range(self) -> bool:
+        return 0 < self.start_line <= self.end_line
+
     def is_in(self, i) -> bool:
         if isinstance(i, IntegerRange):
             return self.start_line >= i.start_line and self.end_line <= i.end_line
@@ -33,7 +36,11 @@ class IntegerRange:
 
 
 def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
-    return range1.start_line == range2.start_line and range1.end_line == range2.end_line
+    if range1.is_valid_range() and range2.is_valid_range():
+       return range1.start_line == range2.start_line and range1.end_line == range2.end_line
+
+    # No comparisons between invalid ranges.
+    return False
 
 
 def map_source_line(desugared_file: Path,
@@ -101,7 +108,8 @@ def map_source_line(desugared_file: Path,
 
                 curren_line_number += 1
 
-    raise ValueError(f"Could not find source line for line {desugared_file}:{line_number} ({the_line})")
+    logger.warning(f"Could not find source line for line {desugared_file}:{line_number} ({the_line})")
+    return IntegerRange(start_line=0, end_line=0, approximated=True)
 
 
 class Alarm:
@@ -181,7 +189,9 @@ class Alarm:
         if self.input_file is None:
             raise ValueError("Trying to set original line range when self.original_file is none.")
 
-        if 'desugared' not in self.input_file.name:  ## Bad, bad, bad. TODO: Fix this with a more robust solution
+        # A more robust solution to distinguish conventional from desugared source files would involve incorporating a
+        # specially formatted comment into the code during desugaring.
+        if 'desugared' not in self.input_file.name:
             return IntegerRange(self.line_in_input_file, self.line_in_input_file)
 
         if self.__original_line_range is None:
