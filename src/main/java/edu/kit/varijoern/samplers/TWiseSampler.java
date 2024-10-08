@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * This sampler chooses a set of features that achieves t-wise coverage.
@@ -41,7 +42,13 @@ public class TWiseSampler extends FeatureIDEGeneratorSampler {
             throws SamplerException {
         LOGGER.info("Calculating {}-wise sample", this.t);
         List<Map<String, Boolean>> result
-                = calculateSample(cnf -> new TWiseConfigurationGenerator(cnf, this.t, this.maxSampleSize));
+                = calculateSample(cnf -> {
+                    TWiseConfigurationGenerator generator
+                            = new TWiseConfigurationGenerator(cnf, this.t, this.maxSampleSize);
+                    generator.setRandom(new Random()); // By default, the generator uses a fixed seed.
+                    return generator;
+                }
+        );
         LOGGER.info("Generated {} configurations", result.size());
         return result;
     }
