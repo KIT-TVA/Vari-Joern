@@ -34,6 +34,12 @@ class TorteKmaxFMReaderTest {
         runTestFor("fiasco-sample", "fiasco");
     }
 
+    @Test
+    void buildFeatureModelAxtls()
+            throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
+        runTestFor("axtls-sample", "axtls");
+    }
+
     private void runTestFor(String testCase, String system)
             throws GitAPIException, IOException, FeatureModelReaderException, InterruptedException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase);

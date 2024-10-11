@@ -1,0 +1,38 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/config/Kconfig-language.txt
+#
+
+mainmenu "axTLS Sample Configuration"
+
+config HAVE_DOT_CONFIG
+    bool
+    default y
+
+choice 
+    prompt "Platform"
+    default CONFIG_PLATFORM_LINUX
+
+config CONFIG_PLATFORM_LINUX
+    bool "Linux"
+
+config CONFIG_PLATFORM_CYGWIN
+    bool "Cygwin"
+
+config CONFIG_PLATFORM_WIN32
+    bool "Win32"
+
+endchoice 
+
+menu "General Configuration"
+
+config PREFIX
+    string "axTLS installation prefix"
+    depends on !CONFIG_PLATFORM_WIN32
+    default "/usr/local"
+    help
+      Define your directory to install axTLS files/subdirs in.
+
+endmenu
+
+source src/Config.in

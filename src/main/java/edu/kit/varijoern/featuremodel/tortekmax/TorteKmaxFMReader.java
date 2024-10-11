@@ -40,7 +40,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     private static final Map<String, String> EXPERIMENT_SCRIPT_FILES = Map.of(
             "linux", "linux-working-tree-kmax.sh",
             "busybox", "busybox-working-tree-kmax.sh",
-            "fiasco", "fiasco-working-tree-kmax.sh"
+            "fiasco", "fiasco-working-tree-kmax.sh",
+            "axtls", "axtls-working-tree-kmax.sh"
     );
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
@@ -181,6 +182,9 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                 // BusyBox fails to build when WERROR is enabled. Since WERROR does not modify the final product, it is
                 // safe to disable it.
                 featureModel.addConstraint(new Constraint(featureModel, new Not(new Literal("WERROR"))));
+            } else if (this.system.equals("axtls")) {
+                // Vari-Joern only supports Linux
+                featureModel.addConstraint(new Constraint(featureModel, new Literal("CONFIG_PLATFORM_LINUX")));
             }
 
             deleteFeatures(featureModel, nonTristateFeatures);

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<featureModel>
+	<struct>
+		<and mandatory="true" name="Root">
+			<feature name="CONFIG_PLATFORM_LINUX"/>
+			<feature name="CONFIG_PLATFORM_CYGWIN"/>
+			<feature name="CONFIG_PLATFORM_WIN32"/>
+			<feature name="CONFIG_INCLUDE_IO_FILE"/>
+			<feature name="CONFIG_PERFORM_RENAME"/>
+			<feature name="HAVE_DOT_CONFIG"/>
+			<feature name="CONFIG_PERFORM_CHMOD"/>
+			<feature name="__VISIBILITY__CONFIG_PREFIX"/>
+			<feature name="CONFIG_USE_GETS"/>
+		</and>
+	</struct>
+	<constraints>
+		<rule>
+			<disj>
+				<not>
+					<var>CONFIG_PLATFORM_LINUX</var>
+				</not>
+				<not>
+					<var>CONFIG_PLATFORM_CYGWIN</var>
+				</not>
+			</disj>
+		</rule>
+		<rule>
+			<disj>
+				<not>
+					<var>CONFIG_PLATFORM_LINUX</var>
+				</not>
+				<not>
+					<var>CONFIG_PLATFORM_WIN32</var>
+				</not>
+			</disj>
+		</rule>
+		<rule>
+			<disj>
+				<not>
+					<var>CONFIG_PLATFORM_CYGWIN</var>
+				</not>
+				<not>
+					<var>CONFIG_PLATFORM_WIN32</var>
+				</not>
+			</disj>
+		</rule>
+		<rule>
+			<disj>
+				<var>CONFIG_PLATFORM_LINUX</var>
+				<disj>
+					<var>CONFIG_PLATFORM_CYGWIN</var>
+					<var>CONFIG_PLATFORM_WIN32</var>
+				</disj>
+			</disj>
+		</rule>
+		<rule>
+			<disj>
+				<var>CONFIG_INCLUDE_IO_FILE</var>
+				<conj>
+					<not>
+						<var>CONFIG_INCLUDE_IO_FILE</var>
+					</not>
+					<not>
+						<var>CONFIG_PERFORM_RENAME</var>
+					</not>
+				</conj>
+			</disj>
+		</rule>
+		<rule>
+			<var>HAVE_DOT_CONFIG</var>
+		</rule>
+		<rule>
+			<disj>
+				<var>CONFIG_INCLUDE_IO_FILE</var>
+				<conj>
+					<not>
+						<var>CONFIG_INCLUDE_IO_FILE</var>
+					</not>
+					<not>
+						<var>CONFIG_PERFORM_CHMOD</var>
+					</not>
+				</conj>
+			</disj>
+		</rule>
+		<rule>
+			<conj>
+				<disj>
+					<not>
+						<var>CONFIG_PLATFORM_WIN32</var>
+					</not>
+					<not>
+						<var>__VISIBILITY__CONFIG_PREFIX</var>
+					</not>
+				</disj>
+				<disj>
+					<var>CONFIG_PLATFORM_WIN32</var>
+					<var>__VISIBILITY__CONFIG_PREFIX</var>
+				</disj>
+			</conj>
+		</rule>
+		<rule>
+			<var>CONFIG_PLATFORM_LINUX</var>
+		</rule>
+	</constraints>
+</featureModel>
