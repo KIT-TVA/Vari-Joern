@@ -1,6 +1,8 @@
 package edu.kit.varijoern;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReader;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
@@ -34,16 +36,18 @@ public class KconfigTestCaseManager {
     private final Path pathToExtractedTestCase;
     private final Git git;
     private final RevCommit initialCommit;
+    private final KconfigTestCaseMetadata metadata;
     private final IFeatureModel correctFeatureModel;
     private final Map<Path, List<PresenceConditionExpectation>> presenceConditionExpectations;
 
-    public KconfigTestCaseManager(@NotNull String testCaseName) throws IOException, GitAPIException {
+    public KconfigTestCaseManager(@NotNull String testCaseName)
+            throws IOException, GitAPIException, FeatureModelReaderException {
         this(testCaseName, (path) -> {
         });
     }
 
     public KconfigTestCaseManager(@NotNull String testCaseName, @NotNull KconfigTestCasePreparer preparer)
-            throws IOException, GitAPIException {
+            throws IOException, GitAPIException, FeatureModelReaderException {
         ClassLoader classLoader = this.getClass().getClassLoader();
         URL resourceLocation = classLoader.getResource("kconfigtestcases/%s/source".formatted(testCaseName));
         URL correctFeatureModelLocation = classLoader.getResource(
@@ -65,6 +69,7 @@ public class KconfigTestCaseManager {
         // In case the FM reader wrote something to the directory
         FileUtils.cleanDirectory(this.pathToExtractedTestCase.toFile());
 
+        this.metadata = readMetadata(testCaseName);
         this.presenceConditionExpectations = readPresenceConditionExpectations(testCaseName);
 
         try (Stream<Path> originalPaths = Files.walk(Path.of(resourceLocation.getPath()))) {
@@ -90,6 +95,20 @@ public class KconfigTestCaseManager {
         this.git = new Git(repo);
         this.git.add().addFilepattern(".").call();
         this.initialCommit = this.git.commit().setMessage("Initial commit").call();
+    }
+
+    private KconfigTestCaseMetadata readMetadata(@NotNull String testCaseName) {
+        URL metadataLocation = this.getClass().getClassLoader().getResource(
+                "kconfigtestcases/%s/metadata.json".formatted(testCaseName)
+        );
+        if (metadataLocation == null)
+            throw new InvalidTestCaseException("Test case metadata not found: " + testCaseName);
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.readValue(metadataLocation, KconfigTestCaseMetadata.class);
+        } catch (IOException e) {
+            throw new InvalidTestCaseException("Test case metadata could not be read.", e);
+        }
     }
 
     private Map<Path, List<PresenceConditionExpectation>> readPresenceConditionExpectations(
@@ -130,5 +149,9 @@ public class KconfigTestCaseManager {
 
     public Optional<List<PresenceConditionExpectation>> getPresenceConditionExpectations(Path relativePath) {
         return Optional.ofNullable(presenceConditionExpectations.get(relativePath));
+    }
+
+    public KconfigTestCaseMetadata getMetadata() {
+        return this.metadata;
     }
 }

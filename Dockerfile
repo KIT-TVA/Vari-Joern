@@ -37,7 +37,7 @@ RUN apt-get install -y \
     # Required for building SuperC
     sat4j
 
-ADD https://github.com/KIT-TVA/superc.git /superc
+ADD https://github.com/KIT-TVA/superc.git#961120cdf4715b48d253d95e605494ae5ccea035 /superc
 WORKDIR /superc
 RUN JAVA_DEV_ROOT=/superc \
     && CLASSPATH=$CLASSPATH:$JAVA_DEV_ROOT/classes:$JAVA_DEV_ROOT/bin/junit.jar:$JAVA_DEV_ROOT/bin/antlr.jar:$JAVA_DEV_ROOT/bin/javabdd.jar:$JAVA_DEV_ROOT/bin/json-simple-1.1.1.jar \
@@ -66,10 +66,14 @@ RUN ./gradlew distTar
 
 FROM base-system
 RUN apt-get install -y \
+    # Required for installing Smarch
+    cmake \
     # Required by torte
     docker-ce-cli \
     # Required by torte
     git \
+    # Required by Smarch
+    libgmp-dev \
     # Required by Vari-Joern and Joern
     openjdk-21-jdk \
     # Required for installing kmax
@@ -91,7 +95,7 @@ RUN chmod +x joern-install.sh \
 ENV PATH="/opt/joern/joern-cli:${PATH}"
 RUN joern-scan --updatedb --dbversion 4.0.48
 
-RUN pipx install --python=$(which python3.11) kmax
+RUN pipx install --python=$(which python3.11) kmax git+https://github.com/duckymirror/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
 
 COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar
 RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \

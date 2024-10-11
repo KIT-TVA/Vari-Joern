@@ -8,6 +8,7 @@ import de.ovgu.featureide.fm.core.base.impl.FMFormatManager;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.xml.XmlFeatureModelFormat;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -40,9 +41,16 @@ public class FeatureIDEFMReader implements FeatureModelReader {
     }
 
     @Override
-    public @NotNull IFeatureModel read(@NotNull Path tmpPath) {
+    public @NotNull IFeatureModel read(@NotNull Path tmpPath) throws FeatureModelReaderException {
+        return this.read();
+    }
+
+    public @NotNull IFeatureModel read() throws FeatureModelReaderException {
         LOGGER.info("Reading feature model from {}", this.path);
         FMFormatManager.getInstance().addExtension(new XmlFeatureModelFormat());
-        return FeatureModelManager.load(this.path);
+        IFeatureModel featureModel = FeatureModelManager.load(this.path);
+        if (featureModel == null)
+            throw new FeatureModelReaderException("Failed to read feature model from " + this.path);
+        return featureModel;
     }
 }

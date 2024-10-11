@@ -36,6 +36,7 @@ dependencies {
     implementation files('lib/junit.jar', 'lib/antlr.jar', 'lib/json-simple-1.1.1.jar')
     implementation files ('lib/org.sat4j.core.jar', 'lib/com.microsoft.z3.jar', 'lib/json-lib.jar')
     implementation 'com.microsoft.z3:java-jar:4.11.2'
+    implementation 'com.google.guava:guava:33.3.0-jre'
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'

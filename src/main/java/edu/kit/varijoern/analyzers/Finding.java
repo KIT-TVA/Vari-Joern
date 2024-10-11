@@ -1,7 +1,9 @@
 package edu.kit.varijoern.analyzers;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.prop4j.Node;
 
 import java.util.Set;
 
@@ -18,11 +20,18 @@ public interface Finding {
     String getName();
 
     /**
-     * Returns the evidence that caused this finding.
+     * Returns the set of source locations that caused this finding. The paths are relative to root of the original
+     * source code.
      *
-     * @return the evidence
+     * @return the set of source locations
      */
-    @JsonIgnore
     @NotNull
-    Set<Evidence> getEvidence();
+    Set<SourceLocation> getEvidence();
+
+    /**
+     * Returns the presence condition of this finding.
+     *
+     * @return the presence condition of this finding
+     */
+    @Nullable Node getCondition();
 }

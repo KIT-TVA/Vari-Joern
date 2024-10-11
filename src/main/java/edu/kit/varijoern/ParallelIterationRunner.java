@@ -1,14 +1,13 @@
 package edu.kit.varijoern;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import edu.kit.varijoern.analyzers.AnalysisResult;
-import edu.kit.varijoern.analyzers.Analyzer;
-import edu.kit.varijoern.analyzers.AnalyzerConfig;
-import edu.kit.varijoern.analyzers.AnalyzerFailureException;
+import edu.kit.varijoern.analyzers.*;
+import edu.kit.varijoern.caching.ResultCache;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -36,11 +35,13 @@ public class ParallelIterationRunner {
     private boolean isStopped = false;
 
     private final @NotNull IFeatureModel featureModel;
+    private final @NotNull ResultAggregator<?, ?> resultAggregator;
+    private final @NotNull ResultCache resultCache;
     private final @NotNull Path tmpDir;
 
     private final @NotNull BlockingDeque<Message<ComposerInvocation>> sampleQueue = new LinkedBlockingDeque<>();
     private final @NotNull BlockingDeque<Message<CompositionInformation>> compositionQueue;
-    private final @NotNull BlockingQueue<Message<AnalysisResult>> resultQueue = new LinkedBlockingQueue<>();
+    private final @NotNull BlockingQueue<Message<AnalysisResult<?>>> resultQueue = new LinkedBlockingQueue<>();
 
     private final @NotNull List<FallibleRunner<?, ?>> runners;
     // Always lock `this` before accessing `iteration`. Currently, this field is only accessed in the `run` method, so
@@ -57,15 +58,19 @@ public class ParallelIterationRunner {
      * @param composerConfig           the configuration for the composer
      * @param analyzerConfig           the configuration for the analyzer
      * @param featureModel             the feature model of the source code
+     * @param resultCache              the result cache to store intermediate results
      * @param tmpDir                   the temporary directory to store intermediate results
      * @throws RunnerException      if an error occurs during instantiation
      * @throws InterruptedException if the current thread is interrupted
      */
     public ParallelIterationRunner(int numComposers, int numAnalyzers, int compositionQueueCapacity,
-                                   @NotNull ComposerConfig composerConfig, @NotNull AnalyzerConfig<?> analyzerConfig,
-                                   @NotNull IFeatureModel featureModel, @NotNull Path tmpDir)
+                                   @NotNull ComposerConfig composerConfig, @NotNull AnalyzerConfig<?, ?> analyzerConfig,
+                                   @NotNull IFeatureModel featureModel, @NotNull ResultCache resultCache,
+                                   @NotNull Path tmpDir)
             throws RunnerException, InterruptedException {
         this.featureModel = featureModel;
+        this.resultAggregator = analyzerConfig.getResultAggregator();
+        this.resultCache = resultCache;
         this.tmpDir = tmpDir;
         this.compositionQueue = new LinkedBlockingDeque<>(compositionQueueCapacity);
 
@@ -97,7 +102,7 @@ public class ParallelIterationRunner {
             } catch (IOException e) {
                 throw new RunnerException("Failed to create temporary directory for analyzer", e);
             }
-            Analyzer<?> analyzer;
+            Analyzer analyzer;
             try {
                 analyzer = analyzerConfig.newAnalyzer(analyzerTmpDirectory);
             } catch (IOException e) {
@@ -122,17 +127,25 @@ public class ParallelIterationRunner {
         if (isStopped) {
             throw new IllegalStateException("The runner has been stopped.");
         }
-        List<AnalysisResult> results = new ArrayList<>(sample.size());
+        List<AnalysisResult<?>> results = new ArrayList<>(sample.size());
         try {
+            int uncachedResults = 0;
             for (int i = 0; i < sample.size(); i++) {
                 Map<String, Boolean> features = sample.get(i);
+                AnalysisResult<?> cachedResult = this.resultAggregator.tryAddResultFromCache(
+                        this.resultCache.getAnalysisResultExtractor(iteration, i));
+                if (cachedResult != null) {
+                    results.add(cachedResult);
+                    continue;
+                }
+                uncachedResults++;
                 sampleQueue.put(Message.of(new ComposerInvocation(features,
                         this.tmpDir.resolve(Path.of(iteration + "-" + i))
-                )));
+                ), i));
             }
 
-            for (int i = 0; i < sample.size(); i++) {
-                Message<AnalysisResult> message;
+            for (int i = 0; i < uncachedResults; i++) {
+                Message<AnalysisResult<?>> message;
                 do {
                     if (this.checkForDeadWorkers()) {
                         stop();
@@ -145,7 +158,9 @@ public class ParallelIterationRunner {
                     stop();
                     return Output.error(Objects.requireNonNull(message.exitCode()));
                 }
-                results.add(Objects.requireNonNull(message.data()));
+                AnalysisResult<?> result = Objects.requireNonNull(message.data());
+                this.resultCache.cacheAnalysisResult(result, iteration, message.configurationIndex());
+                results.add(result);
             }
         } catch (InterruptedException e) {
             LOGGER.atWarn().withThrowable(e).log("The runner was interrupted");
@@ -217,10 +232,11 @@ public class ParallelIterationRunner {
                     }
                     Message<T> message = this.inputQueue.take();
                     if (message.isError()) {
-                        this.outputQueue.put(Message.error(Objects.requireNonNull(message.exitCode())));
+                        this.outputQueue.put(Message.error(Objects.requireNonNull(message.exitCode()),
+                                message.configurationIndex));
                         continue;
                     }
-                    Message<R> result = process(message.data());
+                    Message<R> result = process(message.data(), message.configurationIndex());
                     if (this.outputQueue.remainingCapacity() == 0) {
                         LOGGER.debug("Output queue is full. Waiting for space to become available");
                     }
@@ -241,7 +257,7 @@ public class ParallelIterationRunner {
             this.interrupt();
         }
 
-        protected abstract Message<R> process(T item) throws InterruptedException;
+        protected abstract Message<R> process(T item, int configurationIndex) throws InterruptedException;
     }
 
     private final class ComposerRunner extends FallibleRunner<ComposerInvocation, CompositionInformation> {
@@ -253,55 +269,58 @@ public class ParallelIterationRunner {
         }
 
         @Override
-        public Message<CompositionInformation> process(ComposerInvocation arguments) throws InterruptedException {
+        public Message<CompositionInformation> process(ComposerInvocation arguments, int configurationIndex)
+                throws InterruptedException {
             LOGGER.info("Composing variant with features {}", arguments.features);
             try {
+                Files.createDirectories(arguments.destination());
                 CompositionInformation compositionInformation
                         = this.composer.compose(arguments.features(), arguments.destination(), featureModel);
-                return Message.of(compositionInformation);
+                return Message.of(compositionInformation, configurationIndex);
             } catch (IOException e) {
                 LOGGER.atError().withThrowable(e).log("An IO error occurred:");
-                return Message.error(Main.STATUS_IO_ERROR);
+                return Message.error(Main.STATUS_IO_ERROR, configurationIndex);
             } catch (ComposerException e) {
                 LOGGER.atError().withThrowable(e).log("A composer error occurred:");
-                return Message.error(Main.STATUS_INTERNAL_ERROR);
+                return Message.error(Main.STATUS_INTERNAL_ERROR, configurationIndex);
             }
         }
     }
 
-    private final class AnalyzerRunner extends FallibleRunner<CompositionInformation, AnalysisResult> {
-        private final @NotNull Analyzer<?> analyzer;
+    private final class AnalyzerRunner extends FallibleRunner<CompositionInformation, AnalysisResult<?>> {
+        private final @NotNull Analyzer analyzer;
 
-        private AnalyzerRunner(@NotNull Analyzer<?> analyzer) {
+        private AnalyzerRunner(@NotNull Analyzer analyzer) {
             super(compositionQueue, resultQueue);
             this.analyzer = analyzer;
         }
 
         @Override
-        public Message<AnalysisResult> process(CompositionInformation compositionInformation)
+        public Message<AnalysisResult<?>> process(CompositionInformation compositionInformation, int configurationIndex)
                 throws InterruptedException {
             LOGGER.info("Analyzing variant with features {}", compositionInformation.getEnabledFeatures());
 
             try {
-                AnalysisResult result = this.analyzer.analyze(compositionInformation);
-                return Message.of(result);
+                AnalysisResult<?> result = this.analyzer.analyze(compositionInformation);
+                FileUtils.deleteDirectory(compositionInformation.getLocation().toFile());
+                return Message.of(result, configurationIndex);
             } catch (IOException e) {
                 LOGGER.atError().withThrowable(e).log("An IO error occurred:");
-                return Message.error(Main.STATUS_IO_ERROR);
+                return Message.error(Main.STATUS_IO_ERROR, configurationIndex);
             } catch (AnalyzerFailureException e) {
                 LOGGER.atError().withThrowable(e).log("An analyzer error occurred:");
-                return Message.error(Main.STATUS_INTERNAL_ERROR);
+                return Message.error(Main.STATUS_INTERNAL_ERROR, configurationIndex);
             }
         }
     }
 
-    private record Message<T>(@Nullable T data, boolean isError, @Nullable Integer exitCode) {
-        public static <T> Message<T> of(@Nullable T data) {
-            return new Message<>(data, false, null);
+    private record Message<T>(@Nullable T data, int configurationIndex, boolean isError, @Nullable Integer exitCode) {
+        public static <T> Message<T> of(@Nullable T data, int configurationIndex) {
+            return new Message<>(data, configurationIndex, false, null);
         }
 
-        public static <T> Message<T> error(int exitCode) {
-            return new Message<>(null, true, exitCode);
+        public static <T> Message<T> error(int exitCode, int configurationIndex) {
+            return new Message<>(null, configurationIndex, true, exitCode);
         }
     }
 
@@ -315,8 +334,8 @@ public class ParallelIterationRunner {
      * @param results  the results of the analysis
      * @param exitCode the exit code of the runner
      */
-    public record Output(@Nullable List<AnalysisResult> results, @Nullable Integer exitCode) {
-        public static Output of(@Nullable List<AnalysisResult> results) {
+    public record Output(@Nullable List<AnalysisResult<?>> results, @Nullable Integer exitCode) {
+        public static Output of(@Nullable List<AnalysisResult<?>> results) {
             return new Output(results, null);
         }
 

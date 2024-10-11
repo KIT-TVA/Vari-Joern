@@ -12,6 +12,7 @@ import superc.cparser.CTokenCreator;
 import xtc.tree.Location;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -32,12 +33,13 @@ import java.util.regex.Pattern;
  * </ul>
  */
 public class LinePresenceConditionMapper {
-    protected static final Object LOCK = new Object();
     private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)|([A-Za-z0-9_]+)");
     // In busybox, enabled (non-module) tristate features are defined as CONFIG_<feature> as well as ENABLE_<feature>
     private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN
             = Pattern.compile("(?:CONFIG_|ENABLE_)([A-Za-z0-9_]+)");
     private static final Logger LOGGER = LogManager.getLogger();
+
+    private final Charset encoding;
 
     private final Map<Integer, Node> linePresenceConditions = new HashMap<>();
     private final int addedLines;
@@ -55,14 +57,17 @@ public class LinePresenceConditionMapper {
      *                             composer
      * @param knownFeatures        the features recorded in the feature model
      * @param system               the system the file belongs to. Currently, only {@code busybox} is supported.
+     * @param encoding             the encoding of the file
      */
     public LinePresenceConditionMapper(@NotNull InclusionInformation inclusionInformation, @NotNull Path sourcePath,
-                                       int addedLines, @NotNull Set<String> knownFeatures, @NotNull String system)
+                                       int addedLines, @NotNull Set<String> knownFeatures, @NotNull String system,
+                                       Charset encoding)
             throws IOException {
+        this.encoding = encoding;
         if (!isSupportedSystem(system)) throw new UnsupportedOperationException("Only busybox is supported");
 
         this.addedLines = addedLines;
-        this.totalLines = Files.readAllLines(sourcePath.resolve(inclusionInformation.filePath())).size();
+        this.totalLines = Files.readAllLines(sourcePath.resolve(inclusionInformation.filePath()), this.encoding).size();
         this.determinePresenceConditions(inclusionInformation, sourcePath, knownFeatures, system);
     }
 
@@ -75,15 +80,14 @@ public class LinePresenceConditionMapper {
                                              @NotNull Path sourcePath, @NotNull Set<String> knownFeatures,
                                              @NotNull String system)
             throws FileNotFoundException {
-        synchronized (LOCK) {
-            LOGGER.debug("Determining line presence conditions for {}", inclusionInformation.filePath());
-            Path filePath = sourcePath.resolve(inclusionInformation.filePath());
+        LOGGER.debug("Determining line presence conditions for {}", inclusionInformation.filePath());
+        Path filePath = sourcePath.resolve(inclusionInformation.filePath());
 
-            // Create preprocessor
-            TokenCreator tokenCreator = new CTokenCreator();
-            LexerCreator lexerCreator = new CLexerCreator();
-            MacroTable macroTable = new MacroTable(tokenCreator);
-            PresenceConditionManager presenceConditionManager = new PresenceConditionManager();
+        // Create preprocessor
+        TokenCreator tokenCreator = new CTokenCreator();
+        LexerCreator lexerCreator = new CLexerCreator();
+        MacroTable macroTable = new MacroTable(tokenCreator);
+        try (CloseablePresenceConditionManager presenceConditionManager = new CloseablePresenceConditionManager()) {
             ConditionEvaluator conditionEvaluator = new ConditionEvaluator(ExpressionParser.fromRats(),
                     presenceConditionManager, macroTable);
             this.preparePreprocessor(inclusionInformation, macroTable, presenceConditionManager, conditionEvaluator,
@@ -99,11 +103,12 @@ public class LinePresenceConditionMapper {
                     lexerCreator,
                     tokenCreator,
                     new StopWatch(),
+                    this.encoding.name(),
                     presenceConditionManager
             )) {
                 headerFileManager.showErrors(false);
-                Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable, presenceConditionManager,
-                        conditionEvaluator, tokenCreator);
+                Preprocessor preprocessor = new Preprocessor(headerFileManager, macroTable,
+                        presenceConditionManager, conditionEvaluator, tokenCreator);
 
                 // Preprocess the file and collect presence conditions
                 Syntax next;
@@ -111,8 +116,10 @@ public class LinePresenceConditionMapper {
                     try {
                         next = preprocessor.next();
                     } catch (IllegalStateException | Error e) {
-                        // The preprocessor can `throw new Error()` when it encounters an internal error. If a subclass
-                        // of `Error` is caught, it was not thrown by the preprocessor and something is seriously wrong.
+                        // The preprocessor can `throw new Error()` when it encounters an internal error. If a
+                        // subclass of `Error` is caught, it was not thrown by the preprocessor and something is
+                        // seriously wrong.
+
                         if (e instanceof Error && e.getClass() != Error.class)
                             throw (Error) e;
                         LOGGER.atWarn().withThrowable(e).log("Preprocessor encountered an internal error at {}",
@@ -237,8 +244,8 @@ public class LinePresenceConditionMapper {
      */
     private @NotNull Optional<Node> convertBDD(@NotNull BDD bdd,
                                                @NotNull PresenceConditionManager presenceConditionManager) {
-        if (bdd.isOne()) return Optional.of(new True());
-        if (bdd.isZero()) return Optional.of(new False());
+        if (bdd.isOne()) return Optional.of(new And());
+        if (bdd.isZero()) return Optional.of(new Or());
 
         String rawCondition = presenceConditionManager.getVariableManager().getName(bdd.var());
 

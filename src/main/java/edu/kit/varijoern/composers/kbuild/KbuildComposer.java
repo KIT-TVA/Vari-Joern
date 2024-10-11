@@ -20,7 +20,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
@@ -100,25 +99,41 @@ public class KbuildComposer implements Composer {
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
     private final @NotNull String system;
+    private final @NotNull Charset encoding;
     private final @NotNull Path tmpPath;
     private final @NotNull Path tmpSourcePath;
+    private final @NotNull Set<Path> presenceConditionExcludes;
+    private final boolean shouldSkipPresenceConditionExtraction;
     private @Nullable FilePresenceConditionMapper filePresenceConditionMapper = null;
 
     /**
      * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
      *
-     * @param sourcePath the path to the source directory. Must be an absolute path.
-     * @param system     the variant of the Kbuild/Kconfig system. Use {@link KbuildComposer#isSupportedSystem(String)}
-     *                   to determine if a given system is supported.
-     * @param tmpPath    a {@link Path} to a temporary directory that can be used by the composer. Must be absolute.
+     * @param sourcePath                the path to the source directory. Must be an absolute path.
+     * @param system                    the variant of the Kbuild/Kconfig system. Use
+     *                                  {@link KbuildComposer#isSupportedSystem(String)}
+     *                                  to determine if a given system is supported.
+     * @param encoding                  the encoding of the source files
+     * @param tmpPath                   a {@link Path} to a temporary directory that can be used by the composer. Must
+     *                                  be absolute.
+     * @param presenceConditionExcludes a list of paths to exclude from presence condition extraction. Must be relative
+     *                                  to the source directory.
      * @throws IOException          if an I/O error occurs
      * @throws ComposerException    if the composer could not be created for another reason
      * @throws InterruptedException if the current thread is interrupted
      */
-    public KbuildComposer(@NotNull Path sourcePath, @NotNull String system, @NotNull Path tmpPath)
+    public KbuildComposer(@NotNull Path sourcePath, @NotNull String system, @NotNull Charset encoding,
+                          @NotNull Path tmpPath, @NotNull Set<Path> presenceConditionExcludes,
+                          boolean shouldSkipPresenceConditionExtraction)
             throws IOException, ComposerException, InterruptedException {
         this.system = system;
+        this.encoding = encoding;
         this.tmpPath = tmpPath;
+        this.presenceConditionExcludes = presenceConditionExcludes
+                .stream()
+                .map(Path::normalize)
+                .collect(Collectors.toSet());
+        this.shouldSkipPresenceConditionExtraction = shouldSkipPresenceConditionExtraction;
         this.tmpSourcePath = this.tmpPath.resolve("source");
         this.copySourceTo(sourcePath, this.tmpSourcePath);
         // Make sure that there are no compilation artifacts.
@@ -145,9 +160,14 @@ public class KbuildComposer implements Composer {
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException, InterruptedException {
         if (this.filePresenceConditionMapper == null) {
-            LOGGER.info("Creating file presence condition mapper");
-            this.filePresenceConditionMapper = new FilePresenceConditionMapper(this.tmpSourcePath, this.system,
-                    this.tmpPath, featureModel);
+            if (this.shouldSkipPresenceConditionExtraction) {
+                LOGGER.info("Skipping file presence condition extraction");
+                this.filePresenceConditionMapper = new FilePresenceConditionMapper();
+            } else {
+                LOGGER.info("Creating file presence condition mapper");
+                this.filePresenceConditionMapper = new FilePresenceConditionMapper(this.tmpSourcePath, this.system,
+                        this.tmpPath, featureModel);
+            }
         }
 
         this.generateConfig(features, tmpSourcePath);
@@ -217,7 +237,7 @@ public class KbuildComposer implements Composer {
             case "fiasco" -> tmpSourcePath.resolve("build/globalconfig.out");
             default -> throw new IllegalStateException();
         };
-        List<String> defaultConfigLines = Files.readAllLines(configPath);
+        List<String> defaultConfigLines = Files.readAllLines(configPath, this.encoding);
         defaultConfigLines.replaceAll(line -> {
             String optionName;
             Matcher nameValueMatcher = OPTION_NAME_VALUE_PATTERN.matcher(line);
@@ -241,7 +261,7 @@ public class KbuildComposer implements Composer {
         for (String remainingFeature : remainingFeatures) {
             defaultConfigLines.add(formatOption(remainingFeature, features.get(remainingFeature)));
         }
-        Files.write(configPath, defaultConfigLines);
+        Files.write(configPath, defaultConfigLines, this.encoding);
 
         // Make sure that `include/autoconf.h` (or `build/globalconfig.out`) is generated
         switch (this.system) {
@@ -250,7 +270,7 @@ public class KbuildComposer implements Composer {
             default -> throw new IllegalStateException();
         }
 
-        Map<String, Boolean> generatedConfig = Files.readAllLines(configPath).stream()
+        Map<String, Boolean> generatedConfig = Files.readAllLines(configPath, this.encoding).stream()
                 .map(line -> {
                     Matcher matcher = OPTION_NAME_VALUE_PATTERN.matcher(line);
                     if (matcher.matches()) {
@@ -556,12 +576,12 @@ public class KbuildComposer implements Composer {
             for (Map.Entry<String, String> define : inclusionInformation.defines().entrySet()) {
                 stream.write(
                         "#define %s %s%n".formatted(define.getKey(), define.getValue())
-                                .getBytes(StandardCharsets.US_ASCII)
+                                .getBytes(this.encoding)
                 );
             }
             for (Path include : inclusionInformation.includedFiles()) {
                 Path includePath = inclusionInformation.filePath().getParent().relativize(include);
-                stream.write(("#include \"%s\"%n".formatted(includePath)).getBytes(StandardCharsets.US_ASCII));
+                stream.write(("#include \"%s\"%n".formatted(includePath)).getBytes(this.encoding));
             }
             stream.write(Files.readAllBytes(tmpSourcePath.resolve(inclusionInformation.filePath())));
         }
@@ -577,6 +597,10 @@ public class KbuildComposer implements Composer {
             @NotNull Set<String> knownFeatures,
             @NotNull Path tmpSourcePath)
             throws IOException, ComposerException, InterruptedException {
+        if (this.shouldSkipPresenceConditionExtraction) {
+            LOGGER.info("Skipping line presence condition extraction");
+            return Map.of();
+        }
         if (!LinePresenceConditionMapper.isSupportedSystem(this.system)) {
             LOGGER.warn("System {} is not supported, skipping line presence condition mapper creation",
                     this.system);
@@ -598,12 +622,17 @@ public class KbuildComposer implements Composer {
             if (!(dependency instanceof CompiledDependency)) {
                 continue;
             }
-            LOGGER.debug("Creating line presence condition mapper for {}", entry.getKey());
             InclusionInformation inclusionInformation = ((CompiledDependency) dependency).getInclusionInformation();
+            if (this.presenceConditionExcludes.contains(inclusionInformation.filePath())) {
+                LOGGER.debug("File {} has been excluded from presence condition extraction",
+                        inclusionInformation.filePath());
+                continue;
+            }
+            LOGGER.debug("Creating line presence condition mapper for {}", entry.getKey());
             linePresenceConditionMappers.put(
                     generatedFilePath,
                     new LinePresenceConditionMapper(inclusionInformation, tmpSourcePath,
-                            fileGenerationInformation.addedLines(), knownFeatures, this.system)
+                            fileGenerationInformation.addedLines(), knownFeatures, this.system, this.encoding)
             );
         }
 

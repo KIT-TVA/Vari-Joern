@@ -11,5 +11,5 @@ import java.util.List;
  * @param individualResults the individual results of the analysis, i.e., the results for each analyzed variant
  * @param aggregatedResult  the aggregated result of the analysis
  */
-public record OutputData(List<AnalysisResult> individualResults, AggregatedAnalysisResult aggregatedResult) {
+public record OutputData(List<AnalysisResult<?>> individualResults, AggregatedAnalysisResult aggregatedResult) {
 }

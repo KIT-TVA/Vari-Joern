@@ -45,7 +45,7 @@ public class Config {
     private final @NotNull FeatureModelReaderConfig featureModelReaderConfig;
 
     // Product-based config.
-    private @Nullable AnalyzerConfig<?> analyzerConfig;
+    private @Nullable AnalyzerConfig<?, ?> analyzerConfig;
     private @Nullable SamplerConfig samplerConfig;
     private @Nullable ComposerConfig composerConfig;
 
@@ -169,16 +169,12 @@ public class Config {
         return iterations;
     }
 
-    public @NotNull SubjectConfig getProgramConfig() {
-        return this.subjectConfig;
-    }
-
     /**
      * Returns the configuration of the analyzer component.
      *
      * @return the analyzer configuration
      */
-    public @Nullable AnalyzerConfig<?> getAnalyzerConfig() {
+    public @NotNull AnalyzerConfig<?, ?> getAnalyzerConfig() {
         return analyzerConfig;
     }
 

@@ -7,6 +7,9 @@ import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.cli.Args;
+import edu.kit.varijoern.caching.DummyResultCache;
+import edu.kit.varijoern.caching.ResultCache;
+import edu.kit.varijoern.caching.SimpleResultCache;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
@@ -144,18 +147,45 @@ public class Main {
     }
 
     private static int runProductBased(@NotNull Config config, @NotNull Args args) {
-        FeatureModelReader featureModelReader = config.getFeatureModelReaderConfig().newFeatureModelReader();
-        IFeatureModel featureModel;
+        Path tmpDir;
+        Path featureModelReaderTmpDirectory;
+        Path samplerTmpDirectory;
         try {
-            featureModel = featureModelReader.read(featureModelReaderTmpDirectory);
+            tmpDir = Files.createTempDirectory("vari-joern");
+            featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
+            Files.createDirectories(featureModelReaderTmpDirectory);
+            samplerTmpDirectory = tmpDir.resolve("sampler");
+            Files.createDirectories(samplerTmpDirectory);
         } catch (IOException e) {
-            LOGGER.atFatal().withThrowable(e).log("An I/O error occurred while reading the feature model");
+            LOGGER.atFatal().withThrowable(e).log("Failed to create temporary directory");
             return STATUS_IO_ERROR;
-        } catch (FeatureModelReaderException e) {
-            LOGGER.atFatal().withThrowable(e).log("The feature model could not be read");
-            return STATUS_INTERNAL_ERROR;
-        } catch (InterruptedException e) {
-            return STATUS_INTERRUPTED;
+        }
+
+        ResultCache resultCache;
+        try {
+            resultCache = args.getResultCache() == null
+                    ? new DummyResultCache()
+                    : new SimpleResultCache(args.getResultCache());
+        } catch (IOException e) {
+            LOGGER.atFatal().withThrowable(e).log("Failed to create result cache");
+            return STATUS_IO_ERROR;
+        }
+
+        IFeatureModel featureModel = resultCache.getFeatureModel();
+        if (featureModel == null) {
+            FeatureModelReader featureModelReader = config.getFeatureModelReaderConfig().newFeatureModelReader();
+            try {
+                featureModel = featureModelReader.read(featureModelReaderTmpDirectory);
+            } catch (IOException e) {
+                LOGGER.atFatal().withThrowable(e).log("An I/O error occurred while reading the feature model");
+                return STATUS_IO_ERROR;
+            } catch (FeatureModelReaderException e) {
+                LOGGER.atFatal().withThrowable(e).log("The feature model could not be read");
+                return STATUS_INTERNAL_ERROR;
+            } catch (InterruptedException e) {
+                return STATUS_INTERRUPTED;
+            }
+            resultCache.cacheFeatureModel(featureModel);
         }
 
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
@@ -163,7 +193,7 @@ public class Main {
         try {
             runner = new ParallelIterationRunner(args.getNumComposers(), args.getNumAnalyzers(),
                     args.getCompositionQueueCapacity(), config.getComposerConfig(), config.getAnalyzerConfig(),
-                    featureModel, tmpDir);
+                    featureModel, resultCache, tmpDir);
         } catch (RunnerException e) {
             LOGGER.atFatal().withThrowable(e).log("Failed to create runner");
             return STATUS_INTERNAL_ERROR;
@@ -171,19 +201,27 @@ public class Main {
             return STATUS_INTERRUPTED;
         }
 
-        ResultAggregator<?> resultAggregator = config.getAnalyzerConfig().getResultAggregator();
+        ResultAggregator<?, ?> resultAggregator = config.getAnalyzerConfig().getResultAggregator();
 
-        List<AnalysisResult> allAnalysisResults = new ArrayList<>();
-        List<AnalysisResult> iterationAnalysisResults = null;
+        List<AnalysisResult<?>> allAnalysisResults = new ArrayList<>();
+        List<AnalysisResult<?>> iterationAnalysisResults = null;
         try {
             for (int i = 0; i < config.getIterations(); i++) {
                 LOGGER.info("Iteration {}", i + 1);
-                List<Map<String, Boolean>> sample;
-                try {
-                    sample = sampler.sample(iterationAnalysisResults);
-                } catch (SamplerException e) {
-                    LOGGER.atFatal().withThrowable(e).log("A sampler error occurred");
-                    return STATUS_INTERNAL_ERROR;
+                List<Map<String, Boolean>> sample = resultCache.getSample(i);
+                if (sample == null) {
+                    try {
+                        sample = sampler.sample(iterationAnalysisResults, samplerTmpDirectory);
+                    } catch (IOException e) {
+                        LOGGER.atFatal().withThrowable(e).log("An I/O error occurred while sampling");
+                        return STATUS_IO_ERROR;
+                    } catch (SamplerException e) {
+                        LOGGER.atFatal().withThrowable(e).log("A sampler error occurred");
+                        return STATUS_INTERNAL_ERROR;
+                    } catch (InterruptedException e) {
+                        return STATUS_INTERRUPTED;
+                    }
+                    resultCache.cacheSample(sample, i);
                 }
                 LOGGER.info("Analyzing {} variants", sample.size());
                 ParallelIterationRunner.Output runnerOutput;

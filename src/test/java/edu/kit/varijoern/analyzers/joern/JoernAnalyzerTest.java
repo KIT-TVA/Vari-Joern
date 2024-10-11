@@ -4,7 +4,6 @@ import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.ConditionUtils;
 import edu.kit.varijoern.KconfigTestCaseManager;
 import edu.kit.varijoern.analyzers.AnalyzerFailureException;
-import edu.kit.varijoern.analyzers.AnnotatedFinding;
 import edu.kit.varijoern.analyzers.FindingAggregation;
 import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.composers.Composer;
@@ -12,6 +11,7 @@ import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.kbuild.KbuildComposer;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
@@ -24,6 +24,7 @@ import org.prop4j.Literal;
 import org.prop4j.Node;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -40,7 +41,8 @@ class JoernAnalyzerTest {
      */
     @Test
     void analyzeBusybox(@TempDir Path tempDirectory)
-            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException {
+            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException,
+            FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("busybox-sample");
 
         List<Map<String, Boolean>> configurations = Stream.of(
@@ -51,8 +53,8 @@ class JoernAnalyzerTest {
                     Sampler sampler = new FixedSampler(List.of(configuration),
                             testCaseManager.getCorrectFeatureModel());
                     try {
-                        return sampler.sample(null).get(0);
-                    } catch (SamplerException e) {
+                        return sampler.sample(null, tempDirectory.resolve("sampler")).get(0);
+                    } catch (SamplerException | InterruptedException | IOException e) {
                         throw new RuntimeException(e);
                     }
                 })
@@ -89,7 +91,8 @@ class JoernAnalyzerTest {
      */
     @Test
     void analyzeFiasco(@TempDir Path tempDirectory)
-            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException {
+            throws IOException, GitAPIException, ComposerException, AnalyzerFailureException, InterruptedException,
+            FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("fiasco-sample");
 
         List<Map<String, Boolean>> configurations = Stream.of(
@@ -118,8 +121,8 @@ class JoernAnalyzerTest {
                     Sampler sampler = new FixedSampler(List.of(configuration),
                             testCaseManager.getCorrectFeatureModel());
                     try {
-                        return sampler.sample(null).get(0);
-                    } catch (SamplerException e) {
+                        return sampler.sample(null, tempDirectory.resolve("sampler")).get(0);
+                    } catch (SamplerException | InterruptedException | IOException e) {
                         throw new RuntimeException(e);
                     }
                 })
@@ -151,11 +154,13 @@ class JoernAnalyzerTest {
             throws IOException, ComposerException, InterruptedException, AnalyzerFailureException {
         Path workspaceDirectory = tempDirectory.resolve("workspace");
         Files.createDirectory(workspaceDirectory);
-        ResultAggregator<JoernAnalysisResult> resultAggregator = new JoernResultAggregator();
+        ResultAggregator<JoernAnalysisResult, JoernFinding> resultAggregator = new JoernResultAggregator();
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
-        Composer composer = new KbuildComposer(testCaseManager.getPath(), system, composerTempDirectory);
+        Composer composer = new KbuildComposer(testCaseManager.getPath(), system,
+                Charset.forName(testCaseManager.getMetadata().encoding()), composerTempDirectory, Set.of(),
+                false);
 
         for (int i = 0; i < configurations.size(); i++) {
             Map<String, Boolean> configuration = configurations.get(i);
@@ -183,21 +188,21 @@ class JoernAnalyzerTest {
      * @param expectedFindings the expected findings
      * @param configuration    the configuration that was used to generate the findings
      */
-    private void verifyFindings(List<AnnotatedFinding> findings, List<ExpectedFinding> expectedFindings,
+    private void verifyFindings(List<JoernFinding> findings, List<ExpectedFinding> expectedFindings,
                                 Map<String, Boolean> configuration) {
-        BiPredicate<ExpectedFinding, AnnotatedFinding> findingsEqual = (expectedFinding, finding) -> {
-            if (!finding.finding().getName().equals(expectedFinding.name)) {
+        BiPredicate<ExpectedFinding, JoernFinding> findingsEqual = (expectedFinding, finding) -> {
+            if (!finding.getName().equals(expectedFinding.name)) {
                 return false;
             }
-            if (!finding.originalEvidenceLocations().equals(expectedFinding.evidence)) {
+            if (!finding.getEvidence().equals(expectedFinding.evidence)) {
                 return false;
             }
-            return finding.condition() == null && expectedFinding.presenceCondition == null
-                    || ConditionUtils.areEquivalent(finding.condition(), expectedFinding.presenceCondition);
+            return finding.getCondition() == null && expectedFinding.presenceCondition == null
+                    || ConditionUtils.areEquivalent(finding.getCondition(), expectedFinding.presenceCondition);
         };
         this.verifyFindingCollection(
                 findings.stream()
-                        .filter(finding -> finding.originalEvidenceLocations().stream().findAny()
+                        .filter(finding -> finding.getEvidence().stream().findAny()
                                 .map(location -> location.file().startsWith("src"))
                                 .orElse(false)
                         )

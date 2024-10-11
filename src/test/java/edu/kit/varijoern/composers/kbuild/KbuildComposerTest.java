@@ -7,16 +7,19 @@ import edu.kit.varijoern.PresenceConditionExpectation;
 import edu.kit.varijoern.composers.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.prop4j.Node;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -50,6 +53,14 @@ class KbuildComposerTest {
                 standardIncludePaths,
                 standardSystemIncludePaths
         );
+        Path noPresenceConditionCPath = Path.of("src/no-presence-condition.c");
+        InclusionInformation noPresenceConditionC = new InclusionInformation(
+                noPresenceConditionCPath,
+                standardIncludedFiles,
+                standardBusyboxDefinesForFile("no_presence_condition"),
+                standardIncludePaths,
+                standardSystemIncludePaths
+        );
         InclusionInformation includedCByMain = new InclusionInformation(
                 Path.of("src/included.c"),
                 standardIncludedFiles,
@@ -76,10 +87,12 @@ class KbuildComposerTest {
                                 FileAbsentVerifier.originalSourceAndHeader("src/hello-cpp"),
                                 FileAbsentVerifier.originalSourceAndHeader("src/io-file"),
                                 new FileContentVerifier(mainC),
+                                new FileContentVerifier(noPresenceConditionC),
                                 new FileContentVerifier(includedCByMain),
                                 new FileContentVerifier(Path.of("src/main.h")),
                                 new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
-                        )
+                        ),
+                        Set.of(noPresenceConditionCPath)
                 ),
                 new TestCase(
                         "busybox-sample",
@@ -113,10 +126,12 @@ class KbuildComposerTest {
                                 new FileContentVerifier(includedCByIO),
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
+                                new FileContentVerifier(noPresenceConditionC),
                                 new FileContentVerifier(includedCByMain),
                                 new FileContentVerifier(Path.of("src/main.h")),
                                 new FileContentVerifier(Path.of("include/cmdline-included-header.h"))
-                        )
+                        ),
+                        Set.of(noPresenceConditionCPath)
                 )
         );
         return testCases.flatMap(
@@ -340,13 +355,13 @@ class KbuildComposerTest {
 
     @ParameterizedTest
     @MethodSource("testCases")
-    void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer)
-            throws IOException, GitAPIException, InterruptedException {
+    void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer, @TempDir Path tempDir)
+            throws IOException, GitAPIException, InterruptedException, FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name, preparer);
         Map<String, Boolean> featureMap;
         try {
             featureMap = new FixedSampler(List.of(testCase.enabledFeatures), testCaseManager.getCorrectFeatureModel())
-                    .sample(List.of())
+                    .sample(null, tempDir.resolve("sampler"))
                     .get(0);
         } catch (SamplerException e) {
             throw new RuntimeException(e);
@@ -361,7 +376,9 @@ class KbuildComposerTest {
 
         CompositionInformation compositionInformation;
         try {
-            Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system, composerTmpDirectory);
+            Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system,
+                    Charset.forName(testCaseManager.getMetadata().encoding()), composerTmpDirectory,
+                    testCase.presenceConditionExcludes, false);
             compositionInformation = composer.compose(featureMap,
                     destinationDirectory,
                     testCaseManager.getCorrectFeatureModel()
@@ -381,13 +398,25 @@ class KbuildComposerTest {
     /**
      * A test case for the {@link KbuildComposer}.
      *
-     * @param name            the name of the test case
-     * @param system          the Kconfig/Kbuild implementation of the test case
-     * @param enabledFeatures the features to enable for the test case
-     * @param verifiers       the verifiers to run on the composition
+     * @param name                      the name of the test case
+     * @param system                    the Kconfig/Kbuild implementation of the test case
+     * @param enabledFeatures           the features to enable for the test case
+     * @param verifiers                 the verifiers to run on the composition
+     * @param presenceConditionExcludes the paths to exclude from presence condition determination
      */
-    private record TestCase(String name, String system, List<String> enabledFeatures,
-                            List<Verifier> verifiers) {
+    private record TestCase(String name, String system, List<String> enabledFeatures, List<Verifier> verifiers,
+                            Set<Path> presenceConditionExcludes) {
+        /**
+         * Creates a new test case for the {@link KbuildComposer}.
+         *
+         * @param name            the name of the test case
+         * @param system          the Kconfig/Kbuild implementation of the test case
+         * @param enabledFeatures the features to enable for the test case
+         * @param verifiers       the verifiers to run on the composition
+         */
+        public TestCase(String name, String system, List<String> enabledFeatures, List<Verifier> verifiers) {
+            this(name, system, enabledFeatures, verifiers, Set.of());
+        }
     }
 
     /**
@@ -592,8 +621,9 @@ class KbuildComposerTest {
                     "File " + this.composedRelativePath + " should exist");
             verifySourceMap(compositionInformation);
 
-            List<String> compositionLines = Files.readAllLines(compositionPath);
-            List<String> originalLines = Files.readAllLines(originalPath);
+            Charset charset = Charset.forName(testCaseManager.getMetadata().encoding());
+            List<String> compositionLines = Files.readAllLines(compositionPath, charset);
+            List<String> originalLines = Files.readAllLines(originalPath, charset);
             assertEquals(new HashSet<>(this.expectedPrependedLines),
                     new HashSet<>(compositionLines.subList(0, this.expectedPrependedLines.size()))
             );

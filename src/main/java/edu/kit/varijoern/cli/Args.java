@@ -4,6 +4,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.PathConverter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 
@@ -32,6 +33,10 @@ public class Args {
     @Parameter(names = "--composition-queue", description = "Maximum number of compositions to queue up for analysis",
             validateWith = PositiveIntegerValidator.class)
     private int compositionQueueCapacity = 1;
+
+    @Parameter(names = "--result-cache", description = "Use the specified directory as a cache for results",
+            converter = PathConverter.class)
+    private @Nullable Path resultCache;
 
     @Parameter(description = "<path to configuration file>", required = true, converter = PathConverter.class)
     private @NotNull Path config;
@@ -86,6 +91,15 @@ public class Args {
      */
     public int getCompositionQueueCapacity() {
         return compositionQueueCapacity;
+    }
+
+    /**
+     * Returns the path to the result cache directory or null if no cache is used.
+     *
+     * @return the path to the result cache directory or null
+     */
+    public @Nullable Path getResultCache() {
+        return resultCache;
     }
 
     /**

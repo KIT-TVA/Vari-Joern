@@ -22,15 +22,25 @@ The Kbuild composer is configured using the following options:
     - Specifies the location of the source code.
       Relative paths are relative to the location of the configuration file.
     - Optional: no
+- `encoding`
+  - Specifies the encoding of the source files.
+    - Optional: yes
+    - Default: "utf-8"
 - `system`
     - Specifies the used Kconfig/Kbuild implementation. Currently, `busybox`, `linux` and `fiasco` are supported.
     - Optional: no
+- `presence_condition_excludes`
+    - Specifies a list of files for which presence conditions should not be determined. The paths are relative to the
+      source directory.
+    - Optional: yes
 
 For example, the composer could be configured as follows:
 
 ```toml
 [composer]
 name = "kbuild"
+encoding = "iso-8859-1"
 source = "path/to/source-code"
 system = "busybox"
+presence_condition_excludes = ["miscutils/setserial.c"]
 ```

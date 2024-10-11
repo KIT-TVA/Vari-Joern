@@ -1,4 +1,4 @@
-package edu.kit.varijoern.output;
+package edu.kit.varijoern.serialization;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -9,14 +9,14 @@ import org.prop4j.Node;
 import java.io.IOException;
 
 /**
- * Serializes {@link Node} objects to strings using {@link Node#toString()}.
+ * Serializes {@link Node} objects to strings using {@link NodeSerializer}.
  */
-public class NodeSerializer extends StdSerializer<Node> {
-    public NodeSerializer() {
+public class JacksonNodeSerializer extends StdSerializer<Node> {
+    public JacksonNodeSerializer() {
         this(null);
     }
 
-    public NodeSerializer(Class<Node> t) {
+    public JacksonNodeSerializer(Class<Node> t) {
         super(t);
     }
 
@@ -24,6 +24,6 @@ public class NodeSerializer extends StdSerializer<Node> {
     public void serialize(@NotNull Node node, @NotNull JsonGenerator jsonGenerator,
                           SerializerProvider serializerProvider)
             throws IOException {
-        jsonGenerator.writeString(node.toString());
+        jsonGenerator.writeString(new NodeSerializer().serialize(node));
     }
 }
