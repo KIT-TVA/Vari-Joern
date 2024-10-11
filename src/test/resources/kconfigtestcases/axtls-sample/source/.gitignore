@@ -1,0 +1,9 @@
+src/version.h
+config/config.h
+config/.config
+config/.config.old
+config/.config.tmp
+*.a
+*.o
+*.so
+_stage

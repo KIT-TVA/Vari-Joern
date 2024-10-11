@@ -37,7 +37,7 @@ class KbuildComposerTest {
     );
 
     private static Stream<Arguments> testCases() {
-        return Stream.of(busyboxTestCases(), linuxTestCases(), fiascoTestCases())
+        return Stream.of(busyboxTestCases(), linuxTestCases(), fiascoTestCases(), axtlsTestCases())
                 .flatMap(s -> s);
     }
 
@@ -295,6 +295,63 @@ class KbuildComposerTest {
                         (KconfigTestCasePreparer) ((path) -> {
                         })
                 ))
+        );
+    }
+
+    private static Stream<Arguments> axtlsTestCases() {
+        Set<Path> standardIncludedFiles = Set.of();
+        List<Path> standardIncludePaths = List.of(Path.of("config"), Path.of("ssl"), Path.of("crypto"));
+        List<Path> standardSystemIncludePaths = List.of();
+        Map<String, String> standardDefines = Map.of();
+        InclusionInformation mainC = new InclusionInformation(
+                Path.of("src/main.c"),
+                standardIncludedFiles,
+                standardDefines,
+                standardIncludePaths,
+                standardSystemIncludePaths
+        );
+        Stream<TestCase> testCases = Stream.of(
+                new TestCase(
+                        "axtls-sample",
+                        "axtls",
+                        List.of("HAVE_DOT_CONFIG", "CONFIG_PLATFORM_LINUX", "__VISIBILITY__CONFIG_PREFIX"),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.o"),
+                                FileAbsentVerifier.originalSourceAndHeader("src/io-file"),
+                                new FileContentVerifier(mainC),
+                                new FileContentVerifier(Path.of("src/main.h"))
+                        )
+                ),
+                new TestCase(
+                        "axtls-sample",
+                        "axtls",
+                        List.of(
+                                "HAVE_DOT_CONFIG",
+                                "CONFIG_PLATFORM_LINUX",
+                                "__VISIBILITY__CONFIG_PREFIX",
+                                "CONFIG_INCLUDE_IO_FILE",
+                                "CONFIG_PERFORM_RENAME",
+                                "CONFIG_PERFORM_CHMOD",
+                                "CONFIG_USE_GETS"
+                        ),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.o"),
+                                new FileContentVerifier(new InclusionInformation(
+                                        Path.of("src/io-file.c"),
+                                        standardIncludedFiles,
+                                        standardDefines,
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
+                                )),
+                                new FileContentVerifier(Path.of("src/io-file.h")),
+                                new FileContentVerifier(mainC),
+                                new FileContentVerifier(Path.of("src/main.h"))
+                        )
+                )
+        );
+        return testCases.flatMap(
+                testCase -> STANDARD_PREPARERS.stream()
+                        .map(preparer -> Arguments.of(testCase, preparer))
         );
     }
 

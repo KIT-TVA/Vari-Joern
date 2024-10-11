@@ -182,6 +182,9 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                 // BusyBox fails to build when WERROR is enabled. Since WERROR does not modify the final product, it is
                 // safe to disable it.
                 featureModel.addConstraint(new Constraint(featureModel, new Not(new Literal("WERROR"))));
+            } else if (this.system.equals("axtls")) {
+                // Vari-Joern only supports Linux
+                featureModel.addConstraint(new Constraint(featureModel, new Literal("CONFIG_PLATFORM_LINUX")));
             }
 
             deleteFeatures(featureModel, nonTristateFeatures);
