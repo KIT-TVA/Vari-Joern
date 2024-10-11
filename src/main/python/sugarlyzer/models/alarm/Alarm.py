@@ -37,7 +37,7 @@ class IntegerRange:
 
 def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
     if range1.is_valid_range() and range2.is_valid_range():
-       return range1.start_line == range2.start_line and range1.end_line == range2.end_line
+        return range1.start_line == range2.start_line and range1.end_line == range2.end_line
 
     # No comparisons between invalid ranges.
     return False
@@ -108,9 +108,7 @@ def map_source_line(desugared_file: Path,
 
                 curren_line_number += 1
 
-    logger.warning(f"Could not find source line for line {desugared_file}:{line_number} ({the_line})")
-    return IntegerRange(start_line=0, end_line=0, approximated=True)
-
+    raise ValueError(f"Could not find source line for line {desugared_file}:{line_number} ({the_line})")
 
 class Alarm:
     __id_generator = itertools.count()
@@ -136,7 +134,7 @@ class Alarm:
         self.feasible: bool | None = None
         self.model: ModelRef | str | None = None  # TODO: More elegant way to handle the two possible types of model.
 
-        self.analysis_time: float | None  = None
+        self.analysis_time: float | None = None
         self.desugaring_time: float | None = None
 
         self.get_recommended_space: bool | None = None

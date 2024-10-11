@@ -285,10 +285,6 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file:
             logger.debug("Cmd string is " + cmd_str)
             ps = subprocess.run(cmd_str, capture_output=True, text=True, shell=True, executable='/bin/bash',
                                 env=os.environ)
-            if ps.returncode == 124:
-                logger.critical(f"Desugaring of {file_to_desugar} exceeded the set timeout and was aborted.")
-                # TODO Clear gibberish out of the output file that it can later be identified more easily that
-                #  variability-encoding failed.
 
             try:
                 times = "\n".join(ps.stderr.split("\n")[-30:])
@@ -300,7 +296,11 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file:
 
             # Write desugared file.
             with open(desugared_output, 'w') as f:
-                f.write(ps.stdout)
+                if ps.returncode == 124:
+                    # A timeout creates only gibberish in the stdout.
+                    logger.critical(f"Desugaring of {file_to_desugar} exceeded the set timeout and was aborted.")
+                else:
+                    f.write(ps.stdout)
 
             # Add file to cache.
             if cache_dir_path is not None:
