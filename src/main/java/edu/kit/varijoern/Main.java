@@ -258,7 +258,7 @@ public class Main {
 
     private static int runFamilyBased(@NotNull Config config, @NotNull Args args) {
         // Gather information for Sugarlyzer call.
-        SubjectConfig subjectConfig = config.getProgramConfig();
+        SubjectConfig subjectConfig = config.getSubjectConfig();
         SugarlyzerConfig sugarlyzerConfig = Objects.requireNonNull(config.getSugarlyzerConfig());
 
         List<String> sugarlyzerCommandList = new ArrayList<>();

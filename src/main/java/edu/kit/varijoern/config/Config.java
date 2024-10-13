@@ -178,6 +178,10 @@ public class Config {
         return analyzerConfig;
     }
 
+    public @NotNull SubjectConfig getSubjectConfig(){
+        return this.subjectConfig;
+    }
+
     /**
      * Returns the configuration of the feature model reader component.
      *
