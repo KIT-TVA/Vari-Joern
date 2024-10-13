@@ -8,6 +8,7 @@ import os
 import shutil
 import tempfile
 import time
+import sys
 from concurrent.futures import ProcessPoolExecutor
 from logging import FileHandler
 from pathlib import Path
@@ -143,7 +144,7 @@ class Tester:
             ###################################
             # Run SugarC.
             ###################################
-            logger.info(f"Desugaring the source code in {self.program.source_dirs} with {self.jobs} jobs...")
+            logger.info(f"Desugaring the source code in {self.program.source_dirs} with {self.jobs} job(s)...")
             start_time_desugaring: float = time.monotonic()
             source_files = list(self.program.get_source_files())
             desugared_files: List[Tuple] = []
@@ -244,7 +245,7 @@ class Tester:
                     buckets.append([])
 
             logger.info(f"Sorted the {len(alarms)} alarms into {len(buckets) - 1} buckets "
-                         f"({bucket_matches} matches on existing buckets).")
+                        f"({bucket_matches} matches on existing buckets).")
 
             # Aggregate alarms and join their presence conditions via disjunctions.
             logger.info("Now aggregating alarms within the buckets...")
@@ -261,7 +262,8 @@ class Tester:
                 with ProcessPool(self.jobs) as p:
                     alarms = list(tqdm(p.imap(self.verify_alarm, alarms)))
 
-            logger.info(f"Time elapsed during post-processing of alarms: {time.monotonic() - start_time_post_processing}s")
+            logger.info(f"Time elapsed during post-processing of alarms: "
+                        f"{time.monotonic() - start_time_post_processing}s")
         else:
             alarms = self.run_baseline_experiments()
 
@@ -282,7 +284,8 @@ class Tester:
             # Turn absolute paths to relative ones if desired.
             if self.relative_paths:
                 alarm.input_file = alarm.input_file.relative_to(self.program.project_root)
-                alarm.unpreprocessed_source_file = alarm.unpreprocessed_source_file.relative_to(self.program.project_root)
+                alarm.unpreprocessed_source_file = alarm.unpreprocessed_source_file.relative_to(
+                    self.program.project_root)
 
         # Write report file.
         with open(self.output_file_path, 'w') as f:
@@ -476,7 +479,8 @@ class Tester:
         with ProcessPool(self.jobs) as p:
             alarms = list()
             for i in tqdm(
-                    p.imap(lambda x: self.analyze_file_and_associate_configuration(*x), # TODO Not yet adjusted to the new signature.
+                    p.imap(lambda x: self.analyze_file_and_associate_configuration(*x),
+                           # TODO Not yet adjusted to the new signature.
                            source_files_config_spec_triples),
                     total=len(source_files_config_spec_triples)):
                 alarms.extend(i)
@@ -527,14 +531,15 @@ def set_up_logging(args: argparse.Namespace) -> None:
 
     # Set logging levels.
     logging_level_console: int = logging.DEBUG if args.verbosity else logging.INFO
-    logging_level_logfile: int = logging.DEBUG # Always use DEBUG level for logfile.
+    logging_level_logfile: int = logging.DEBUG  # Always use DEBUG level for logfile.
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG) # Default level.
+    root_logger.setLevel(logging.DEBUG)  # Default level.
 
     # Create and customize handlers.
     console_handler: logging.StreamHandler[TextIO] = logging.StreamHandler()
     console_handler.setLevel(logging_level_console)
-    logfile_handler: FileHandler = logging.FileHandler(logging_dir / Path("sugarlyzer.log"), 'w')
+    logfile_handler: FileHandler = logging.FileHandler(logging_dir / Path(f"sugarlyzer_{args.tool}_{args.program}.log"),
+                                                       'w')
     logfile_handler.setLevel(logging_level_logfile)
     formatter = logging.Formatter("%(asctime)s %(name)s [%(levelname)s - %(process)d] %(message)s")
     console_handler.setFormatter(formatter)
@@ -544,6 +549,7 @@ def set_up_logging(args: argparse.Namespace) -> None:
     root_logger.addHandler(console_handler)
     root_logger.addHandler(logfile_handler)
     root_logger.propagate = False
+
 
 def main():
     start = time.monotonic()
@@ -555,6 +561,9 @@ def main():
         os.environ["PATH"] += os.pathsep + os.environ["SUGARLYZER_PATH"]
 
     set_up_logging(args)
+
+    logger.info(f"Executing interpreter: {sys.executable} (version {sys.version})")
+
     t = Tester(args)
     t.execute()
     logger.info(f"Total execution time of Sugarlyzer: {time.monotonic() - start}s")
