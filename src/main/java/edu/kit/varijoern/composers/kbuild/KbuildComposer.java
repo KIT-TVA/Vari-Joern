@@ -360,6 +360,7 @@ public class KbuildComposer implements Composer {
         LOGGER.info("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
                 .directory(tmpSourcePath.toFile());
+        makeProcessBuilder.environment().put("CC", "gcc");
         makeProcessBuilder.environment().put("LANG", "C");
         int makeExitCode;
         String output;
