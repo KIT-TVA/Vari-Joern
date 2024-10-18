@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class InferReader(AbstractReader):
 
-    def read_output(self, report_file: Path, unpreprocessed_source_file: Path) -> Iterable[Alarm]:
+    def read_output(self, report_file: Path, desugared_source_file: Path, unpreprocessed_source_file: Path) -> Iterable[Alarm]:
         if not Path(report_file).exists():
             return []
         with open(report_file, 'r') as rf:
@@ -31,7 +31,8 @@ class InferReader(AbstractReader):
                                  bug_type=alarmData['bug_type'],
                                  message=alarmData['qualifier'],
                                  alarm_type=alarmData['severity'],
-                                 warning_path=warningLines)
+                                 warning_path=warningLines,
+                                 input_file=desugared_source_file)
                 alarmList.append(ret)
 
             return alarmList

@@ -38,7 +38,8 @@ class ProgramSpecification(ABC):
                  kconfig_root_path: str = None,
                  kconfig_file_names: list[str] = None,
                  config_header_path: str = None,
-                 included_files_and_directories: Iterable[Dict] | None = None):
+                 included_files_and_directories: Iterable[Dict] | None = None,
+                 source_file_encoding: str = None):
         """
         Constructs a new ProgramSpecification.
 
@@ -59,6 +60,7 @@ class ProgramSpecification(ABC):
 
         self.name: str = name
         self.project_root: Path = project_root
+        self.source_file_encoding = source_file_encoding
         self.__tmp_dir: Path = tmp_dir
 
         self.remove_errors: bool = remove_errors

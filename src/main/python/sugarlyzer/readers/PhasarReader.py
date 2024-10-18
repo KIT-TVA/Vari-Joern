@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 class PhasarReader(AbstractReader):
 
-    def read_output(self, report_file: Path, unpreprocessed_source_file: Path, ) -> Iterable[Alarm]:
+    def read_output(self,
+                    report_file: Path,
+                    desugared_source_file: Path,
+                    unpreprocessed_source_file: Path, ) -> Iterable[Alarm]:
         if not Path(report_file).exists():
             return []
         with open(report_file, 'r') as rf:
@@ -38,6 +41,7 @@ class PhasarReader(AbstractReader):
                     alarmList.append(PhasarAlarm(unpreprocessed_source_file=unpreprocessed_source_file,
                                                  function=warning['function'],
                                                  line_in_input_file=warning['line'],
-                                                 variable_name=var))
+                                                 variable_name=var,
+                                                 input_file=desugared_source_file))
 
             return alarmList

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class ClangReader(AbstractReader):
 
-    def read_output(self, report_file: Path, unpreprocessed_source_file: Path) -> Iterable[ClangAlarm]:
+    def read_output(self, report_file: Path, desugared_source_file: Path, unpreprocessed_source_file: Path) -> Iterable[ClangAlarm]:
         res = []
         with open(report_file, 'r') as rf:
             currentAlarm = None
@@ -28,7 +28,7 @@ class ClangReader(AbstractReader):
                     currentAlarm = ClangAlarm(unpreprocessed_source_file=unpreprocessed_source_file,
                                               line_in_input_file=line,
                                               message=message,
-                                              input_file=Path(file),
+                                              input_file=desugared_source_file,
                                               alarm_type='warning',
                                               warning_path=[])
                 elif ': note:' in l:

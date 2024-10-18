@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 class AbstractTool(ABC):
 
-    def __init__(self, reader: AbstractReader,
+    def __init__(self,
+                 reader: AbstractReader,
                  name: str,
                  keep_mem: bool,
                  make_main: bool,
@@ -93,9 +94,9 @@ class AbstractTool(ABC):
             logger.debug(f"Cache miss for file {str(source_file)}. Running {self.name}...")
 
         tool_report_files: list[Path] = cache_dir_hits if cache_hit else list(self.analyze(file=source_file,
-                                                                                          command_line_defs=command_line_defs,
-                                                                                          included_dirs=included_dirs,
-                                                                                          included_files=included_files))
+                                                                                           command_line_defs=command_line_defs,
+                                                                                           included_dirs=included_dirs,
+                                                                                           included_files=included_files))
 
         # Add new entries to cache.
         if self.cache_dir is not None and not cache_hit:
@@ -109,11 +110,14 @@ class AbstractTool(ABC):
                 index += 1
 
         alarms = \
-            functools.reduce(operator.iconcat, [self.reader.read_output(f, unpreprocessed_source_file) for f in tool_report_files], [])
+            functools.reduce(operator.iconcat, [
+                self.reader.read_output(report_file=f,
+                                        desugared_source_file=source_file,
+                                        unpreprocessed_source_file=unpreprocessed_source_file) for f in
+                tool_report_files], [])
         total_time = time.monotonic() - start_time
         logger.info(f"Analyzing file {source_file} took {total_time}s ({'Cache Hit' if cache_hit else 'Cache Miss'})")
         for a in alarms:
-            a.input_file = source_file
             a.analysis_time = total_time
 
         try:

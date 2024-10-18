@@ -76,7 +76,8 @@ class Tester:
                                                                  intermediary_results_path=self.intermediary_results_path,
                                                                  cache_dir=self.cache_dir_path / Path(args.tool) / Path(
                                                                      self.program.name),
-                                                                 maximum_heap_size=self.maximum_heap_per_job)
+                                                                 maximum_heap_size=self.maximum_heap_per_job,
+                                                                 source_file_encoding=self.program.source_file_encoding)
 
         self.output_file_path = args.output_path if args.output_path is not None else Path.home() / Path(
             f"sugarlyzer_results_{self.tool.name}_{self.program.name}.json")

@@ -23,6 +23,27 @@ class Joern(AbstractTool):
                                            "setgroups", "setresuid", "setreuid", "seteuid", "setgid", "send", "strlen",
                                            "strncpy", "read", "recv"]
 
+    sanity_check_pattern_per_query: dict[str, str] = {
+        "call-to-gets": r"(?i)gets",
+        "call-to-getwd": r"(?i)getwd",
+        "call-to-strtok": r"(?i)strtok",
+        "constant-array-access-no-check": r"[.*\d.*]",
+        "copy-loop": r"\[.+].*=",
+        "file-operation-race": r"access|chdir|chmod|chown|creat|faccessat|fchmodat|fopen|fstatat|lchown||linkat|link|lstat|"
+                               r"mkdirat|mkdir|mkfifoat|mkfifo|mknodat|mknod|openat|open|readlinkat|readlink|renameat|rename|"
+                               r"rmdir|stat|unlinkat|unlink|",
+        "format-controlled-printf": r"((?i)printf)|((?i)sprintf)|((?i)vsprintf)",
+        "free-field-no-reassign": r"free",
+        "malloc-memcpy-int-overflow": r"malloc|((?i)memcpy)",
+        "setgid-without-setgroups": r"(?i)set(res|re|e|)gid",
+        "setuid-without-setgid": r"(?i)set(res|re|e|)uid",
+        "signed-left-shift": r"<<",
+        "socket-send": r"send",
+        "strlen-truncation": r"(?i)strlen",
+        "strncpy-no-null-term": r"(?i)strncpy",
+        "unchecked-read-recv-malloc": r"((?i)read)|((?i)recv)|((?i)malloc)"
+    }
+
     joern_parse_command: list[str] = ["/usr/bin/time", "-v",
                                       "joern-parse", "{maximum_heap_size_option}", "{input}", "-o", "{output}",
                                       "--language", "C", "--frontend-args", "{file_includes}", "{dir_includes}",
@@ -32,8 +53,13 @@ class Joern(AbstractTool):
                                         "cpgPath={cpg_path}", "--param", "outFile={report_path}"]
     joern_script = importlib.resources.files('resources.joern') / "scan.sc"
 
-    def __init__(self, intermediary_results_path: Path, cache_dir: Path = None, maximum_heap_size: int = None):
-        super().__init__(JoernReader(),
+    def __init__(self,
+                 intermediary_results_path:
+                 Path, cache_dir: Path = None,
+                 maximum_heap_size: int = None,
+                 source_file_encoding: str = None):
+        super().__init__(reader=JoernReader(sanity_checks_per_query=Joern.sanity_check_pattern_per_query,
+                                            source_file_encoding=source_file_encoding),
                          name='joern',
                          make_main=True,
                          keep_mem=True,

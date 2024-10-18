@@ -12,7 +12,7 @@ class JoernAlarm(Alarm):
                  name: str,
                  message: str,
                  description: str,
-                 score: int
+                 score: float
                  ):
         super().__init__(input_file=input_file,
                          line_in_input_file=line_in_input_file,
@@ -21,7 +21,7 @@ class JoernAlarm(Alarm):
 
         self.name: str = name
         self.description: str = description
-        self.score: int = score
+        self.score: float = score
 
     def as_dict(self) -> Dict[str, str]:
         result = super().as_dict()

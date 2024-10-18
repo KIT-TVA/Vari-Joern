@@ -15,9 +15,11 @@ class AnalysisToolFactory:
     def get_tool(cls, tool_name: str,
                  intermediary_results_path: Path,
                  cache_dir: Path = None,
-                 maximum_heap_size: int = None) -> AbstractTool:
+                 maximum_heap_size: int = None,
+                 source_file_encoding: str = None) -> AbstractTool:
         """
         Given the name of the tool, return the appropriate tool class.
+        :param source_file_encoding: The encoding used by the files that should be analyzed.
         :param tool_name: The name of the tool.
         :param intermediary_results_path: The path at which to store intermediary results of the tool.
         :param cache_dir: The directory where to cache reports created by the analysis tool.
@@ -35,6 +37,9 @@ class AnalysisToolFactory:
             case "phasar":
                 return Phasar(intermediary_results_path)
             case "joern":
-                return Joern(intermediary_results_path, cache_dir, maximum_heap_size)
+                return Joern(intermediary_results_path=intermediary_results_path,
+                             cache_dir=cache_dir,
+                             maximum_heap_size=maximum_heap_size,
+                             source_file_encoding=source_file_encoding)
             case _:
                 raise ValueError(f"No tool for {tool_name}")

@@ -1,6 +1,7 @@
 {
   "remove_errors": false,
   "config_prefix": "KGENMACRO_",
+  "source_file_encoding": "iso-8859-1",
 
   "make_target": "defconfig",
   "kconfig_root_file_path": "Config.in",
