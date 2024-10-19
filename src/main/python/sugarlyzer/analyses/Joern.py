@@ -20,8 +20,8 @@ class Joern(AbstractTool):
                                            "openat", "open", "readlinkat", "readlink", "renameat", "rename", "rmdir",
                                            "stat", "unlinkat", "unlink", "printf", "sprintf", "vsprintf", "free",
                                            "memset", "bzero", "malloc", "memcpy", "setresgid", "setregid", "setegid",
-                                           "setgroups", "setresuid", "setreuid", "seteuid", "setgid", "send", "strlen",
-                                           "strncpy", "read", "recv"]
+                                           "setgid", "setgroups", "setresuid", "setreuid", "seteuid", "setuid", "send",
+                                           "strlen", "strncpy", "read", "recv"]
 
     joern_parse_command: list[str] = ["/usr/bin/time", "-v",
                                       "joern-parse", "{maximum_heap_size_option}", "{input}", "-o", "{output}",
