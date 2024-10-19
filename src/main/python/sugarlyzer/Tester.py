@@ -76,8 +76,7 @@ class Tester:
                                                                  intermediary_results_path=self.intermediary_results_path,
                                                                  cache_dir=self.cache_dir_path / Path(args.tool) / Path(
                                                                      self.program.name),
-                                                                 maximum_heap_size=self.maximum_heap_per_job,
-                                                                 source_file_encoding=self.program.source_file_encoding)
+                                                                 maximum_heap_size=self.maximum_heap_per_job)
 
         self.output_file_path = args.output_path if args.output_path is not None else Path.home() / Path(
             f"sugarlyzer_results_{self.tool.name}_{self.program.name}.json")
@@ -214,7 +213,7 @@ class Tester:
                     logger.debug(ve)
                 return False
 
-            logger.info("Pruning alarms whose line mapping to the unpreprocessed source code could not be established.")
+            logger.info("Pruning alarms whose line mapping to the unpreprocessed source code could not be established...")
             alarms = [alarm for alarm in alarms if line_mapping_exists(alarm)]
             logger.info(f"{len(alarms)} alarms remain after pruning without a line mapping.")
 
@@ -229,7 +228,7 @@ class Tester:
             # Collect alarms into "buckets" based on equivalence.
             # Then, for each bucket, we will return one alarm, combining all the
             # models into a list.
-            logger.info(f"Sorting the {len(alarms)} alarms into buckets...")
+            logger.info(f"Sorting the {len(alarms)} alarms into buckets to eliminate duplicates...")
             buckets: list[list[Alarm]] = [[]]
             bucket_matches = 0
             for ba in alarms:
@@ -257,6 +256,11 @@ class Tester:
                 alarms[-1].other_lines_in_input_file = [alarm.line_in_input_file for alarm in bucket[1:]]
             logger.debug("Done.")
             logger.info(f"{len(alarms)} alarms remain after aggregation.")
+
+            # Perform a sanity check on the remaining alarms.
+            logger.info(f"Sanity checking the {len(alarms)} alarms...")
+            alarms = [alarm for alarm in alarms if alarm.is_alarm_valid(self.program.source_file_encoding)]
+            logger.info(f"{len(alarms)} remain after sanity checking.")
 
             if self.validate:
                 logger.info("Now validating....")

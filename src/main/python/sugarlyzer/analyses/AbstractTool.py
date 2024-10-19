@@ -111,10 +111,11 @@ class AbstractTool(ABC):
 
         alarms = \
             functools.reduce(operator.iconcat, [
-                self.reader.read_output(report_file=f,
+                self.reader.read_output(report_file=report_file,
                                         desugared_source_file=source_file,
-                                        unpreprocessed_source_file=unpreprocessed_source_file) for f in
+                                        unpreprocessed_source_file=unpreprocessed_source_file) for report_file in
                 tool_report_files], [])
+
         total_time = time.monotonic() - start_time
         logger.info(f"Analyzing file {source_file} took {total_time}s ({'Cache Hit' if cache_hit else 'Cache Miss'})")
         for a in alarms:
@@ -133,8 +134,12 @@ class AbstractTool(ABC):
                 included_files: Iterable[Path] = None,
                 command_line_defs: Iterable[str] = None) -> Iterable[Path]:
         """
-        Analyzes a file and returns the location of its output.
+        Analyzes a file and returns the locations of the resulting reports created by the tool.
+
+        :param command_line_defs: The command line definitions that should be used by the tool.
+        :param included_dirs: The directory includes that should be used by the tool.
+        :param included_files: The file includes that should be used by the tool.
         :param file: The file to run analysis on.
-        :return: The output file produced by running the tool.
+        :return: The output report file produced by running the tool.
         """
         pass

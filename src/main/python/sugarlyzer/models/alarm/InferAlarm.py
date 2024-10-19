@@ -48,3 +48,6 @@ class InferAlarm(Alarm):
         :return: An iterator over the lines Clang returns as the path in the desugared file.
         """
         return self.warning_path  ## We expect desugared_path to contain desugared_line
+
+    def is_alarm_valid(self, file_encoding: str = None) -> bool:
+        raise NotImplementedError("Sanity check of alarm not yet implemented.")

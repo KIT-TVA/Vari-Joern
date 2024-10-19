@@ -6,7 +6,6 @@ from python.sugarlyzer.models.alarm.Alarm import Alarm
 
 
 class ClangAlarm(Alarm):
-
     def __init__(self,
                  unpreprocessed_source_file: Path,
                  input_file: Path = None,
@@ -43,3 +42,5 @@ class ClangAlarm(Alarm):
         """
         return self.warning_path  ## We expect desugared_path to contain desugared_line
 
+    def is_alarm_valid(self, file_encoding: str = None) -> bool:
+        raise NotImplementedError("Sanity check of alarm not yet implemented.")

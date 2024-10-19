@@ -1,6 +1,7 @@
 import itertools
 import logging
 import re
+from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Iterable, TypeVar, Tuple
@@ -247,3 +248,13 @@ class Alarm:
     def sanitize(self, message: str):
         logger.warning("Sanitize is not implemented.")
         return message
+
+    @abstractmethod
+    def is_alarm_valid(self, file_encoding: str = None) -> bool:
+        """
+        Performs a sanity check for the alarm.
+
+        :param file_encoding: The encoding of the original source file to which the alarm relates.
+        :return: True if the alarm passed the sanity check and False otherwise.
+        """
+        pass
