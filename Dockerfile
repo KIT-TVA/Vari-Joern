@@ -58,7 +58,7 @@ RUN cp /superc/bin/junit.jar /superc/bin/antlr.jar /superc/bin/javabdd.jar /supe
 # Build Sugarlyzer.
 RUN python3.10 -m venv /venv
 ENV PATH=/venv/bin:$PATH
-#RUN python -m pip install -r requirements.txt --use-pep517
+RUN python -m pip install -r requirements.txt
 RUN python -m pip install build
 RUN python -m build
 
@@ -88,6 +88,9 @@ RUN apt-get install -y \
     && bash -c "pipx ensurepath && exit" \
     && git config --global user.email "vari-joern@example.com"
 
+# Installs required for Sugarlyzer.
+RUN apt-get install -y time
+
 ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
     && /joern-install.sh --version=v4.0.48 \
@@ -97,10 +100,6 @@ RUN joern-scan --updatedb --dbversion 4.0.48
 
 RUN pipx install --python=$(which python3.11) kmax git+https://github.com/duckymirror/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
 
-COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar
-RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
-    && mv /opt/Vari-Joern-1.0-SNAPSHOT /opt/vari-joern \
-    && rm /Vari-Joern-1.0-SNAPSHOT.tar
 
 RUN python3.10 -m pip install --upgrade setuptools
 COPY --from=build /vari-joern/dist/Sugarlyzer-0.0.1a0-py3-none-any.whl /Sugarlyzer-0.0.1a0-py3-none-any.whl
