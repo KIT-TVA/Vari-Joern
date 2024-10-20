@@ -100,6 +100,14 @@ RUN joern-scan --updatedb --dbversion 4.0.48
 
 RUN pipx install --python=$(which python3.11) kmax git+https://github.com/duckymirror/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
 
+# Responsible for making the lib directory available to the container.
+COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar
+RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
+    && mv /opt/Vari-Joern-1.0-SNAPSHOT /opt/vari-joern \
+    && rm /Vari-Joern-1.0-SNAPSHOT.tar
+
+# Ensure that SuperC/SugarC and its dependencies are added to the classpath.
+ENV CLASSPATH="${CLASSPATH}:/opt/vari-joern/lib/xtc.jar:/opt/vari-joern/lib/superc.jar:/opt/vari-joern/lib/junit.jar:/opt/vari-joern/lib/antlr.jar:/opt/vari-joern/lib/javabdd.jar:/opt/vari-joern/lib/json-simple-1.1.1.jar:/opt/vari-joern/lib/org.sat4j.core.jar:/opt/vari-joern/lib/com.microsoft.z3.jar:/opt/vari-joern/lib/json-lib.jar"
 
 RUN python3.10 -m pip install --upgrade setuptools
 COPY --from=build /vari-joern/dist/Sugarlyzer-0.0.1a0-py3-none-any.whl /Sugarlyzer-0.0.1a0-py3-none-any.whl
