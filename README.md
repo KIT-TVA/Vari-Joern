@@ -3,9 +3,16 @@
 Vari-Joern is a tool for analyzing software product lines.
 Its goal is to find weaknesses by running [Joern](https://joern.io) on a subset of all valid configurations of a software system.
 
-## Prerequisites (Local Execution)
+## Installation 
 
-### Family-Based Strategy
+### General Prerequisites
+- Clone the repository and initialize & update the contained  `Antenna` submodule. 
+  - Execute `git clone` followed by `cd <target_location>/Vari-Joern`.
+  - Execute ``git sobmodule init`` followed by `git submodule update`
+
+### Prerequisites (Local Execution)
+
+#### Family-Based Strategy
 - A Java JDK >= 19 is installed.
 - A working installation of [KIT-TVA/superc](https://github.com/KIT-TVA/superc)
   - Corresponding jars are expected to be part of PATH
