@@ -307,7 +307,9 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file:
                 if not os.path.exists(cache_dir_path):
                     os.makedirs(cache_dir_path)
                 with open(cached_file, 'w') as f:
-                    f.write(ps.stdout)
+                    # Only fill the cache file if the desugaring did not time out.
+                    if ps.returncode != 124:
+                        f.write(ps.stdout)
 
             logger.debug(f"Wrote to {desugared_output}")
             with open(log_file, 'w') as f:
