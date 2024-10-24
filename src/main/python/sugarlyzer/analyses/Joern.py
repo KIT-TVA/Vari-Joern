@@ -82,6 +82,10 @@ class Joern(AbstractTool):
         logger.debug(f"Command for building CPG: \"{cmd}\"")
         ps = subprocess.run(cmd, text=True, shell=True, capture_output=True,
                             executable='/bin/bash')
+        if (resource_stats := get_resource_usage_of_process(ps)) is not None:
+            logger.info(f"Resource usage for building cpg of {file}: "
+                        f"CPU time {resource_stats.usr_time + resource_stats.sys_time}s "
+                        f"max memory {resource_stats.max_memory}kb")
 
         if ps.returncode == 0:
             logger.debug(f"Successfully built CPG for file \"{file.absolute()}\"")
