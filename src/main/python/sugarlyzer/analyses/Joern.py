@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Joern(AbstractTool):
-    whitelist_function_names: list[str] = ["gets", "getwd", "strtok", "access" "chdir", "chmod", "chown", "creat",
+    whitelist_function_names: list[str] = ["gets", "getwd", "strtok", "access", "chdir", "chmod", "chown", "creat",
                                            "faccessat", "fchmodat", "fopen", "fstatat", "lchown", "linkat", "link",
                                            "lstat", "mkdirat", "mkdir", "mkfifoat", "mkfifo", "mknodat", "mknod",
                                            "openat", "open", "readlinkat", "readlink", "renameat", "rename", "rmdir",
