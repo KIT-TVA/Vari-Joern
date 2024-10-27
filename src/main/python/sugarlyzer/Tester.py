@@ -35,10 +35,7 @@ logger = logging.getLogger(__name__)
 
 class Tester:
     def __init__(self, args: argparse.Namespace):
-        # args.tool, args.program, args.program_path, args.baselines, True, args.jobs, args.validate
-        #
-        # tool: str, program: str, program_path: str, baselines: bool, no_recommended_space: bool,
-        # superc_path: str = None, jobs: int = None, validate: bool = False):
+        self.logfiles_disabled: bool = args.logfiles_disabled
 
         self.baselines = args.baselines
         self.no_recommended_space = True
@@ -324,7 +321,8 @@ class Tester:
                                       make_main=self.tool.make_main,
                                       cache_dir_path=self.cache_dir_path / Path("SugarC") / Path(self.program.name),
                                       desugaring_function_whitelist=self.tool.desugaring_function_whitelist,
-                                      maximum_heap_size=self.maximum_heap_per_job))
+                                      maximum_heap_size=self.maximum_heap_per_job,
+                                      no_logfile=self.logfiles_disabled))
 
         return desugared_file_location, log_file, unpreprocessed_file, time.monotonic() - start
 
@@ -505,7 +503,10 @@ def get_arguments() -> argparse.Namespace:
     p.add_argument("program_path", help="The absolute path to the target program.")
 
     # Options.
-    p.add_argument("-v", dest="verbosity", action="store_true", help="Print debug messages.")
+    p.add_argument("-v", help="Print debug messages instead of only info messages to the console.",
+                   dest="verbosity", action="store_true")
+    p.add_argument("--no-logfiles", help="Disable the creation of logfiles and log only to the command line",
+                   dest="logfiles_disabled", action="store_true")
     p.add_argument("--output-path", help="The path to the file to which the output is going to be written. "
                                          "If None, will write to ~/sugarlyzer-results.json")
     p.add_argument("--tmp-path", help="The path to the tmp directory that will be used for storing intermediary "
@@ -552,7 +553,9 @@ def set_up_logging(args: argparse.Namespace) -> None:
 
     # Add handlers to logger.
     root_logger.addHandler(console_handler)
-    root_logger.addHandler(logfile_handler)
+    if not args.logfiles_disabled:
+        root_logger.addHandler(logfile_handler)
+
     root_logger.propagate = False
 
 

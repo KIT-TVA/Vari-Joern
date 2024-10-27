@@ -145,6 +145,7 @@ def get_recommended_space(file: Path, inc_files: Iterable[Path], inc_dirs: Itera
 def desugar_file(file_to_desugar: Path,
                  recommended_space: str,
                  output_file: str = '',
+                 no_logfile: bool = False,
                  log_file: str = '',
                  cache_dir_path: Path = None,
                  remove_errors: bool = False,
@@ -160,6 +161,7 @@ def desugar_file(file_to_desugar: Path,
                  maximum_heap_size: int = None) -> tuple[Path, Path]:
     """
     Runs the SugarC command.
+    :param no_logfile: A boolean flag specifying whether the creation of the logfile for the stderr of SugarC should be omitted.
     :param file_to_desugar: The C source code file to desugar.
     :param recommended_space: defines and undefs to be assumed while desugaring
     :param output_file: If provided, will specify the location of the output. Otherwise tacks on .desugared.c to the end of the base file name
@@ -222,7 +224,7 @@ def desugar_file(file_to_desugar: Path,
 
     to_append = None
     if remove_errors:
-        run_sugarc(" ".join(cmd), file_to_desugar, desugared_file, log_file, cache_dir_path)
+        run_sugarc(" ".join(cmd), file_to_desugar, desugared_file, None if no_logfile else log_file, cache_dir_path)
         logger.debug(f"Created desugared file {desugared_file}")
         to_append = get_bad_constraints(desugared_file)
         for d in to_append:
@@ -232,13 +234,16 @@ def desugar_file(file_to_desugar: Path,
 
     logger.debug(f"Cmd is {' '.join(cmd)}")
     if not remove_errors or remove_errors and len(to_append) > 0:
-        run_sugarc(" ".join(cmd), file_to_desugar, desugared_file, log_file, cache_dir_path)
+        run_sugarc(" ".join(cmd), file_to_desugar, desugared_file, None if no_logfile else log_file, cache_dir_path)
     logger.debug(f"Wrote to {log_file}")
     outfile.close()
     return desugared_file, log_file
 
 
-def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file: Path, cache_dir_path: Path | None):
+def run_sugarc(cmd_str, file_to_desugar: Path,
+               desugared_output: Path,
+               log_file: Path | None,
+               cache_dir_path: Path | None):
     current_directory = os.curdir
     os.chdir(file_to_desugar.parent)
     logger.debug(f"In run_sugarc, running cmd {cmd_str} from directory {os.curdir}")
@@ -250,7 +255,7 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file:
     sugarc_arguments_split = sugarc_arguments.split(' ')
 
     for tok in sorted(sugarc_arguments_split):
-        if (path := Path(tok)).exists() and path.is_file(): # Collect contents of files relevant to desugaring.
+        if (path := Path(tok)).exists() and path.is_file():  # Collect contents of files relevant to desugaring.
             with open(path, 'r') as infile:
                 try:
                     to_hash.extend(infile.readlines())
@@ -312,8 +317,9 @@ def run_sugarc(cmd_str, file_to_desugar: Path, desugared_output: Path, log_file:
                         f.write(ps.stdout)
 
             logger.debug(f"Wrote to {desugared_output}")
-            with open(log_file, 'w') as f:
-                f.write(ps.stderr)
+            if log_file is not None:
+                with open(log_file, 'w') as f:
+                    f.write(ps.stderr)
     finally:
         if (not desugared_output.exists()) or (os.path.getsize(desugared_output) == 0):
             try:
@@ -454,7 +460,7 @@ def calculate_asserts(alarm: Alarm, desugared_file: Path):
 
     result = []
     for line_number in alarm.all_relevant_lines:
-        line_number -= 1 # Move upward in the file.
+        line_number -= 1  # Move upward in the file.
         current_line = lines[line_number]
 
         if 'static_condition_default' in current_line:
