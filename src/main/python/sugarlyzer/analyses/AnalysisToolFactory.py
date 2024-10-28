@@ -26,14 +26,8 @@ class AnalysisToolFactory:
         """
 
         match tool_name.lower():
-            case "clang":
-                return Clang(intermediary_results_path)
-            case "testtool":
-                return TestTool(intermediary_results_path)
-            case "infer":
-                return Infer(intermediary_results_path)
-            case "phasar":
-                return Phasar(intermediary_results_path)
+            case "testtool" | "clang" | "infer" | "phasar":
+                raise ValueError(f"{tool_name} is currently not supported by Sugarlyzer.")
             case "joern":
                 return Joern(intermediary_results_path=intermediary_results_path,
                              cache_dir=cache_dir,
