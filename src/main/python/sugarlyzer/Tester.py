@@ -198,6 +198,11 @@ class Tester:
             ###################################
             start_time_post_processing: float = time.monotonic()
 
+            # Prune infeasible alarms.
+            logger.info("Pruning alarms whose presence condition is not SAT...")
+            alarms = [alarm for alarm in alarms if alarm.feasible]
+            logger.info(f"{len(alarms)} alarms remain after pruning alarms whose presence condition is not SAT.")
+
             # Prune warnings whose original line range could not be established as these most likely relate to code
             # introduced during desugaring that is not found in the unpreprocessed source file.
             def line_mapping_exists(alarm: Alarm) -> bool:
