@@ -62,7 +62,7 @@ class JoernAnalyzerTest {
 
         List<ExpectedFinding> expectedFindings = List.of(
                 new ExpectedFinding("call-to-gets",
-                        Set.of(new SourceLocation(Path.of("src/main.c"), 14)),
+                        Set.of(new SourceLocation(Path.of("src/main.c"), 17)),
                         new Literal("USE_GETS"),
                         configurations
                 ),

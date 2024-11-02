@@ -7,6 +7,9 @@
 
 #include "included.c"
 
+// Make sure we don't get a compiler warning. The WERROR option would otherwise fail the build.
+char* gets(char* str);
+
 int main(void) {
         char buf[BUF_SIZE];
 #ifdef CONFIG_USE_GETS
