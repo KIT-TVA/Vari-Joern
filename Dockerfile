@@ -99,7 +99,11 @@ RUN apt-get update && apt-get install -y \
     && git config --global user.email "vari-joern@example.com"
 
 # Installs required for Sugarlyzer.
-RUN apt-get install -y selinux-basics selinux-utils libselinux*
+RUN apt-get install -y \
+    selinux-basics \
+    selinux-utils \
+    libselinux* \
+    build-essential
 
 ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
