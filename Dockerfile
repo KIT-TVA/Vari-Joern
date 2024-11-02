@@ -65,7 +65,7 @@ RUN python -m build
 RUN ./gradlew distTar
 
 FROM base-system
-RUN apt-get install -y \
+RUN apt-get update && apt-get install -y \
     # Required by fiasco
     bison \
     # Required by BusyBox
@@ -99,7 +99,7 @@ RUN apt-get install -y \
     && git config --global user.email "vari-joern@example.com"
 
 # Installs required for Sugarlyzer.
-RUN apt-get install -y time
+RUN apt-get install -y selinux-basics selinux-utils libselinux*
 
 ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
