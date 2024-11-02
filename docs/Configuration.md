@@ -97,4 +97,7 @@ source = "path/to/source-code"
 # Mandatory table for family-based strategy.
 [family.sugarlyzer]
 analyzer_name = "joern"
+# Optional configuration of Sugarlyzer.
+keep_intermediary_files = true
+relative_paths = true
 ```

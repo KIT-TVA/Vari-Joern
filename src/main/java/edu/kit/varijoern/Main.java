@@ -54,7 +54,7 @@ public class Main {
     public static final int STATUS_INVALID_CONFIG = 78;
     public static final int STATUS_INTERRUPTED = 130;
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final OutputStream SUGARLYZER_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
+    private static final OutputStream SUGARLYZER_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
 
     private static final CountDownLatch EXITED_LATCH = new CountDownLatch(1);
 
@@ -267,6 +267,20 @@ public class Main {
         // Add options.
         if(args.isVerbose()){
             sugarlyzerCommandList.add("-v");
+        }
+
+        sugarlyzerCommandList.add("--jobs");
+        sugarlyzerCommandList.add(String.valueOf(args.getSugarlyzerWorkers()));
+
+        sugarlyzerCommandList.add("--max-heap-per-job");
+        sugarlyzerCommandList.add(String.valueOf(args.getSugarlyzerWorkerMaxHeap()));
+
+        if(sugarlyzerConfig.getKeepIntermediaryFiles()) {
+            sugarlyzerCommandList.add("--keep-intermediary-files");
+        }
+
+        if(sugarlyzerConfig.getRelativePaths()){
+            sugarlyzerCommandList.add("--relative-paths");
         }
 
         sugarlyzerCommandList.add("--tmp-path");

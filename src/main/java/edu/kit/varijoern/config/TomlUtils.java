@@ -52,4 +52,16 @@ public final class TomlUtils {
         }
         return (int) value;
     }
+
+    public static @NotNull Optional<Boolean> getOptionalBoolean(@NotNull String dottedName, @NotNull TomlTable toml){
+        if (toml.isBoolean(dottedName)) {
+            Boolean value = toml.getBoolean(dottedName);
+
+            if (value != null) {
+                return Optional.of(value);
+            }
+        }
+
+        return Optional.empty();
+    }
 }
