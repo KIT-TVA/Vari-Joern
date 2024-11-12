@@ -99,7 +99,7 @@ class Tester:
                          unpreprocessed_source_file: Path,
                          program_specification: ProgramSpecification) -> Iterable[Alarm]:
         inc_files, inc_dirs, cmd_decs = program_specification.inc_files_and_dirs_for_file(desugared_source_file)
-        alarms = self.tool.analyze_file_and_read_alarms(source_file=desugared_source_file,
+        alarms = self.tool.analyze_file_and_read_alarms(desugared_source_file=desugared_source_file,
                                                         unpreprocessed_source_file=unpreprocessed_source_file,
                                                         command_line_defs=cmd_decs,
                                                         included_files=inc_files,
@@ -336,7 +336,7 @@ class Tester:
         included_directories, included_files, cmd_decs, user_defined_space = (
             self.get_inc_files_and_dirs_for_file(original_file))
 
-        alarms = self.tool.analyze_file_and_read_alarms(source_file=desugared_file,
+        alarms = self.tool.analyze_file_and_read_alarms(desugared_source_file=desugared_file,
                                                         unpreprocessed_source_file=original_file,
                                                         included_files=included_files,
                                                         included_dirs=included_directories)

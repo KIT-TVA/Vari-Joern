@@ -10,9 +10,9 @@ class TestTool(AbstractTool):
         super().__init__(TestReader(), name='testTool', keep_mem=True, make_main=True, remove_errors=False,
                          intermediary_results_path=intermediary_results_path)
 
-    def analyze(self, file: Path,
+    def analyze(self, desugared_source_file: Path,
                 included_dirs: Iterable[Path] = None,
                 included_files: Iterable[Path] = None,
                 command_line_defs: Iterable[str] = None):
-        print(f"Analyzing {file}")
-        yield file
+        print(f"Analyzing {desugared_source_file}")
+        yield desugared_source_file

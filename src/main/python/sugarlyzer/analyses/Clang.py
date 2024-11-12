@@ -13,12 +13,19 @@ logger = logging.getLogger(__name__)
 
 
 class Clang(AbstractTool):
+    """
+    Tool class adding support for Clang Static Analyzer.
+    """
 
     def __init__(self, intermediary_results_path: Path):
-        super().__init__(ClangReader(), name='clang', keep_mem=True, make_main=True, remove_errors=False,
+        super().__init__(reader=ClangReader(),
+                         name='clang',
+                         keep_mem=True,
+                         make_main=True,
+                         remove_errors=False,
                          intermediary_results_path=intermediary_results_path)
 
-    def analyze(self, file: Path,
+    def analyze(self, desugared_source_file: Path,
                 included_dirs: Iterable[Path] = None,
                 included_files: Iterable[Path] = None,
                 command_line_defs: Iterable[str] = None,
@@ -36,7 +43,7 @@ class Clang(AbstractTool):
                *list(itertools.chain(*zip(itertools.cycle(["--include"]), included_files))),
                *command_line_defs,
                '-nostdinc',
-               "-c", file.absolute()]
+               "-c", desugared_source_file.absolute()]
         logger.info(f"Running cmd {' '.join(str(s) for s in cmd)}")
 
         ps = subprocess.run(" ".join(str(s) for s in cmd), capture_output=True, shell=True, text=True,
@@ -45,13 +52,13 @@ class Clang(AbstractTool):
             try:
                 times = "\n".join(ps.stderr.split("\n")[-30:])
                 usr_time, sys_time, max_memory = parse_bash_time(times)
-                logger.info(f"CPU time to analyze {file} was {usr_time + sys_time}s")
-                logger.info(f"Max memory to analyze {file} was {max_memory}kb")
+                logger.info(f"CPU time to analyze {desugared_source_file} was {usr_time + sys_time}s")
+                logger.info(f"Max memory to analyze {desugared_source_file} was {max_memory}kb")
             except Exception as ve:
                 logger.exception("Could not parse time in string " + times)
 
         if (ps.returncode != 0) or ("error" in ps.stdout.lower()):
-            logger.warning(f"Running clang on file {str(file)} potentially failed.")
+            logger.warning(f"Running clang on file {str(desugared_source_file)} potentially failed.")
             logger.warning(ps.stdout)
 
         with open(output_location + '/report.report', 'w') as o:

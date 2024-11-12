@@ -42,7 +42,7 @@ public class Config {
     // General config.
     private final long iterations;
     private final @NotNull SubjectConfig subjectConfig;
-    private final @NotNull FeatureModelReaderConfig featureModelReaderConfig;
+    private final @NotNull FeatureModelReaderConfig featureModelReaderConfig; // TODO Make mandatory for product-based only
 
     // Product-based config.
     private @Nullable AnalyzerConfig<?, ?> analyzerConfig;
