@@ -17,6 +17,7 @@ from typing import Iterable, List, Dict, Any, Tuple, TextIO
 # noinspection PyUnresolvedReferences
 from dill import pickle
 from pathos.pools import ProcessPool
+from python.sugarlyzer.models.alarm.IntegerRange import IntegerRange
 # noinspection PyUnresolvedReferences
 from tqdm import tqdm
 # noinspection PyUnresolvedReferences
@@ -26,7 +27,7 @@ from python.sugarlyzer import SugarCRunner
 from python.sugarlyzer.SugarCRunner import process_alarms
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from python.sugarlyzer.analyses.AnalysisToolFactory import AnalysisToolFactory
-from python.sugarlyzer.models.alarm.Alarm import Alarm, same_range
+from python.sugarlyzer.models.alarm.Alarm import Alarm
 from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification
 from python.sugarlyzer.models.program.ProgramSpecificationFactory import ProgramSpecificationFactory
 
@@ -225,7 +226,7 @@ class Tester:
                 return (a.input_file == b.input_file
                         and a.feasible == b.feasible
                         and a.sanitized_message == b.sanitized_message
-                        and same_range(a.original_line_range, b.original_line_range))
+                        and IntegerRange.same_range(a.original_line_range, b.original_line_range))
 
             # Collect alarms into "buckets" based on equivalence.
             # Then, for each bucket, we will return one alarm, combining all the

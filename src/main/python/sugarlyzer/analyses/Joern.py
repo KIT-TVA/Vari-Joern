@@ -61,7 +61,8 @@ class Joern(AbstractTool):
                          desugaring_function_whitelist=Joern.whitelist_function_names)
         self.maximum_heap_size = maximum_heap_size
 
-    def analyze(self, desugared_source_file: Path,
+    def analyze(self,
+                desugared_source_file: Path,
                 included_dirs: Iterable[Path] = None,
                 included_files: Iterable[Path] = None,
                 command_line_defs: Iterable[str] = None) -> Iterable[Path]:

@@ -1,61 +1,30 @@
-import itertools
 import logging
 import re
 from abc import abstractmethod
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Iterable, TypeVar, Tuple
 
+import itertools
+from python.sugarlyzer.models.alarm.IntegerRange import IntegerRange
 from z3.z3 import ModelRef
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class IntegerRange:
-    start_line: int
-    end_line: int
-    approximated: bool = False
-
-    def __str__(self):
-        return f"{self.start_line}:{self.end_line}{' (Approximated)' if self.approximated else ''}"
-
-    def is_valid_range(self) -> bool:
-        return 0 < self.start_line <= self.end_line
-
-    def is_in(self, i) -> bool:
-        if isinstance(i, IntegerRange):
-            return self.start_line >= i.start_line and self.end_line <= i.end_line
-        else:
-            return self.start_line == i == self.end_line
-
-    def includes(self, i) -> bool:
-        if isinstance(i, IntegerRange):
-            return i.start_line >= self.start_line and i.end_line <= self.end_line
-        else:
-            return self.start_line <= i <= self.end_line
-
-
-def same_range(range1: IntegerRange, range2: IntegerRange) -> bool:
-    if range1.is_valid_range() and range2.is_valid_range():
-        return range1.start_line == range2.start_line and range1.end_line == range2.end_line
-
-    # No comparisons between invalid ranges.
-    return False
-
-
-def map_source_line(desugared_file: Path,
-                    line_number: int,
+def map_source_line(line_number: int,
+                    desugared_file: Path,
                     function_line_range: tuple[str, IntegerRange]) -> IntegerRange:
     """
-    Given an alarm, map it back to original source.
+    Map a line within a desugared source file back to its original range within the unpreprocessed source code.
 
+    :param line_number: The line number of the line that should be mapped (starts at 1 for the first line).
+    :param desugared_file: The desugared file in which the line is present.
     :param function_line_range: The line range of the enclosing function or a complete range over the file for an alarm
     raised in global scope.
-    :param desugared_file: The desugared file in which the line is present.
-    :param line_number: The linen umber to map (starts at 1 for the first line).
+
     :return: The line range in the original source file.
     """
+    logger.info(f"Trying to open file {desugared_file}")
     with open(desugared_file, 'r') as infile:
         line_range_pattern: str = r"// L(.*):L(.*)$"  # Example: "int  (__cmds_8183)[] ;// L41:L42"
         single_line_pattern: str = r"// L(.*)$"  # Example: "int  __i_8187 ;// L49"
@@ -111,7 +80,12 @@ def map_source_line(desugared_file: Path,
 
     raise ValueError(f"Could not find source line for line {desugared_file}:{line_number} ({the_line})")
 
+
 class Alarm:
+    """
+    Class representing an alarm (i.e., a warning) issued by an analysis tool.
+    """
+
     __id_generator = itertools.count()
 
     def __init__(self,
@@ -194,9 +168,9 @@ class Alarm:
             return IntegerRange(self.line_in_input_file, self.line_in_input_file)
 
         if self.__original_line_range is None:
-            self.__original_line_range = map_source_line(self.input_file,
-                                                         self.line_in_input_file,
-                                                         self.function_line_range)
+            self.__original_line_range = map_source_line(line_number=self.line_in_input_file,
+                                                         desugared_file=self.input_file,
+                                                         function_line_range=self.function_line_range)
             if (self.__original_line_range is not None
                     and not self.function_line_range[0] == "GLOBAL"
                     and not self.__original_line_range.is_in(self.function_line_range[1])):
