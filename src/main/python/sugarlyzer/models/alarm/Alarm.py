@@ -87,6 +87,7 @@ class Alarm:
     """
 
     __id_generator = itertools.count()
+    Printable = TypeVar('Printable')
 
     def __init__(self,
                  input_file: Path,
@@ -94,6 +95,15 @@ class Alarm:
                  unpreprocessed_source_file: Path,
                  message: str,
                  ):
+        """
+        Create a new Alarm instance.
+
+        :param input_file: The desugared source file on which the alarm was raised.
+        :param line_in_input_file: The line number of the line on which the alarm was raised.
+        :param unpreprocessed_source_file: The unpreprocessed source file from which the desugared file was created.
+        :param message: A message associated with the alarm (e.g., its type).
+        """
+
         self.input_file: Path = input_file
         self.unpreprocessed_source_file: Path = unpreprocessed_source_file
         self.line_in_input_file: int = int(line_in_input_file)
@@ -107,7 +117,7 @@ class Alarm:
 
         self.presence_condition: str | None = None
         self.feasible: bool | None = None
-        self.model: ModelRef | str | None = None  # TODO: More elegant way to handle the two possible types of model.
+        self.model: ModelRef | str | None = None
 
         self.analysis_time: float | None = None
         self.desugaring_time: float | None = None
@@ -116,40 +126,15 @@ class Alarm:
         self.remove_errors: bool | None = None
         self.verified: str | None = None
 
-    Printable = TypeVar('Printable')
-
-    def as_dict(self) -> Dict[str, Printable]:
-        executor = {
-            "id": lambda: str(self.id),
-            "input_file": lambda: str(self.input_file),
-            "input_line": lambda: self.line_in_input_file,
-            "other_input_lines": lambda: self.other_lines_in_input_file,
-            "original_file": lambda: str(self.unpreprocessed_source_file),
-            "original_line": lambda: str(self.original_line_range),
-            "function_line_range": lambda: f"{self.function_line_range[0]}:{str(self.function_line_range[1])}",
-            "message": lambda: self.message,
-            "sanitized_message": lambda: self.sanitized_message,
-            "presence_condition": lambda: self.presence_condition,
-            "feasible": lambda: self.feasible,
-            "configuration": lambda: str(self.model) if isinstance(self.model, ModelRef) else self.model,
-            "analysis_time": lambda: self.analysis_time,
-            "desugaring_time": lambda: self.desugaring_time,
-            "get_recommended_space": lambda: self.get_recommended_space,
-            "remove_errors": lambda: self.remove_errors,
-            "verified": lambda: self.verified
-        }
-
-        result = {}
-        for k, v in executor.items():
-            try:
-                result[k] = v()
-            except (ValueError, IndexError):
-                result[k] = "ERROR"
-
-        return result
-
     @property
     def sanitized_message(self) -> str:
+        """
+        Get a sanitized version of the alarm's message (i.e., one where the renamings applied by SugarC are
+        reverted).
+
+        :return: The sanitized message.
+        """
+
         if self.message is None:
             raise ValueError("Cannot compute sanitized message while self.message is None.")
 
@@ -159,6 +144,12 @@ class Alarm:
 
     @property
     def original_line_range(self) -> IntegerRange:
+        """
+        Determine the line range in the unpreprocessed code to which the Alarm instance refers to.
+
+        :return: An IntegerRange describing the line range in the unpreprocessed source code.
+        """
+
         if self.input_file is None:
             raise ValueError("Trying to set original line range when self.original_file is none.")
 
@@ -179,11 +170,19 @@ class Alarm:
                     f"original line range {self.original_line_range} and "
                     f"function line range {self.__function_line_range}, and the former is not included in the latter, "
                     f"which is not a global scope. Please double check that our line mapping is correct.")
-                # self.__original_line_range = IntegerRange(-1, 0)  # TODO Is there a better way to represent null values without using None?
         return self.__original_line_range
 
     @property
     def function_line_range(self) -> Tuple[str, IntegerRange]:
+        """
+        Determine the line range of the surrounding function in the unpreprocessed source code.
+
+        :return: A Tuple containing the signature of the enclosing function (or "GLOBAL" if the Alarm instance refers
+        to a location with global scope) together with the associated line range of the function (or a full line range
+        over the file if the Alarm instance refers
+        to a location with global scope)
+        """
+
         if self.input_file is None:
             raise ValueError
 
@@ -218,17 +217,60 @@ class Alarm:
         """
         return [self.line_in_input_file] + self.other_lines_in_input_file
 
-    # noinspection PyMethodMayBeStatic
-    def sanitize(self, message: str):
-        logger.warning("Sanitize is not implemented.")
-        return message
+    @abstractmethod
+    def sanitize(self, message: str) -> str:
+        """
+        Sanitize the specified message (i.e., revert the renaming of identifiers applied by SugarC).
+
+        :param message: The message that should be sanitized.
+        :return: The sanitized message.
+        """
+
+        pass
 
     @abstractmethod
     def is_alarm_valid(self, file_encoding: str = None) -> bool:
         """
-        Performs a sanity check for the alarm.
+        Perform a sanity check for the alarm (i.e., check whether a structure typical of the alarm can be found within
+        the referenced line range of the unpreprocessed code).
 
         :param file_encoding: The encoding of the original source file to which the alarm relates.
         :return: True if the alarm passed the sanity check and False otherwise.
         """
         pass
+
+    def as_dict(self) -> Dict[str, Printable]:
+        """
+        Create a dict with explanatory information on the Alarm instance.
+
+        :return: The dict with explanatory information on the alarm.
+        """
+
+        executor = {
+            "id": lambda: str(self.id),
+            "input_file": lambda: str(self.input_file),
+            "input_line": lambda: self.line_in_input_file,
+            "other_input_lines": lambda: self.other_lines_in_input_file,
+            "original_file": lambda: str(self.unpreprocessed_source_file),
+            "original_line": lambda: str(self.original_line_range),
+            "function_line_range": lambda: f"{self.function_line_range[0]}:{str(self.function_line_range[1])}",
+            "message": lambda: self.message,
+            "sanitized_message": lambda: self.sanitized_message,
+            "presence_condition": lambda: self.presence_condition,
+            "feasible": lambda: self.feasible,
+            "configuration": lambda: str(self.model) if isinstance(self.model, ModelRef) else self.model,
+            "analysis_time": lambda: self.analysis_time,
+            "desugaring_time": lambda: self.desugaring_time,
+            "get_recommended_space": lambda: self.get_recommended_space,
+            "remove_errors": lambda: self.remove_errors,
+            "verified": lambda: self.verified
+        }
+
+        result = {}
+        for k, v in executor.items():
+            try:
+                result[k] = v()
+            except (ValueError, IndexError):
+                result[k] = "ERROR"
+
+        return result
