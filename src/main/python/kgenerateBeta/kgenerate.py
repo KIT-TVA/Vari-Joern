@@ -38,16 +38,16 @@ class ConfigurationVariable:
             key = self.type
         return start + format[key].replace('$0', self.name).replace('$1', default).replace('$2', alt) + end
 
-    def addMap(self, maps, defining):
+    def add_map(self, maps: dict, defining: bool):
         global config_macro_prefix
 
         if self.type == 'bool' and not defining:
             maps[f'DEF_{config_macro_prefix}{self.name}'] = f'DEF_{self.name}'
             maps[f'!DEF_{config_macro_prefix}{self.name}'] = f'!DEF_{self.name}'
         else:
-            default = str(self.default)
-            alt = ''
-            if self.default == None:
+            default: str = str(self.default)
+
+            if self.default is not None:
                 default = '"X"' if self.type == 'string' else '1'
             alt = '""' if self.type == 'string' else '0'
             maps[f'DEF_{config_macro_prefix}{self.name}'] = f'USE_{self.name} == {default}'
@@ -292,9 +292,9 @@ def parse_format(format_file_path: Path) -> dict[str, str]:
     return res
 
 
-def generateHeader(configuration_variables: list[ConfigurationVariable],
-                   prevars, choice: str | None,
-                   format_file_path: Path):
+def generate_header(configuration_variables: list[ConfigurationVariable],
+                    prevars, choice: str | None,
+                    format_file_path: Path):
     header_content: str = ''
     output_format = parse_format(format_file_path)
     logger.info(f"Header generation uses the following output format: {output_format}")
@@ -315,10 +315,10 @@ def generateHeader(configuration_variables: list[ConfigurationVariable],
     return header_content
 
 
-def printMapping(mapping_file: TextIO, configuration_variables: list[ConfigurationVariable], define_false: bool):
+def print_mapping(mapping_file: TextIO, configuration_variables: list[ConfigurationVariable], define_false: bool):
     maps = {}
     for configuration_variable in configuration_variables:
-        configuration_variable.addMap(maps, define_false)
+        configuration_variable.add_map(maps, define_false)
     mapping_file.write(json.dumps(maps, indent=4))
 
 
@@ -331,6 +331,23 @@ def run_kgenerate(kconfig_file_path: Path,
                   config_prefix: str = None,
                   module_version: str = "3.19",
                   define_false: bool = True):
+    """
+    Runs kgenerate on the specified Cconfig file and produces a header with the specified format.
+
+    :param kconfig_file_path: The path to the projects root Kconfig file.
+    :param format_file_path: The path to the file specifying the format that should be used for the generated header.
+    :param header_output_path: The path to which the header should be written.
+    :param mapping_file_output_dir_path: The path to which the mapping file should be written.
+    :param tmp_directory_path: The path to the directory that should be used for temporary files.
+    :param source_tree_path: The path to the projects source tree (i.e., the position from which to resolve paths to
+    other Kconfig files).
+    :param config_prefix: The prefix that should be used for configuration variables in the header and mapping file.
+    :param module_version: The module version that should be passed to kextract (controls which version of the Kconfig
+    parser is used).
+    :param define_false: Should boolean configuration variables be handled with DEF_<VAR> and !DEF_<VAR>
+    (define_false = False) or with USE_<VAR> == '1' and USE_<VAR> == '0' (define_false = True).
+    """
+
     # Set config macro prefix to something other than "KGENMACRO_" if desired.
     if config_prefix is not None:
         global config_macro_prefix
@@ -384,9 +401,9 @@ def run_kgenerate(kconfig_file_path: Path,
 
     # Write output.
     with open(header_output_path, 'w') as header_file:
-        header_file.write(generateHeader(configuration_variables, genvars, choice, format_file_path))
+        header_file.write(generate_header(configuration_variables, genvars, choice, format_file_path))
     with open(mapping_file_output_dir_path / Path('kgenerate_macro_mapping.json'), 'w') as mapping_file:
-        printMapping(mapping_file, configuration_variables, define_false)
+        print_mapping(mapping_file, configuration_variables, define_false)
 
     # If tmp_directory had to be created and was not provided do cleanup. Otherwise, caller is responsible for cleanup.
     if tmp_directory is not None:
