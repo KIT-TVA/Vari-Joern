@@ -166,7 +166,7 @@ def desugar_file(file_to_desugar: Path,
     :param recommended_space: defines and undefs to be assumed while desugaring
     :param output_file: If provided, will specify the location of the output. Otherwise tacks on .desugared.c to the end of the base file name
     :param log_file: If provided will specify the location of the logged data. Otherwise tacks on .Log to the end of the base file name
-    :param remove_errors: Whether or not the desugared output should be re-run to remove bad configurations
+    :param remove_errors: Whether desugaring should be re-run to remove bad configurations
     :param no_stdlibs: If this machine's standard library should be used or not.
     :param commandline_args: A list of other commandline arguments SugarC is to use.
     :param included_files: A list of individual files to be included. (The config space is always included, and does not need to be specified)

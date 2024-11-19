@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 
 class ProgramSpecification(ABC):
+    """
+    Abstract base class for the specification of a program supported by the analysis.
+    """
 
     def __init__(self,
                  name: str,
@@ -41,11 +44,11 @@ class ProgramSpecification(ABC):
                  included_files_and_directories: Iterable[Dict] | None = None,
                  source_file_encoding: str = None):
         """
-        Constructs a new ProgramSpecification.
+        Constructs a new ProgramSpecification instance.
 
         :param name: The name of the program.
         :param project_root: The absolute path to the root directory of the program.
-        :param remove_errors: TODO
+        :param remove_errors: Whether desugaring should be re-run to remove bad configurations.
         :param config_prefix: The prefix to which SugarC should be limited in its macro expansion
         :param source_dirs: The relative paths to directories containing source code starting from the project's root.
         :param make_target: The make target that should be used to determine necessary includes of the source files.

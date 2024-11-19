@@ -34,7 +34,7 @@ class JoernReader(AbstractReader):
                                                   line_in_input_file=int(evidence["lineNumber"]),
                                                   unpreprocessed_source_file=unpreprocessed_source_file,
                                                   name=query_name,
-                                                  message=query_title,
+                                                  title=query_title,
                                                   description=description,
                                                   score=score))
                 except json.JSONDecodeError as e:

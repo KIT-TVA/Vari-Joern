@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class JoernAlarm(Alarm):
+    # Regexes describing structures typical of the standard Joern queries that can be used as sanity checks.
     sanity_check_pattern_per_query: dict[str, str] = {
         "call-to-gets": r"(?i)gets",
         "call-to-getwd": r"(?i)getwd",
@@ -35,14 +36,27 @@ class JoernAlarm(Alarm):
                  line_in_input_file: int,
                  unpreprocessed_source_file: Path,
                  name: str,
-                 message: str,
+                 title: str,
                  description: str,
                  score: float
                  ):
+        """
+        Creates a new JoernAlarm instance.
+
+        :param input_file: The desugared source file on which the alarm was raised.
+        :param line_in_input_file: The line number of the line on which the alarm was raised.
+        :param unpreprocessed_source_file: The unpreprocessed source file from which the desugared source file was
+        created.
+        :param name: The name of the matching Joern query.
+        :param title: The title of the matching Joern query.
+        :param description: The description of the matching Joern query.
+        :param score: The numerical score associated with the matching Joern query.
+        """
+
         super().__init__(input_file=input_file,
                          line_in_input_file=line_in_input_file,
                          unpreprocessed_source_file=unpreprocessed_source_file,
-                         message=message)
+                         message=title)
 
         self.name: str = name
         self.description: str = description
@@ -55,8 +69,9 @@ class JoernAlarm(Alarm):
         result['score'] = self.score
         return result
 
-    # Joern's message holds the title of the warning which is unaffected by desugaring. Thus, no sanitization is required.
     def sanitize(self, message: str):
+        # Joern's message holds the title of the warning which is unaffected by SuperC's renamings. Thus, no
+        # sanitization is required.
         return message
 
     def is_alarm_valid(self, file_encoding: str = None) -> bool:
