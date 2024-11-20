@@ -329,6 +329,7 @@ class ProgramSpecification(ABC):
         Creates the config header (usually config.h) and mapping fie (kgenerate_macro_mapping.json) based on the
         information extracted from the program's Kconfig files.
         """
+
         logger.info("Creating config header and mapping.")
 
         # Bring the program's Kconfig files into the format required by kextract. This is necessary as newer versions of
@@ -363,7 +364,8 @@ class ProgramSpecification(ABC):
         Transform the kconfig files of the program into the format used within the Linux kernel and expected by newer
         version of kextract.
 
-        :return: A dict that maps the transformed kconfig files to their original unaltered variant.
+        :return: A dict that maps the transformed kconfig files to their original unaltered variant (both entries are
+            paths represented as strings).
         """
         transformed_to_old_files: dict[str, str] = {}
         kconfig_files: list[Path] = collect_kconfig_files(kconfig_file_names=self.kconfig_file_names,
@@ -402,17 +404,21 @@ class ProgramSpecification(ABC):
     @abstractmethod
     def problematic_kconfig_lines_and_corrections(self) -> list[(str, Callable[[str], str])]:
         """
-        Gets a list of patterns of problematic source code lines and corresponding transformations that turn these
+        Gets a list of problematic source code line patterns and corresponding transformations that turn these
         problematic lines into the format found within the Linux kernel.
 
-        :return: A list of tuples, where each tuple associates a regex string describing the problematic line with the corresponding transformation.
+        :return: A list of tuples where each tuple associates a regex string describing the problematic line with
+            the corresponding transformation.
         """
         pass
 
     def collect_make_includes(self) -> List[Dict]:
         """
-        Collects the included files and directories on a per-file basis by running make and scanning for compile calls in the output.
-        :return: A List of Dicts with the following fields: file_pattern, included_files, included_directories and build_location.
+        Collects the included files and directories on a per-file basis by running make and scanning for compile
+        calls in the output.
+
+        :return: A List of Dicts with the following fields: file_pattern, included_files, included_directories
+            and build_location.
         """
         logger.info("Collecting make includes for desugaring.")
 
@@ -435,6 +441,7 @@ class ProgramSpecification(ABC):
         """
         Runs make on the subject system writing the generated output including the compile calls to the file described
         by the specified path.
+
         :param output_path: A Path to the file to which the make output should be written.
         :return: The return code of running make.
         """
@@ -445,12 +452,20 @@ class ProgramSpecification(ABC):
         """
         Scans each line contained in the specified file containing make output and extracts -I and -include options
         passed to the compile calls for c source files.
+
         :param make_output_file: A Path describing the file containing the output of calling make.
-        :return: A List of Dicts with the following fields: file_pattern, included_files, included_directories and build_location.
+        :return: A List of Dicts with the following fields: file_pattern, included_files, included_directories
+            and build_location.
         """
         pass
 
     def __collect_system_includes(self) -> List[Path]:
+        """
+        Collect the default include paths at which the local C compiler searches for header files.
+
+        :return: A list containing the include paths as Path objects.
+        """
+
         # Collect locations of system headers.
         standard_include_paths: List[Path] = []
 
@@ -472,6 +487,12 @@ class ProgramSpecification(ABC):
         return standard_include_paths
 
     def __get_system_macro_header(self) -> Path:
+        """
+        Collect the default header (un)definitions of the local C compiler and store them in a new header file.
+
+        :return: A Path to the header file that contains the default macro (un)definitions.
+        """
+
         # Collect default macro definitions and store them in a new header.
         macro_header_path = self.project_root / Path("standard_macro_defs.sugarlyzer.h")
 
@@ -484,6 +505,13 @@ class ProgramSpecification(ABC):
         return macro_header_path
 
     def __get_program_macro_header(self) -> Path:
+        """
+        Write the program-specific macro (un)definitions that were found in the program specification JSON file to a
+        new header file.
+
+        :return: A Path to the header file that contains the program-specific macro (un)definitions.
+        """
+
         project_macro_header_path = self.project_root / Path("program_macro_defs.sugarlyzer.h")
 
         def rewrite_macro(macro_to_rewrite: str, add_config_prefix: bool = False) -> str | None:
@@ -521,11 +549,13 @@ class ProgramSpecification(ABC):
     @staticmethod
     def validate_and_read_program_specification(program_specification_file: Path) -> Dict[str, Any]:
         """
-        Given a JSON file that corresponds to a program specification,
-        we read it in and validate that it conforms to the schema (resources.programs.program_specification_schema.json)
+        Read the specified program specification JSON and validate it w.r.t. the schema
+        (resources.sugarlyzer.programs.program_specification_schema.json)
 
-        :param program_specification_file: The program file to read.
-        :return: The JSON representation of the program file. Throws an exception if the file is malformed.
+        :param program_specification_file: The program specification JSON file tha should be read.
+
+        :return: A dict containing the contents of the program specification JSON file. Throws an exception if the
+            file is malformed.
         """
         schema_path: Traversable = importlib.resources.files(
             "resources.sugarlyzer.programs") / "program_specification_schema.json"

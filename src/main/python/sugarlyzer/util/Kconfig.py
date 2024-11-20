@@ -9,6 +9,7 @@ def collect_kconfig_files(kconfig_file_names: list[str], root_directory: Path) -
 
     :param kconfig_file_names: The file names of kconfig files.
     :param root_directory: The root directory, from which the traversal should begin.
+
     :return: The list of kconfig files represented as a set of Path objects.
     """
     kconfig_files: list[Path] = []
@@ -21,12 +22,14 @@ def collect_kconfig_files(kconfig_file_names: list[str], root_directory: Path) -
 
 def kconfig_add_quotes_to_source_directive(source_directive: str) -> str:
     """
-    Takes in a source directive that does not surround the contained path with quotation marks and returns a version
-    where the path is correctly surrounded.
+    Takes in a source directive from a Kconfig file that does not surround the contained path with quotation marks and
+    returns a version where the path is correctly surrounded.
 
-    Examples: "source generated/Config.probed" and "source generated/Config.in".
+    Examples: "source generated/Config.probed" --> "source "generated/Config.probed""
+    and "source generated/Config.in" --> "source "generated/Config.in"".
 
     :param source_directive: The malformed source directive.
+
     :return: The source directive with the path wrapped in quotation marks.
     """
     source_left_right: list[str] = source_directive.split("source")

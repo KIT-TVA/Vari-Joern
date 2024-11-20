@@ -26,6 +26,7 @@ class ProgramSpecificationFactory:
         :param tmp_dir: The directory that should be used for temporary files created during the analysis.
         :param program_specification_json: A dictionary containing the information read from the program specification
         JSON file associated with the program.
+
         :return: A corresponding ProgramSpecification instance.
         """
 
@@ -46,4 +47,5 @@ class ProgramSpecificationFactory:
                                            tmp_dir=tmp_dir,
                                            **program_specification_json)
             case _:
-                raise ValueError(f"{program_name} is currently not supported for analysis by Sugarlyzer.")
+                raise ValueError(f"The subject system {program_name} is currently not supported for analysis by "
+                                 f"Sugarlyzer.")

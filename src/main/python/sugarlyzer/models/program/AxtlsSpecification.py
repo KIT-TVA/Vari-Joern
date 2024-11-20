@@ -8,15 +8,20 @@ from python.sugarlyzer.util.Kconfig import kconfig_add_quotes_to_source_directiv
 
 
 class AxtlsSpecification(ProgramSpecification):
+    """
+    Program specification for the subject system axTLS (https://axtls.sourceforge.net/)
+    """
+
     @classmethod
     def __kconfig_remove_colon_after_help(cls, help_directive: str) -> str:
         """
-        Takes in a source help directive where the help keyword is followed by a colon and returns a version where the
-        colon is removed.
+        Takes in a help directive of a Kconfig file where the help keyword is followed by a colon and returns a version
+        where the colon is removed.
 
-        Example: "help:"
+        Example: "help:" --> "help"
 
         :param help_directive: The malformed help directive.
+
         :return: The help directive with the colon removed.
         """
         help_left_right: list[str] = help_directive.split("help")

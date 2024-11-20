@@ -10,6 +10,10 @@ from python.sugarlyzer.util.Kconfig import kconfig_add_quotes_to_source_directiv
 
 
 class BusyboxSpecification(ProgramSpecification):
+    """
+    Program specification for the subject system BusyBox (https://www.busybox.net/)
+    """
+
     def problematic_kconfig_lines_and_corrections(self) -> list[(str, Callable[[str], str])]:
         return [(r'source [^"\s]*Config\.[^"\s]+', kconfig_add_quotes_to_source_directive)]
 
@@ -23,7 +27,7 @@ class BusyboxSpecification(ProgramSpecification):
                 line: str = line.strip()
 
                 if line.startswith("gcc "):
-                    file_name_match = re.search(r' (\S+\.c)(\s+|$)', line) # TODO Fix bug in this line and in the other program specifications.
+                    file_name_match = re.search(r' (\S+\.c)(\s+|$)', line)
                     if file_name_match is not None:
                         relative_file_path = file_name_match.group(1)
 
@@ -65,11 +69,11 @@ class BusyboxSpecification(ProgramSpecification):
         cmd: List[str] = ["make", "-i", self.make_target]
         logger.info(f"Establish {self.make_target} configuration...")
         process: CompletedProcess = subprocess.run(" ".join(str(s) for s in cmd),
-                                                              shell=True,
-                                                              executable='/bin/bash',
-                                                              cwd=self.makefile_dir_path,
-                                                              stdout=subprocess.PIPE,
-                                                              stderr=subprocess.PIPE)
+                                                   shell=True,
+                                                   executable='/bin/bash',
+                                                   cwd=self.makefile_dir_path,
+                                                   stdout=subprocess.PIPE,
+                                                   stderr=subprocess.PIPE)
 
         if process.returncode != 0:
             logger.warning(f"Running make with command \"{' '.join(str(s) for s in cmd)}\" returned with "
@@ -79,9 +83,9 @@ class BusyboxSpecification(ProgramSpecification):
             cmd: List[str] = ["make", "-i", f"-j{os.cpu_count() or 1}", "V=1", "2>&1", "|", "tee", str(output_path)]
             logger.info("Building the configuration...")
             process: CompletedProcess = subprocess.run(" ".join(str(s) for s in cmd),
-                                                                  shell=True,
-                                                                  executable='/bin/bash',
-                                                                  cwd=self.makefile_dir_path)
+                                                       shell=True,
+                                                       executable='/bin/bash',
+                                                       cwd=self.makefile_dir_path)
             if process.returncode != 0:
                 logger.warning(f"Running make with command \"{' '.join(str(s) for s in cmd)}\" returned with "
                                f"exit code {process.returncode}")

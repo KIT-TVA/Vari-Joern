@@ -9,15 +9,23 @@ from python.sugarlyzer.util.Kconfig import kconfig_add_quotes_to_source_directiv
 
 
 class ToyboxSpecification(ProgramSpecification):
+    """
+    Program specification for the subject system Toybox (https://www.landley.net/toybox/)
+    """
+
     @classmethod
     def __kconfig_add_quotes_to_bool_directive(cls, bool_directive: str) -> str:
         """
-        Takes in a bool directive that does not surround the contained name with quotation marks and returns a version
-        where the name is correctly surrounded.
+        Takes in a bool directive of a Kconfig file that does not surround the contained name with quotation marks and
+        returns a version where the name is correctly surrounded.
+
+        Example: "bool stat" -> "bool "stat""
 
         :param bool_directive: The malformed bool directive.
+
         :return: The bool directive with the name enclosed in quotation marks.
         """
+
         bool_left_right: list[str] = bool_directive.split("bool")
         indentation: str = bool_left_right[0]
         name: str = bool_left_right[1].strip()
