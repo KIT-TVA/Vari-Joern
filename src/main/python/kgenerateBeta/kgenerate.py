@@ -60,7 +60,7 @@ class ConfigurationVariable:
         return self.__str__()
 
 
-def findClause(string, start):
+def find_clause(string, start):
     i = start
     count = 0
     while i < len(string):
@@ -77,7 +77,7 @@ def findClause(string, start):
 
 def process_let(cond, predefs):
     stripped = cond[len('(let '):-1]
-    firstClause = findClause(stripped, 0)
+    firstClause = find_clause(stripped, 0)
     firstClause = stripped[0:firstClause]
     # find xvars
     var = re.search(r'\(\((\$x\d+) ', stripped)
@@ -120,7 +120,7 @@ def process_solo(cond, predefs):
     return f'defined {config_macro_prefix}' + cond[len('CONFIG_'):]
 
 
-def processPredef(cond, predefs) -> str:
+def process_predef(cond, predefs) -> str:
     if cond not in predefs.keys():
         logger.error('var not found', cond)
         exit()
@@ -139,7 +139,7 @@ def process_smt(cond, predefs):
     elif cond.startswith('CONFIG_'):
         return process_solo(cond, predefs)
     elif cond.startswith('$x'):
-        return processPredef(cond, predefs)
+        return process_predef(cond, predefs)
     else:
         logger.warning(f"Cannot handle condition: {cond}")
     return None
@@ -157,17 +157,17 @@ def parse_smt(smt_lib_stmts: list[str], predefs) -> str:
     return '(' + ') && ('.join(parts) + ')'
 
 
-def getConfigFiles(inputs):
+def get_config_files(inputs):
     if not os.path.exists(inputs):
         print(f'Input file/directory {inputs} does not exist')
         exit()
     if os.path.isdir(inputs):
-        allConfigs = []
+        all_configs = []
         for root, dirs, files in os.walk(inputs):
             for file in files:
                 if file == "Config.in":
-                    allConfigs.append(os.path.join(root, file))
-        return allConfigs
+                    all_configs.append(os.path.join(root, file))
+        return all_configs
     return [inputs]
 
 
@@ -236,7 +236,7 @@ def parse_kextract_output(kextract_file: str):
                 continue
 
             if line.startswith('bool_choice'):
-                # ignoreForNow
+                # Not yet fully supported in Patterson's kgenerate beta.
                 continue
                 vars = line.split('|')[0].split(' ')[1:]
 

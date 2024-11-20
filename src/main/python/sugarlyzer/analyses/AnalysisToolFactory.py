@@ -5,8 +5,6 @@ from python.sugarlyzer.analyses.Joern import Joern
 
 
 class AnalysisToolFactory:
-
-    # noinspection PyTypeChecker
     @classmethod
     def get_tool(cls,
                  tool_name: str,

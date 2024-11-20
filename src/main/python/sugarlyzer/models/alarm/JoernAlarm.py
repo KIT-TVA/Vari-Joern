@@ -9,6 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 class JoernAlarm(Alarm):
+    """
+    Class representing an alarm (i.e., a warning) issued by the Q-SAST tool Joern.
+    """
+
     # Regexes describing structures typical of the standard Joern queries that can be used as sanity checks.
     sanity_check_pattern_per_query: dict[str, str] = {
         "call-to-gets": r"(?i)gets",

@@ -65,8 +65,8 @@ class Tester:
 
         # Subject system to analyze.
         self.program: ProgramSpecification = ProgramSpecificationFactory.get_program_specification(
-            name=args.program,
-            project_root=Path(args.program_path),
+            program_name=args.program,
+            program_root=Path(args.program_path),
             tmp_dir=self.intermediary_results_path,
             program_specification_json=program_specification_json)
         # Analysis tool.

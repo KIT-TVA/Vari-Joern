@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class ProgramSpecification(ABC):
     """
-    Abstract base class for the specification of a program supported by the analysis.
+    Abstract base class for the specification of a program supported for analysis by Sugarlyzer.
     """
 
     def __init__(self,
@@ -48,6 +48,7 @@ class ProgramSpecification(ABC):
 
         :param name: The name of the program.
         :param project_root: The absolute path to the root directory of the program.
+        :param tmp_dir: The directory that should be used for storing temporary files.
         :param remove_errors: Whether desugaring should be re-run to remove bad configurations.
         :param config_prefix: The prefix to which SugarC should be limited in its macro expansion
         :param source_dirs: The relative paths to directories containing source code starting from the project's root.
@@ -57,8 +58,10 @@ class ProgramSpecification(ABC):
         :param kconfig_root_path: The relative path to the directory from which Kconfig source calls are resolved starting from the project's root.
         :param config_header_path: The relative path to the config header file starting from the project's root.
         :param included_files_and_directories: Macros as well as headers and directories required for parsing the source
-        files of the project.
-        :return: A new ProgramSpecification.
+            files of the project.
+        :param source_file_encoding: The encoding used by the program's source files.
+
+        :return: A new ProgramSpecification instance.
         """
 
         self.name: str = name
@@ -130,8 +133,10 @@ class ProgramSpecification(ABC):
 
     def get_source_files(self) -> Iterable[Path]:
         """
-        :return: All .c or .i files that are in the program's source directory but have not been produced by earlier
-        desugaring.
+        Collect the C source files contained in the program.
+
+        :return: All .c or .i files that are contained in the program's source directory but have not been produced
+            by earlier desugaring.
         """
         for source_dir in self.source_dirs:
             for root, dirs, files in os.walk(source_dir):
@@ -141,7 +146,7 @@ class ProgramSpecification(ABC):
 
     def clean_intermediary_results(self):
         """
-        Walks through the program and cleans up all intermediary results/files created by Sugarlyzer.
+        Walk through the program and clean up all intermediary results/files created by Sugarlyzer.
         """
         for root, dirs, files in os.walk(self.project_root):
             for file in files:
@@ -161,22 +166,25 @@ class ProgramSpecification(ABC):
                         file_to_delete.unlink()
                         continue
                 except FileNotFoundError:
-                    logger.warning(
-                        f"Tried to clean up {file} in {root} or associated intermediary results but could not a file.")
+                    logger.warning(f"Tried to clean up {file} in {root} or associated intermediary results but could "
+                                   f"not a file.")
                 except PermissionError:
-                    logger.warning(
-                        f"Tried to clean up {file} in {root} or associated intermediary results but did not have sufficient permissions.")
+                    logger.warning(f"Tried to clean up {file} in {root} or associated intermediary results but did not "
+                                   f"have sufficient permissions.")
                 except Exception as e:
-                    logger.exception(
-                        f"Tried to clean up {file} in {root} or associated intermediary results but encountered unexpected exception: {e}")
+                    logger.exception(f"Tried to clean up {file} in {root} or associated intermediary results but "
+                                     f"encountered unexpected exception: {e}")
 
     def inc_files_and_dirs_for_file(self, file: Path) -> Tuple[Iterable[Path], Iterable[Path], Iterable[str]]:
         """
-        Iterates through the program.json's get_recommended_space field,
-        returning the first match. See program_specification_schema.json for more info.
-        :param file: The source file to search for.
-        :return: included_files, included_directories for the first object in
-        get_recommended_space with a regular expression that matches the **absolute** file name.
+        Collect the file includes, directory includes, and macro (un)definitions required for processing s specific file
+        of the program.
+
+        :param file: The source file whose file includes, directory includes, and macro (un)definitions should be
+            collected.
+
+        :return: A tuple containing the file includes, directory includes, and macro (un)definitions associated with the
+            specified source file.
         """
 
         # Collect includes and macros from make call.
@@ -206,9 +214,22 @@ class ProgramSpecification(ABC):
 
         return inc_files, inc_dirs, cmd_decs
 
-    def process_inc_dirs_and_files(self, inc_dirs_and_files: Iterable[dict],
+    def process_inc_dirs_and_files(self,
+                                   inc_dirs_and_files: Iterable[dict],
                                    file: Path,
                                    include_only_file_specific_macros: bool) -> tuple[list[Path], list[Path], list[str]]:
+        """
+        Walk through the specified dict and collect file includes, directory includes, and macro (un)definitions
+        relating to the specified source file.
+
+        :param inc_dirs_and_files: The dict that should be traversed.
+        :param file: The source file whose file includes, directory includes, and macro (un)definitions should be collected
+        :param include_only_file_specific_macros: Should macro definitions specified in an entry within the dict that is not associated with a specific file pattern be considered (include_only_file_specific_macros = False) or should they be omitted (include_only_file_specific_macros = True).
+
+        :return: A tuple containing the file includes, directory includes, and macro (un)definitions associated with
+            the specified source file.
+        """
+
         inc_files: list[Path] = []
         inc_dirs: list[Path] = []
         cmd_decs: list[str] = []
@@ -245,8 +266,10 @@ class ProgramSpecification(ABC):
     def try_resolve_path(self, path: str | Path, root: Path = Path("/")) -> Path:
         """
         Copied directly from ECSTATIC.
+
         :param path: The path to resolve.
         :param root: The root from which to try to resolve the path.
+
         :return: The fully resolved path.
         """
         if not isinstance(path, Path):
