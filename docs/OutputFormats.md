@@ -1,9 +1,16 @@
 # Output formats
 
-Vari-Joern supports two output formats: `text` and `json`. `text` is a human-readable format which is not further
-specified. `json` generates a JSON object with the structure described in the next section.
+Depending on the analysis strategy, Vari-Joern supports multiple output formats: 
+
+- **Product-Based Strategy**: `text` and `json`
+- **Family-Based Strategy**: `json`
+
+`text` is a human-readable format which is not further specified. `json` generates a JSON file with the structure 
+described in the next section.
 
 ## JSON output format
+
+### Product-Based Strategy
 
 - `individualResults`: An array of objects, each representing the results of the analysis of a single variant.
   Each object has the following fields:
@@ -27,7 +34,7 @@ specified. `json` generates a JSON object with the structure described in the ne
           See [NodeDeserializer.java](../src/main/java/edu/kit/varijoern/serialization/NodeDeserializer.java) for the
           syntax of the presence condition.
 
-### Finding
+#### Finding
 
 A finding is an object with the following fields:
 
@@ -40,10 +47,36 @@ A finding is an object with the following fields:
 - `description` (specific to the Joern analyzer): A longer description of the finding.
 - `score` (specific to the Joern analyzer): A number indicating the severity of the finding.
 
-### SourceLocation
+#### SourceLocation
 
 A source location is an object with the following fields:
 
 - `file`: The path to the file containing the source code. Usually, this is path is relative to the root of the analyzed
   project that was passed to the composer.
 - `line`: The line number in the file where the source code is located.
+
+
+
+### Family-Based Strategy
+
+- `id`: Unique identifier of the warning in the report.
+- `input_file`: The desugared source file on which the warning was raised.
+- `input_line`: The line number within the desugared source file at which the warning was raised
+- `ther_input_lines`: A list of other line numbers at which the same warning was raised (i.e., duplicates).
+- `original_file`: The unpreprocessed source file associated with `input_file`.
+- `original_line`: The lange range in the unpreprocessed source file at which the warning should be found.
+- `function_line_range`: The name of the surrounding function (or GLOBAL in case of global scope) and the associated 
+  line range (e.g., static void  (__strip_2340) (char  * (__str_2339)) :40:54).
+- `message`: The message of the matching Joern query.
+- `sanitized_message`: Identical to `message` as Joern's message does not need to be sanitized from desugaring-renamings.
+- `presence_condition`: The presence condition under which the warning manifests.
+- `feasible`: Whether the presence condition is SAT.
+- `configuration`: An exemplary configuration that does satisfy the presence condition.  
+- `analysis_time`: The time required for analyzing the source file in which the warning was reported with Joern.
+- `desugaring_time`: The time required for desugaring the source file in which the warning was reported.
+- `get_recommended_space`: Always `null` (legacy field of the original Sugarlyzer framework).
+- `remove_errors`: Always `null` (legacy field of the original Sugarlyzer framework).
+- `verified`: Always `null` (legacy field of the original Sugarlyzer framework).
+- `name`: The name of the matching Joern query.
+- `description`: The description of the matching Joern query. 
+- `score`: The score of the matching Joern query.

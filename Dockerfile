@@ -92,6 +92,8 @@ RUN apt-get update && apt-get install -y \
     time \
     # Required for installing Joern
     unzip \
+    # Handy for quickly viewing and altering files within the container.
+    nano \
     # `&& exit` is necessary because otherwise `pipx ensurepath` would not be started in a new `bash` process.
     # This would then make it detect that it runs in `sh` and not in `bash` and therefore not add the necessary
     # line to the `.bashrc` file.

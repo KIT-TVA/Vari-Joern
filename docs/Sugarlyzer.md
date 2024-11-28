@@ -2,7 +2,8 @@
 # Subject Systems supported by Sugarlyzer
 
 Below, you find a list of the subject systems currently supported by Sugarlyzer.
-The list also contains remarks on required libraries for the analysis of individual subject systems.
+The list also contains remarks on required libraries for the analysis of individual subject systems (only relevant for
+native execution).
 
 ## AxTLS
 
@@ -26,7 +27,7 @@ The list also contains remarks on required libraries for the analysis of individ
 ## BusyBox
 
 ### General Information:
-- **Version**: 
+- **Version**: 1.36.1
 - **Category**: Collection of UNIX utilities
 - **C Lines of Code** (as reported by Cloc): > 182,000
 

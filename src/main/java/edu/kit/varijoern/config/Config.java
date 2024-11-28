@@ -42,10 +42,10 @@ public class Config {
     // General config.
     private final long iterations;
     private final @NotNull SubjectConfig subjectConfig;
-    private final @NotNull FeatureModelReaderConfig featureModelReaderConfig; // TODO Make mandatory for product-based only
 
     // Product-based config.
     private @Nullable AnalyzerConfig<?, ?> analyzerConfig;
+    private @Nullable FeatureModelReaderConfig featureModelReaderConfig;
     private @Nullable SamplerConfig samplerConfig;
     private @Nullable ComposerConfig composerConfig;
 
@@ -86,13 +86,6 @@ public class Config {
         this.subjectConfig = new SubjectConfig(Objects.requireNonNull(parsedConfig.getTable(SUBJECT_SYSTEM_FIELD_NAME)),
                 absoluteConfigLocation);
 
-        // Feature model reader.
-        if (!parsedConfig.isTable(FEATURE_MODEL_READER_FIELD_NAME))
-            throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FEATURE_MODEL_READER_FIELD_NAME));
-        this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
-                .readConfig(Objects.requireNonNull(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
-                        this.subjectConfig);
-
         // Try to collect optional strategy-related configurations.
         this.initializeProductBasedConfig(parsedConfig, absoluteConfigLocation);
         this.initializeFamilyBasedConfig(parsedConfig);
@@ -110,6 +103,13 @@ public class Config {
         if (productTable.isTable(ANALYZER_FIELD_NAME)) {
             this.analyzerConfig = AnalyzerConfigFactory.getInstance()
                     .readConfig(Objects.requireNonNull(productTable.getTable(ANALYZER_FIELD_NAME)), this.subjectConfig);
+        }
+
+        // Feature model reader.
+        if (productTable.isTable(FEATURE_MODEL_READER_FIELD_NAME)) {
+            this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
+                    .readConfig(Objects.requireNonNull(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
+                            this.subjectConfig);
         }
 
         // Sampler.
@@ -145,6 +145,9 @@ public class Config {
                 if (this.analyzerConfig == null) {
                     throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
                 }
+                if (this.featureModelReaderConfig == null) {
+                    throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FEATURE_MODEL_READER_FIELD_NAME));
+                }
                 if (this.samplerConfig == null) {
                     throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
                 }
@@ -174,7 +177,7 @@ public class Config {
      *
      * @return the analyzer configuration
      */
-    public @NotNull AnalyzerConfig<?, ?> getAnalyzerConfig() {
+    public @Nullable AnalyzerConfig<?, ?> getAnalyzerConfig() {
         return analyzerConfig;
     }
 
@@ -187,7 +190,7 @@ public class Config {
      *
      * @return the feature model reader configuration
      */
-    public @NotNull FeatureModelReaderConfig getFeatureModelReaderConfig() {
+    public @Nullable FeatureModelReaderConfig getFeatureModelReaderConfig() {
         return featureModelReaderConfig;
     }
 
