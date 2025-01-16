@@ -69,4 +69,9 @@ follows:
 Vari-Joern [options] path/to/config.toml
 ```
 
+**Note on executing tests**: The Docker container can also be used to conveniently execute the tests of Vari-Joern. For this purpose, 
+simply mount the Vari-Joern project's root directory into the container during startup via -v. Then change into the
+Vari-Joern directory and execute `./gradlew check` to execute all tests.
+Alternatively, single tests can be executed via `./gradlew test --tests <test_name>`.
+
 Again, for an overview of the configuration file and available options see [Configuration.md](docs/Configuration.md) and [Arguments.md](docs/Arguments.md).
