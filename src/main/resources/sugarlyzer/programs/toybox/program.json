@@ -1,0 +1,41 @@
+{
+  "remove_errors": false,
+  "config_prefix": "KGENMACRO_",
+
+  "make_target": "defconfig",
+  "kconfig_root_file_path": "Config.in",
+  "kconfig_file_names": ["Config.in", "Config.probed"],
+  "config_header_path": "generated/config.h",
+
+  "included_files_and_directories": [
+    {
+      "included_directories": [
+        "."
+      ],
+      "macro_definitions": [
+        "-D __extension__",
+        "-D restrict",
+        "-D __restrict",
+        "-D chtype=char",
+        "-D _Float128=double",
+        "-D _Noreturn=__attribute__ ((__noreturn__))"
+      ],
+      "predefined_config_macros": [
+        "-U TOYBOX_SELINUX",
+        "-U TOYBOX_SMACK"
+      ]
+    },
+    {
+      "file_pattern": "kconfig/util\\.c$",
+      "macro_definitions": [
+        "-D LKC_DIRECT_LINK"
+      ]
+    },
+    {
+      "file_pattern": "wget\\.c$",
+      "predefined_config_macros": [
+        "-U WGET_LIBTLS"
+      ]
+    }
+  ]
+}

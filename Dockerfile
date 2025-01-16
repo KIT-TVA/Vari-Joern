@@ -22,7 +22,9 @@ RUN apt-get update && apt-get install -y \
     # Required for building and running SuperC
     libz3-java=4.8.12-3.1build1 \
     # Required for building SuperC and for executing Vari-Joern's KBuildComposer.
-    make
+    make \
+    # Required by Sugarlyzer.
+    python3.10 python3-pip python3-apt python3.10-venv
 
 FROM base-system AS build
 RUN apt-get install -y \
@@ -48,10 +50,22 @@ RUN JAVA_DEV_ROOT=/superc \
 COPY . /vari-joern
 WORKDIR /vari-joern
 RUN cp /superc/bin/xtc.jar /superc/bin/superc.jar lib
+
+# External dependencies of SuperC/SugarC.
+RUN cp /superc/bin/junit.jar /superc/bin/antlr.jar /superc/bin/javabdd.jar /superc/bin/json-simple-1.1.1.jar lib \
+    && cp /usr/share/java/org.sat4j.core.jar /usr/share/java/com.microsoft.z3.jar /usr/share/java/json-lib.jar lib
+
+# Build Sugarlyzer.
+RUN python3.10 -m venv /venv
+ENV PATH=/venv/bin:$PATH
+RUN python -m pip install -r requirements.txt
+RUN python -m pip install build
+RUN python -m build
+
 RUN ./gradlew distTar
 
 FROM base-system
-RUN apt-get install -y \
+RUN apt-get update && apt-get install -y \
     # Required by fiasco
     bison \
     # Required by BusyBox
@@ -69,7 +83,7 @@ RUN apt-get install -y \
     # Required by fiasco
     libsdl-dev \
     # Required by Vari-Joern and Joern
-    openjdk-21-jre \
+    openjdk-21-jdk \
     # Required for installing kmax
     pipx \
     # Required for executing kmax
@@ -78,11 +92,20 @@ RUN apt-get install -y \
     time \
     # Required for installing Joern
     unzip \
+    # Handy for quickly viewing and altering files within the container.
+    nano \
     # `&& exit` is necessary because otherwise `pipx ensurepath` would not be started in a new `bash` process.
     # This would then make it detect that it runs in `sh` and not in `bash` and therefore not add the necessary
     # line to the `.bashrc` file.
     && bash -c "pipx ensurepath && exit" \
     && git config --global user.email "vari-joern@example.com"
+
+# Installs required for Sugarlyzer.
+RUN apt-get install -y \
+    selinux-basics \
+    selinux-utils \
+    libselinux* \
+    build-essential
 
 ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
@@ -93,10 +116,18 @@ RUN joern-scan --updatedb --dbversion 4.0.48
 
 RUN pipx install --python=$(which python3.11) kmax git+https://github.com/duckymirror/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
 
+# Responsible for making the lib directory available to the container.
 COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar
 RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
     && mv /opt/Vari-Joern-1.0-SNAPSHOT /opt/vari-joern \
     && rm /Vari-Joern-1.0-SNAPSHOT.tar
+
+# Ensure that SuperC/SugarC and its dependencies are added to the classpath.
+ENV CLASSPATH="${CLASSPATH}:/opt/vari-joern/lib/xtc.jar:/opt/vari-joern/lib/superc.jar:/opt/vari-joern/lib/junit.jar:/opt/vari-joern/lib/antlr.jar:/opt/vari-joern/lib/javabdd.jar:/opt/vari-joern/lib/json-simple-1.1.1.jar:/opt/vari-joern/lib/org.sat4j.core.jar:/opt/vari-joern/lib/com.microsoft.z3.jar:/opt/vari-joern/lib/json-lib.jar"
+
+RUN python3.10 -m pip install --upgrade setuptools
+COPY --from=build /vari-joern/dist/Sugarlyzer-0.0.1a0-py3-none-any.whl /Sugarlyzer-0.0.1a0-py3-none-any.whl
+RUN python3.10 -m pip install /Sugarlyzer-0.0.1a0-py3-none-any.whl
 
 # If the Docker daemon has been started in rootless mode, torte runs `whoami` to ensure that it does not run as root.
 # If the daemon has not been started in rootless mode, torte wants to run as root. We can fake the user by overriding

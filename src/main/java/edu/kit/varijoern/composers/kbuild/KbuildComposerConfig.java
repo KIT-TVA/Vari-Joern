@@ -5,6 +5,7 @@ import edu.kit.varijoern.composers.ComposerArgs;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.config.SubjectConfig;
 import edu.kit.varijoern.config.TomlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlArray;
@@ -37,15 +38,13 @@ public class KbuildComposerConfig extends ComposerConfig {
 
     /**
      * Creates a new {@link KbuildComposerConfig} by extracting data from the specified TOML section.
-     * Relative paths are assumed to be relative to the specified path of the configuration file.
      *
-     * @param toml         the TOML section
-     * @param configPath   the path to the configuration file. Must be absolute.
-     * @param composerArgs the general command line arguments for the composer
+     * @param toml          the TOML section
+     * @param subjectConfig the {@link SubjectConfig} with which to resolve sourceLocation if not absolute and to set the system name.
+     * @param composerArgs the general command line arguments for the composer.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public KbuildComposerConfig(@NotNull TomlTable toml, @NotNull Path configPath, @NotNull ComposerArgs composerArgs)
-            throws InvalidConfigException {
+    public KbuildComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig, @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
         super(toml);
         this.composerArgs = composerArgs;
         String sourceLocation = TomlUtils.getMandatoryString(
@@ -69,15 +68,12 @@ public class KbuildComposerConfig extends ComposerConfig {
             throw new InvalidConfigException("Source location for Kbuild composer is not a valid path", e);
         }
         if (!sourcePath.isAbsolute()) {
-            sourcePath = configPath.getParent().resolve(sourcePath);
+            sourcePath = subjectConfig.getSourceRoot().resolve(sourcePath);
         }
-        this.sourceLocation = sourcePath;
 
-        this.system = TomlUtils.getMandatoryString(
-                SYSTEM_FIELD_NAME,
-                toml,
-                "System for Kbuild composer is missing or not a string"
-        );
+        this.sourceLocation = sourcePath;
+        this.system = subjectConfig.getSubjectName();
+
         if (!KbuildComposer.isSupportedSystem(this.system)) {
             throw new InvalidConfigException("System for Kbuild composer is not supported");
         }

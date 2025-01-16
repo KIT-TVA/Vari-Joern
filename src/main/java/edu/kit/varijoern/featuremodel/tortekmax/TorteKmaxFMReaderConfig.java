@@ -1,6 +1,7 @@
 package edu.kit.varijoern.featuremodel.tortekmax;
 
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.config.SubjectConfig;
 import edu.kit.varijoern.config.TomlUtils;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfig;
@@ -23,11 +24,12 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
     /**
      * Creates a new {@link TorteKmaxFMReaderConfig} by extracting data from the specified TOML section.
      *
-     * @param toml       the TOML section
-     * @param configPath the path to the configuration file. Must be absolute.
+     * @param toml          the TOML section
+     * @param subjectConfig the {@link SubjectConfig} with which to resolve the path to the source files of the subject
+     *                      systems if not specified absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
-    public TorteKmaxFMReaderConfig(@NotNull TomlTable toml, @NotNull Path configPath) throws InvalidConfigException {
+    public TorteKmaxFMReaderConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig) throws InvalidConfigException {
         super(toml);
         String path = TomlUtils.getMandatoryString(
                 PATH_FIELD_NAME,
@@ -41,7 +43,7 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
             throw new InvalidConfigException("Path to source directory is not a valid path", e);
         }
         if (!sourcePath.isAbsolute()) {
-            sourcePath = configPath.getParent().resolve(sourcePath);
+            sourcePath = subjectConfig.getSourceRoot().resolve(sourcePath);
         }
         this.sourcePath = sourcePath;
 

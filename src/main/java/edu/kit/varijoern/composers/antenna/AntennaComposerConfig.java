@@ -4,6 +4,7 @@ import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerArgs;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.config.SubjectConfig;
 import edu.kit.varijoern.config.TomlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
@@ -21,15 +22,13 @@ public class AntennaComposerConfig extends ComposerConfig {
 
     /**
      * Creates a new {@link AntennaComposerConfig} by extracting data from the specified TOML section.
-     * Relative paths are assumed to be relative to the specified path of the configuration file.
      *
-     * @param toml         the TOML section
-     * @param configPath   the path to the configuration file. Must be absolute.
-     * @param composerArgs the general command line arguments for the composer
+     * @param toml          the TOML section
+     * @param subjectConfig the {@link SubjectConfig} with which to resolve the source path if not specified absolute.
+     * @param composerArgs the general command line arguments for the composer.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public AntennaComposerConfig(@NotNull TomlTable toml, @NotNull Path configPath, @NotNull ComposerArgs composerArgs)
-            throws InvalidConfigException {
+    public AntennaComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig, @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
         super(toml);
         this.composerArgs = composerArgs;
         String sourceLocation = TomlUtils.getMandatoryString(
@@ -44,7 +43,7 @@ public class AntennaComposerConfig extends ComposerConfig {
             throw new InvalidConfigException("Source location for Antenna composer is not a valid path", e);
         }
         if (!sourcePath.isAbsolute()) {
-            sourcePath = configPath.getParent().resolve(sourcePath);
+            sourcePath = subjectConfig.getSourceRoot().resolve(sourcePath);
         }
         this.sourceLocation = sourcePath;
     }

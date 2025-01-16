@@ -1,0 +1,184 @@
+{
+  "remove_errors": false,
+  "config_prefix": "KGENMACRO_",
+  "source_file_encoding": "iso-8859-1",
+
+  "make_target": "defconfig",
+  "kconfig_root_file_path": "Config.in",
+  "config_header_path": "include/autoconf.h",
+
+  "included_files_and_directories": [
+    {
+      "macro_definitions": [
+        "-D __extension__",
+        "-D restrict",
+        "-D __restrict",
+        "-D _Pragma(x)",
+        "-D ___builtin_offsetof(st,m)=((size_t)&(((st *)0)->m))",
+        "-D ENABLE_LOCALE_SUPPORT=1",
+        "-U FAST_FUNC"
+      ]
+    },
+    {
+      "file_pattern": "applets/individual\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "archival/ar\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "archival/libarchive/(decompress_uncompress|lzo1x_9x)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "coreutils/od_bloaty\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "editors/patch_(bbox|toybox|)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "e2fsprogs/tune2fs\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "klibc-utils/\\S+\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "libbb/(bb_strtod|bbunit|die_if_bad_username|hash_md5prime|mtab|selinux_common)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "miscutils/(bbconfig|devfsd|flashcp|flash_eraseall|flash_lock_unlock|inotifyd|rfkill)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "modutils/(modprobe|insmod|rmmod|lsmod|depmod|modutils-24)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "selinux/\\S+\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "util-linux/(last|mkfs_reiser)\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb"
+      ]
+    },
+    {
+      "file_pattern": "util-linux/volume_id/unused_\\S+\\.c$",
+      "included_files": [
+        "include/autoconf.h"
+      ],
+      "included_directories": [
+        "include",
+        "libbb",
+        "util-linux/volume_id"
+      ]
+    },
+    {
+      "file_pattern": "loginutils/login\\.c$",
+      "predefined_config_macros": [
+        "-U PAM"
+      ]
+    },
+    {
+      "file_pattern": "networking/httpd\\.c$",
+      "predefined_config_macros": [
+        "-U PAM"
+      ]
+    },
+    {
+      "file_pattern": "networking/inetd\\.c$",
+      "predefined_config_macros": [
+        "-U FEATURE_INETD_RPC"
+      ]
+    },
+    {
+      "file_pattern": "util-linux/mount\\.c$",
+      "predefined_config_macros": [
+        "-U FEATURE_MOUNT_NFS"
+      ]
+    },
+    {
+      "file_pattern": "networking/ssl_helper/ssl_helper\\.c$",
+      "macro_definitions": [
+        "-U USE_HEADER_KEYS"
+      ]
+    }
+  ]
+}

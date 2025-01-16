@@ -1,4 +1,4 @@
-package edu.kit.varijoern;
+package edu.kit.varijoern.cli;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,7 +13,7 @@ import java.util.Optional;
  * Describes the destination of the output of the program. This is either a file or the standard output.
  */
 public class OutputDestination {
-    final @Nullable Path path;
+    private final @Nullable Path path;
 
     /**
      * Creates a new output destination that represents the standard output.

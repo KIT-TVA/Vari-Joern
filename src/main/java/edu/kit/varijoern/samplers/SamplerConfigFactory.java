@@ -2,10 +2,10 @@ package edu.kit.varijoern.samplers;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import edu.kit.varijoern.config.SubjectConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -39,7 +39,7 @@ public final class SamplerConfigFactory extends NamedComponentConfigFactory<Samp
 
     @Override
     protected @NotNull SamplerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
-                                                       @NotNull Path configPath)
+                                                       @NotNull SubjectConfig subjectConfig)
             throws InvalidConfigException {
         return switch (componentName) {
             case FixedSampler.NAME -> new FixedSamplerConfig(toml);

@@ -3,10 +3,13 @@ package edu.kit.varijoern.analyzers;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfig;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.tomlj.TomlTable;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 
 /**
  * The base class for all analyzer configurations.
@@ -16,6 +19,7 @@ import java.nio.file.Path;
  */
 public abstract class AnalyzerConfig<T extends AnalysisResult<F>, F extends Finding> extends NamedComponentConfig {
     private final @NotNull ResultAggregator<T, F> resultAggregator;
+    private final @Nullable Path path;
 
     /**
      * Creates a new {@link AnalyzerConfig} by extracting data from the specified TOML section.
@@ -27,6 +31,11 @@ public abstract class AnalyzerConfig<T extends AnalysisResult<F>, F extends Find
     protected AnalyzerConfig(@NotNull TomlTable toml, @NotNull ResultAggregator<T, F> resultAggregator)
             throws InvalidConfigException {
         super(toml);
+
+        this.path = Optional.ofNullable(toml.getString("path"))
+                .map(Path::of)
+                .filter(Files::exists)
+                .orElse(null);
         this.resultAggregator = resultAggregator;
     }
 
@@ -38,7 +47,12 @@ public abstract class AnalyzerConfig<T extends AnalysisResult<F>, F extends Find
      */
     protected AnalyzerConfig(@NotNull String name, @NotNull ResultAggregator<T, F> resultAggregator) {
         super(name);
+        this.path = null;
         this.resultAggregator = resultAggregator;
+    }
+
+    public @Nullable Path getPath() {
+        return this.path;
     }
 
     @Override

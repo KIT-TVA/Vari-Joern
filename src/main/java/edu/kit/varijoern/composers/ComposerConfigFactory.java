@@ -6,10 +6,10 @@ import edu.kit.varijoern.composers.kbuild.KbuildComposer;
 import edu.kit.varijoern.composers.kbuild.KbuildComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
+import edu.kit.varijoern.config.SubjectConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -44,11 +44,11 @@ public final class ComposerConfigFactory extends NamedComponentConfigFactory<Com
 
     @Override
     protected @NotNull ComposerConfig newConfigFromName(@NotNull String componentName, @NotNull TomlTable toml,
-                                                        @NotNull Path configPath)
+                                                        @NotNull SubjectConfig subjectConfig)
             throws InvalidConfigException {
         return switch (componentName) {
-            case AntennaComposer.NAME -> new AntennaComposerConfig(toml, configPath, COMPOSER_ARGS);
-            case KbuildComposer.NAME -> new KbuildComposerConfig(toml, configPath, COMPOSER_ARGS);
+            case AntennaComposer.NAME -> new AntennaComposerConfig(toml, subjectConfig, COMPOSER_ARGS);
+            case KbuildComposer.NAME -> new KbuildComposerConfig(toml, subjectConfig, COMPOSER_ARGS);
             default -> throw new InvalidConfigException(String.format("Unknown composer \"%s\"", componentName));
         };
     }
