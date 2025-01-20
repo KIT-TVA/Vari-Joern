@@ -15,7 +15,7 @@ It features two analysis strategies:
   - Execute `git clone` followed by `cd <target_location>/Vari-Joern`.
   - Execute ``git sobmodule init`` followed by `git submodule update`
 
-### Native Execution
+### Native Execution (Ubuntu)
 
 #### Family-Based Strategy
 - A Java JDK >= 19 is installed.
@@ -25,7 +25,9 @@ It features two analysis strategies:
 - A working installation of Joern >= 4 (e.g., version 4.0.48)
   - `joern-cli` is expected to be part of the `PATH` environment variable
   - Query database is already populated (e.g., via `joern-scan --updatedb --dbversion 4.0.48`)
-- A working installation of a C compiler (preferably GCC)
+- A working installation of a C compiler (preferably GCC), `make`, `cmake`etc.
+  - The easiest way to ensure this is by installing the `build-essential` package via `sudo apt update` followed by 
+    `sudo apt install build-essential` 
 - Python 3 (>= 3.10.0)
   - `python` should point to Python 3, not to Python 2 (can be solved via a symbolic link or alias). 
   - Pip is installed (can be installed via `sudo apt install python3-pip`)
