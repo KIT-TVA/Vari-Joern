@@ -5,6 +5,7 @@ from python.sugarlyzer.models.program.AxtlsSpecification import AxtlsSpecificati
 from python.sugarlyzer.models.program.BusyboxSpecification import BusyboxSpecification
 from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification
 from python.sugarlyzer.models.program.ToyboxSpecification import ToyboxSpecification
+from python.sugarlyzer.models.program.FiascoSpecification import FiascoSpecification
 
 
 class ProgramSpecificationFactory:
@@ -43,6 +44,11 @@ class ProgramSpecificationFactory:
                                             **program_specification_json)
             case "toybox":
                 return ToyboxSpecification(name=program_name,
+                                           project_root=program_root,
+                                           tmp_dir=tmp_dir,
+                                           **program_specification_json)
+            case "fiasco":
+                return FiascoSpecification(name=program_name,
                                            project_root=program_root,
                                            tmp_dir=tmp_dir,
                                            **program_specification_json)
