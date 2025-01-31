@@ -10,22 +10,28 @@ It features two analysis strategies:
 
 ## Installation 
 
-### General Prerequisites
-- Clone the repository and initialize & update the contained  `Antenna` submodule. 
-  - Execute `git clone` followed by `cd <target_location>/Vari-Joern`.
-  - Execute ``git sobmodule init`` followed by `git submodule update`
+### General Prerequisites (Native execution and Docker container)
+- Clone the repository using `git clone`
+- Initialize & update the contained  `Antenna` submodule. 
+  - Change into Vari-Joern's root directory (`cd <target_location>/Vari-Joern`).
+  - Execute ``git submodule init`` followed by `git submodule update`
 
-### Native Execution
+### Native Execution (Without Docker)
+
+### Product-Based Strategy
+
+*TODO*
 
 #### Family-Based Strategy
 - A Java JDK >= 19 is installed.
 - A working installation of [KIT-TVA/superc](https://github.com/KIT-TVA/superc)
-  - Corresponding jars are expected to be part of the `PATH` environment variable
+  - Corresponding jars are expected to be part of the `PATH` environment variable (the `java superc.SugarC` command 
+    should launch SuperC)
   - See the [install_superc.bash](scripts/install_superc.bash) script
 - A working installation of Joern >= 4 (e.g., version 4.0.48)
-  - `joern-cli` is expected to be part of the `PATH` environment variable
-  - Query database is already populated (e.g., via `joern-scan --updatedb --dbversion 4.0.48`)
-- A working installation of a C compiler (preferably GCC)
+  - `joern-cli` is expected to be part of the `PATH` environment variable (the `joern` command should launch Joern)
+  - The query database is expected to be already populated (e.g., via `joern-scan --updatedb --dbversion 4.0.48`)
+- A working installation of a C compiler (preferably GCC as clang has not been tested)
 - Python 3 (>= 3.10.0)
   - `python` should point to Python 3, not to Python 2 (can be solved via a symbolic link or alias). 
   - Pip is installed (can be installed via `sudo apt install python3-pip`)
@@ -35,7 +41,7 @@ It features two analysis strategies:
   - Can be installed via `pipx install kmax` (see https://github.com/paulgazz/kmax) 
 
 ### Using the Docker container
-Vari-Joern can be run using Docker. To do so, first build the Docker image, for example with the following command
+Vari-Joern can be run using Docker. To do so, first build the Docker image, for example with the following command,
 executed from the repo's root directory:
 ```shell
 docker build -t vari-joern .
