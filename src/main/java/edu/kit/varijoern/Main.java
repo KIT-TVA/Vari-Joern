@@ -147,6 +147,7 @@ public class Main {
     }
 
     private static int runProductBased(@NotNull Config config, @NotNull Args args) {
+        // Create directories.
         Path tmpDir;
         Path featureModelReaderTmpDirectory;
         Path samplerTmpDirectory;
@@ -161,6 +162,7 @@ public class Main {
             return STATUS_IO_ERROR;
         }
 
+        // Ensure result cache is initialized.
         ResultCache resultCache;
         try {
             resultCache = args.getResultCache() == null
@@ -171,8 +173,10 @@ public class Main {
             return STATUS_IO_ERROR;
         }
 
+        // Read feature model from subject system if not already present in result cache.
         IFeatureModel featureModel = resultCache.getFeatureModel();
         if (featureModel == null) {
+            assert config.getFeatureModelReaderConfig() != null; // Ensured by the Config#checkForCompleteness()
             FeatureModelReader featureModelReader = config.getFeatureModelReaderConfig().newFeatureModelReader();
             try {
                 featureModel = featureModelReader.read(featureModelReaderTmpDirectory);
@@ -188,6 +192,10 @@ public class Main {
             resultCache.cacheFeatureModel(featureModel);
         }
 
+        // Create Sampler and ParallelIterationRunner.
+        assert config.getSamplerConfig() != null; // Ensured by Config#checkForCompleteness().
+        assert config.getComposerConfig() != null; // Ensured by Config#checkForCompleteness().
+        assert config.getAnalyzerConfig() != null; // Ensured by Config#checkForCompleteness().
         Sampler sampler = config.getSamplerConfig().newSampler(featureModel);
         ParallelIterationRunner runner;
         try {
@@ -202,12 +210,15 @@ public class Main {
         }
 
         ResultAggregator<?, ?> resultAggregator = config.getAnalyzerConfig().getResultAggregator();
-
         List<AnalysisResult<?>> allAnalysisResults = new ArrayList<>();
         List<AnalysisResult<?>> iterationAnalysisResults = null;
+
         try {
+            // Repeat the analysis process as often as specified as iterations in the Vari-Joern config.
             for (int i = 0; i < config.getIterations(); i++) {
                 LOGGER.info("Iteration {}", i + 1);
+
+                // Determine new sample if not already present within the result cache.
                 List<Map<String, Boolean>> sample = resultCache.getSample(i);
                 if (sample == null) {
                     try {
@@ -223,8 +234,10 @@ public class Main {
                     }
                     resultCache.cacheSample(sample, i);
                 }
+
                 LOGGER.info("Analyzing {} variants", sample.size());
                 ParallelIterationRunner.Output runnerOutput;
+
                 try {
                     runnerOutput = runner.run(sample);
                 } catch (InterruptedException e) {
@@ -244,6 +257,7 @@ public class Main {
             }
         }
 
+        // Print the analysis results according to the format specified via the CLI argument.
         try {
             args.getResultOutputArgs().getFormatter().printResults(
                     new OutputData(allAnalysisResults, resultAggregator.aggregateResults()),

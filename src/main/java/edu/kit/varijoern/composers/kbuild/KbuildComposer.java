@@ -96,7 +96,12 @@ public class KbuildComposer implements Composer {
     // kmax when it encounters prompts.
     private static final Pattern IGNORED_FEATURES_PATTERN = Pattern.compile("^__VISIBILITY__.*|^Root$");
     private static final Pattern HEADER_FILE_PATTERN = Pattern.compile(".*\\.(?:h|H|hpp|hxx|h++)");
-    private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox", "fiasco", "axtls");
+    private static final Set<String> SUPPORTED_SYSTEMS = Set.of(
+            "linux",
+            "busybox",
+            "fiasco",
+            "axtls",
+            "toybox");
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
@@ -137,11 +142,13 @@ public class KbuildComposer implements Composer {
                 .collect(Collectors.toSet());
         this.shouldSkipPresenceConditionExtraction = shouldSkipPresenceConditionExtraction;
         this.tmpSourcePath = this.tmpPath.resolve("source");
+
         this.copySourceTo(sourcePath, this.tmpSourcePath);
+
         // Make sure that there are no compilation artifacts.
         // These would break dependency detection because make would not try to recompile them.
         switch (this.system) {
-            case "linux", "busybox" -> this.runMake("distclean");
+            case "linux", "busybox", "toybox" -> this.runMake("distclean");
             case "fiasco" -> {
                 // build/source is usually a symlink. During copying, it is converted to a directory. `make purge`
                 // assumes that it can delete it non-recursively with `rm`, which fails. We have to delete it manually.
@@ -154,6 +161,7 @@ public class KbuildComposer implements Composer {
             }
             default -> throw new IllegalStateException();
         }
+
         if (this.system.equals("busybox")) {
             // BusyBox's Kbuild variant allows to specify Kbuild information in the source files. Since kmax cannot
             // handle this, we use `make gen_build_files` to generate Kbuild files.
@@ -192,6 +200,7 @@ public class KbuildComposer implements Composer {
             // break dependency detection. We have to delete it.
             Files.delete(tmpSourcePath.resolve("applets/applets.o"));
         }
+
         Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
         Map<Path, GenerationInformation> generationInformation = this.generateFiles(
                 includedFiles, destination, tmpSourcePath
@@ -203,6 +212,7 @@ public class KbuildComposer implements Composer {
                         .map(IFeatureModelElement::getName)
                         .collect(Collectors.toSet())
         );
+
         return new CompositionInformation(
                 destination,
                 features,
@@ -238,7 +248,9 @@ public class KbuildComposer implements Composer {
             throws IOException, ComposerException, InterruptedException {
         LOGGER.info("Generating .config");
         switch (this.system) {
-            case "linux", "busybox" -> this.runMake("defconfig");
+            case "linux",
+                 "busybox",
+                 "toybox" -> this.runMake("defconfig");
             case "fiasco" -> {
                 // Fiasco does not have a `defconfig` command. We have to clean the build directory and run
                 // `olddefconfig` instead.
@@ -254,7 +266,9 @@ public class KbuildComposer implements Composer {
 
         Set<String> remainingFeatures = new HashSet<>(features.keySet());
         Path configPath = switch (this.system) {
-            case "linux", "busybox" -> tmpSourcePath.resolve(".config");
+            case "linux",
+                 "busybox",
+                 "toybox" -> tmpSourcePath.resolve(".config");
             case "fiasco" -> tmpSourcePath.resolve("build/globalconfig.out");
             case "axtls" -> tmpSourcePath.resolve("config/.config");
             default -> throw new IllegalStateException();
@@ -289,11 +303,16 @@ public class KbuildComposer implements Composer {
         for (String remainingFeature : remainingFeatures) {
             defaultConfigLines.add(formatOption(remainingFeature, features.get(remainingFeature)));
         }
+
+        // Overwrite default config with the one representing the specified feature (un)selection.
         Files.write(configPath, defaultConfigLines, this.encoding);
 
         // Make sure that `include/autoconf.h` (or `build/globalconfig.out`) is generated
         switch (this.system) {
-            case "linux", "busybox", "axtls" -> this.runMake("oldconfig");
+            case "linux",
+                 "busybox",
+                 "axtls",
+                 "toybox" -> this.runMake("oldconfig");
             case "fiasco" -> this.runMake("olddefconfig");
             default -> throw new IllegalStateException();
         }
@@ -691,6 +710,7 @@ public class KbuildComposer implements Composer {
         StreamGobbler stderrGobbler = new StreamGobbler(makeProcess.getErrorStream(), STREAM_LOGGER);
         stdoutGobbler.start();
         stderrGobbler.start();
+
         int makeExitCode;
         try {
             makeExitCode = makeProcess.waitFor();
@@ -702,6 +722,13 @@ public class KbuildComposer implements Composer {
             throw new ComposerException("Make failed with exit code %d".formatted(makeExitCode));
     }
 
+    /**
+     * Copy the contents of originalSourcePath to tmpSourcePath omitting a .git directory if encountered.
+     *
+     * @param originalSourcePath The {@link Path} specifying the source directory.
+     * @param tmpSourcePath      The {@link Path} specifying the target directory.
+     * @throws IOException If an {@link IOException} was thrown during the copy operation.
+     */
     private void copySourceTo(@NotNull Path originalSourcePath, @NotNull Path tmpSourcePath) throws IOException {
         LOGGER.info("Copying source");
         FileUtils.copyDirectory(

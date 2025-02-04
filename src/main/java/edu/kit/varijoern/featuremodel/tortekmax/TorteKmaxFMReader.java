@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 
 /**
  * Reads a feature model from Kconfig files using <a href="https://github.com/ekuiter/torte/tree/main">torte</a> and
- * <a href="https://github.com/paulgazz/kmax">kmax</a>. So far, only the Linux kernel is supported.
+ * <a href="https://github.com/paulgazz/kmax">kmax</a>.
  */
 public class TorteKmaxFMReader implements FeatureModelReader {
     public static final String NAME = "torte-kmax";
@@ -41,7 +41,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             "linux", "linux-working-tree-kmax.sh",
             "busybox", "busybox-working-tree-kmax.sh",
             "fiasco", "fiasco-working-tree-kmax.sh",
-            "axtls", "axtls-working-tree-kmax.sh"
+            "axtls", "axtls-working-tree-kmax.sh",
+            "toybox", "toybox-working-tree-kmax.sh"
     );
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
@@ -69,6 +70,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     public @NotNull IFeatureModel read(@NotNull Path tmpPath)
             throws IOException, FeatureModelReaderException, InterruptedException {
         LOGGER.info("Reading feature model from Kconfig files in {}", this.sourcePath);
+        // Copy torte script to tmp.
         String readerScript = ResourcesUtil.getResourceAsString("torte/" + getExperimentScriptName());
         Path readerScriptPath = tmpPath.resolve(getExperimentScriptName());
         Files.writeString(readerScriptPath, readerScript, StandardCharsets.UTF_8);
@@ -76,39 +78,58 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         Path inputPath = tmpPath.resolve("input");
         Path sourcePath = inputPath.resolve(this.system);
         try {
+            // Copy subject system into tmp.
             Files.createDirectories(inputPath);
             FileUtils.copyDirectory(this.sourcePath.toFile(), sourcePath.toFile());
 
-            runReader(tmpPath);
+            // Let torte read the feature model and store it in FeatureIDE feature model format.
+            this.runTorteFMReader(tmpPath);
 
-            Path fmPath = findGeneratedFeatureModel(tmpPath);
+            // Retrieve and process the feature model in FeatureIDE format created by torte.
+            Path fmPath = this.findGeneratedFeatureModel(tmpPath);
             IFeatureModel featureModel = new FeatureIDEFMReader(fmPath).read(tmpPath);
             this.postprocessFeatureModel(featureModel, tmpPath);
+
             if (!FeatureModelManager.save(featureModel,
                     tmpPath.resolve("filtered-model.xml"),
                     new XmlFeatureModelFormat())) {
                 LOGGER.warn("Could not save feature model");
             }
+
             LOGGER.info("Feature model read successfully");
             return featureModel;
         } finally {
-            // The source code probably takes a large amount of disk space.
+            // The source code of the subject system can require large amounts of disk space and should
+            // therefore be cleaned up.
             FileUtils.deleteDirectory(inputPath.toFile());
         }
     }
 
-    private void runReader(@NotNull Path tmpPath)
+    /**
+     * Run the torte feature model reader located in the specified {@link Path}.
+     *
+     * @param tmpPath A {@link Path} to the directory containing the torte script as well as the input and output
+     *                directories.
+     * @throws IOException If constructing or executing the process of the torte script raised an {@link IOException}.
+     * @throws FeatureModelReaderException If torte exited with an exit code other than 0.
+     * @throws InterruptedException If this thread is interrupted while waiting for the termination of torte.
+     */
+    private void runTorteFMReader(@NotNull Path tmpPath)
             throws IOException, FeatureModelReaderException, InterruptedException {
+        // Configure process execution.
         ProcessBuilder readerProcessBuilder = new ProcessBuilder("bash", getExperimentScriptName())
                 .directory(tmpPath.toFile());
         readerProcessBuilder.environment().put("TORTE_INPUT_DIRECTORY", tmpPath.resolve("input").toString());
         readerProcessBuilder.environment().put("TORTE_OUTPUT_DIRECTORY", tmpPath.resolve("output").toString());
+
+        // Execute torte feature model reader.
         Process readerProcess = readerProcessBuilder.start();
         StreamGobbler stdoutGobbler = new StreamGobbler(readerProcess.getInputStream(), STREAM_LOGGER);
         StreamGobbler stderrGobbler = new StreamGobbler(readerProcess.getErrorStream(), STREAM_LOGGER);
         stdoutGobbler.start();
         stderrGobbler.start();
 
+        // Deal with return code of torte.
         int readerExitCode;
         try {
             readerExitCode = readerProcess.waitFor();
@@ -121,6 +142,16 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         }
     }
 
+    /**
+     * Walk the file tree rooted at tmpPath/output/model_to_xml_featureide/system_name and try to find a file
+     * representing a FeatureIDE format feature model.
+     *
+     * @param tmpPath The path that acts as the root from which the search should be started.
+     * @return A {@link Path} object pointing to the file containing the feature model.
+     * @throws IOException                 If a file could not be accessed.
+     * @throws FeatureModelReaderException If no feature model file could be found or if there were multiple valid
+     *                                     candidates.
+     */
     private @NotNull Path findGeneratedFeatureModel(@NotNull Path tmpPath)
             throws IOException, FeatureModelReaderException {
         try (Stream<Path> files = Files.walk(tmpPath.resolve("output/model_to_xml_featureide/" + this.system))) {
@@ -131,7 +162,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                 throw new FeatureModelReaderException("No feature model found");
             if (featureModelPaths.size() > 1)
                 throw new FeatureModelReaderException("Multiple candidates for feature model found");
-            return featureModelPaths.get(0);
+            return featureModelPaths.getFirst();
         }
     }
 
@@ -163,6 +194,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                 if (parts.length != 3)
                     throw new FeatureModelReaderException("Unexpected number of parts in kextractor line: " + line);
                 String featureName = parts[1].substring("CONFIG_".length());
+                // Check whether found feature is already present in the feature model.
                 if (featureModel.getFeature(featureName) != null) {
                     if (!parts[2].equals("tristate") && !parts[2].equals("bool")) {
                         nonTristateFeatures.add(featureName);
@@ -172,12 +204,15 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                     if (!parts[1].startsWith("CONFIG_"))
                         throw new FeatureModelReaderException("Unexpected feature name in kextractor line: " + line);
                     LOGGER.debug("Adding probably unconstrained feature {}", featureName);
+
+                    // Adds features that are probably unconstrained.
                     Feature feature = new Feature(featureModel, featureName);
                     featureModel.addFeature(feature);
                     featureModel.getStructure().getRoot().addChild(feature.getStructure());
                 }
             }
 
+            // Subject system specific changes to the feature model.
             if (this.system.equals("busybox")) {
                 // BusyBox fails to build when WERROR is enabled. Since WERROR does not modify the final product, it is
                 // safe to disable it.
@@ -187,12 +222,19 @@ public class TorteKmaxFMReader implements FeatureModelReader {
                 featureModel.addConstraint(new Constraint(featureModel, new Literal("CONFIG_PLATFORM_LINUX")));
             }
 
-            deleteFeatures(featureModel, nonTristateFeatures);
+            // Removes features that are not tristate or boolean.
+            TorteKmaxFMReader.deleteFeatures(featureModel, nonTristateFeatures);
         } catch (IOException e) {
             throw new FeatureModelReaderException("Could not add unconstrained features due to an I/O error", e);
         }
     }
 
+    /**
+     * Delete a list of non-tristate features from a feature model.
+     *
+     * @param featureModel The feature model from which the features should be deleted.
+     * @param nonTristateFeatures The tristate features that should be deleted.
+     */
     private static void deleteFeatures(@NotNull IFeatureModel featureModel, @NotNull List<String> nonTristateFeatures) {
         for (String feature : nonTristateFeatures) {
             LOGGER.debug("Feature {} does not appear to be tristate.", feature);

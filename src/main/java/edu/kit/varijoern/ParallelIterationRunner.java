@@ -76,6 +76,7 @@ public class ParallelIterationRunner {
 
         this.runners = new ArrayList<>(numComposers + numAnalyzers);
 
+        // Create composer directories, composers, and start corresponding runners.
         for (int i = 0; i < numComposers; i++) {
             Path composerTmpDirectory = tmpDir.resolve("composer" + i);
             try {
@@ -95,6 +96,7 @@ public class ParallelIterationRunner {
             runners.add(composerRunner);
         }
 
+        // Create analyzer directories, analyzers, and start corresponding runners.
         for (int i = 0; i < numAnalyzers; i++) {
             Path analyzerTmpDirectory = tmpDir.resolve("analyzer" + i);
             try {
