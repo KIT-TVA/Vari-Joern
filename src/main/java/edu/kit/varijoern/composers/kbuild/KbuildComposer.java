@@ -201,7 +201,10 @@ public class KbuildComposer implements Composer {
             Files.delete(tmpSourcePath.resolve("applets/applets.o"));
         }
 
+        // Determine dependencies (includes, macros, etc.) for every source file.
         Set<Dependency> includedFiles = this.getIncludedFiles(tmpSourcePath);
+        // Generate software product by generating corresponding source files (i.e., one with the corresponding defines,
+        // includes, etc.) into a target directory.
         Map<Path, GenerationInformation> generationInformation = this.generateFiles(
                 includedFiles, destination, tmpSourcePath
         );
@@ -376,6 +379,8 @@ public class KbuildComposer implements Composer {
             LOGGER.info("Running fiasco's C++ preprocessor");
             this.runMake("-C", "build", "create-sources");
         }
+
+        // Run make in dry run to then determine the included files based on its output afterwards.
         LOGGER.info("Determining files to be included");
         ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
                 .directory(tmpSourcePath.toFile());
@@ -394,6 +399,8 @@ public class KbuildComposer implements Composer {
         }
         if (makeExitCode != 0)
             throw new ComposerException("make -in failed with exit code %d".formatted(makeExitCode));
+
+        // Extract compile calls from make output.
         List<GCCCall> gccCalls;
         try {
             LOGGER.debug("Parsing gcc calls");
@@ -402,6 +409,9 @@ public class KbuildComposer implements Composer {
             throw new ComposerException("gcc calls could not be parsed", e);
         }
         LOGGER.debug("Found {} gcc calls", gccCalls.size());
+
+        // Go through compile calls and extract the compiled files with their inclusion information
+        // (files, macros, etc.)
         List<InclusionInformation> compiledFiles = new ArrayList<>();
         for (GCCCall gccCall : gccCalls) {
             List<InclusionInformation> inclusionInformation = InclusionInformation.fromGCCCall(gccCall, tmpSourcePath);
@@ -583,11 +593,13 @@ public class KbuildComposer implements Composer {
             LOGGER.warn("File {} does not exist, not generating.", filePath);
             return Map.of();
         }
+
         Path destinationDirectory = destination.resolve(filePath).getParent();
         Files.createDirectories(destinationDirectory);
         Map<Path, GenerationInformation> generationInformation = new HashMap<>();
         boolean copied = false;
         boolean generated = false;
+
         for (Dependency configuration : configurations) {
             if (configuration instanceof CompiledDependency) {
                 Map.Entry<Path, GenerationInformation> fileGenerationInformation
@@ -608,9 +620,11 @@ public class KbuildComposer implements Composer {
                 }
             }
         }
+
         if (!generated && !copied) {
             throw new RuntimeException("File %s was neither copied nor generated".formatted(filePath));
         }
+
         return generationInformation;
     }
 
@@ -650,6 +664,7 @@ public class KbuildComposer implements Composer {
             LOGGER.info("Skipping line presence condition extraction");
             return Map.of();
         }
+
         if (!LinePresenceConditionMapper.isSupportedSystem(this.system)) {
             LOGGER.warn("System {} is not supported, skipping line presence condition mapper creation",
                     this.system);
@@ -660,6 +675,7 @@ public class KbuildComposer implements Composer {
 
         // Clean up to ensure that the header file containing config definitions doesn't exist
         this.runMake("clean");
+        // Relevant if line presence condition support for axTLS should be added in the future.
         if (this.system.equals("axtls")) {
             this.axtlsCleanConf();
         }

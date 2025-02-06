@@ -87,11 +87,11 @@ public class Config {
                 absoluteConfigLocation);
 
         // Try to collect optional strategy-related configurations.
-        this.initializeProductBasedConfig(parsedConfig, absoluteConfigLocation);
+        this.initializeProductBasedConfig(parsedConfig);
         this.initializeFamilyBasedConfig(parsedConfig);
     }
 
-    private void initializeProductBasedConfig(@NotNull TomlParseResult parsedConfig, @NotNull Path absoluteConfigLocation) throws InvalidConfigException {
+    private void initializeProductBasedConfig(@NotNull TomlParseResult parsedConfig) throws InvalidConfigException {
         if (!parsedConfig.isTable(PRODUCT_FIELD_NAME)) {
             return;
         }
@@ -108,7 +108,7 @@ public class Config {
         // Feature model reader.
         if (productTable.isTable(FEATURE_MODEL_READER_FIELD_NAME)) {
             this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
-                    .readConfig(Objects.requireNonNull(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
+                    .readConfig(Objects.requireNonNull(productTable.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
                             this.subjectConfig);
         }
 
