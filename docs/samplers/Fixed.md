@@ -15,7 +15,7 @@ The fixed sampler is configured using the following option:
 For example, the sampler could be configured as follows:
 
 ```toml
-[sampler]
+[product.sampler]
 name = "fixed"
 features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
 ```

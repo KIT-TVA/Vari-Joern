@@ -18,7 +18,7 @@ The t-wise sampler is configured using the following option:
 For example, the sampler could be configured as follows:
 
 ```toml
-[sampler]
+[product.sampler]
 name = "t-wise"
 t = 2
 ```

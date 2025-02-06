@@ -111,7 +111,7 @@ source_root = "path/to/busybox"
 name = "joern"
 
 # Mandatory table for product-based strategy.
-[feature-model-reader]
+[product.feature-model-reader]
 name = "featureide"
 # Either absolute or relative to subject.source_root.
 path = "path/to/feature-model.xml"

@@ -28,7 +28,7 @@ This reader takes the following options:
 For example, the reader could be configured as follows:
 
 ```toml
-[feature-model-reader]
+[product.feature-model-reader]
 name = "torte-kmax"
 path = "path/to/linux-source"
 system = "linux"

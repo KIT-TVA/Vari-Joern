@@ -15,7 +15,7 @@ This reader is configured using the following option:
 For example, the reader could be configured as follows:
 
 ```toml
-[feature-model-reader]
+[product.feature-model-reader]
 name = "featureide"
 path = "path/to/feature-model.xml"
 ```
