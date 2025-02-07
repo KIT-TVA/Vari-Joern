@@ -123,6 +123,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         readerProcessBuilder.environment().put("TORTE_OUTPUT_DIRECTORY", tmpPath.resolve("output").toString());
 
         // Execute torte feature model reader.
+        LOGGER.info("Starting torte with command: {}", readerProcessBuilder.command());
         Process readerProcess = readerProcessBuilder.start();
         StreamGobbler stdoutGobbler = new StreamGobbler(readerProcess.getInputStream(), STREAM_LOGGER);
         StreamGobbler stderrGobbler = new StreamGobbler(readerProcess.getErrorStream(), STREAM_LOGGER);
