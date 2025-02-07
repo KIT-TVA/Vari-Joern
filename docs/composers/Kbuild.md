@@ -37,7 +37,7 @@ The Kbuild composer is configured using the following options:
 For example, the composer could be configured as follows:
 
 ```toml
-[composer]
+[product.composer]
 name = "kbuild"
 encoding = "iso-8859-1"
 source = "path/to/source-code"

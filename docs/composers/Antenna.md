@@ -18,7 +18,7 @@ This composer is configured using the following option:
 For example, the composer could be configured as follows:
 
 ```toml
-[composer]
+[product.composer]
 name = "antenna"
 source = "path/to/source-code"
 ```

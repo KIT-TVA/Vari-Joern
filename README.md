@@ -13,7 +13,7 @@ It features two analysis strategies:
 ### General Prerequisites
 - Clone the repository and initialize & update the contained  `Antenna` submodule. 
   - Execute `git clone` followed by `cd <target_location>/Vari-Joern`.
-  - Execute ``git sobmodule init`` followed by `git submodule update`
+  - Execute ``git submodule init`` followed by `git submodule update`
 
 ### Native Execution
 
