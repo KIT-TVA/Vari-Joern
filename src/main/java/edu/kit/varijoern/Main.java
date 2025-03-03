@@ -176,7 +176,7 @@ public class Main {
         // Read feature model from subject system if not already present in result cache.
         IFeatureModel featureModel = resultCache.getFeatureModel();
         if (featureModel == null) {
-            assert config.getFeatureModelReaderConfig() != null; // Ensured by the Config#checkForCompleteness()
+            assert config.getFeatureModelReaderConfig() != null; // Ensured by Config#checkForCompleteness()
             FeatureModelReader featureModelReader = config.getFeatureModelReaderConfig().newFeatureModelReader();
             try {
                 featureModel = featureModelReader.read(featureModelReaderTmpDirectory);

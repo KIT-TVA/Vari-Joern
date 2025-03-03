@@ -9,6 +9,8 @@ export OUTPUT_DIRECTORY=$TORTE_OUTPUT_DIRECTORY
 
 # This experiment extracts and transforms a single feature model from a recent revision of the Linux kernel.
 
+# TODO Adjust according to https://github.com/ekuiter/torte/blob/main/scripts/subjects/toybox.sh
+
 experiment-subjects() {
     add-revision --system toybox --revision vari-joern-auto-tag
     add-kconfig --system toybox --revision vari-joern-auto-tag --kconfig-file Config.in \
