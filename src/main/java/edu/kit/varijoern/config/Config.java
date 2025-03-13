@@ -108,7 +108,7 @@ public class Config {
         // Feature model reader.
         if (productTable.isTable(FEATURE_MODEL_READER_FIELD_NAME)) {
             this.featureModelReaderConfig = FeatureModelReaderConfigFactory.getInstance()
-                    .readConfig(Objects.requireNonNull(parsedConfig.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
+                    .readConfig(Objects.requireNonNull(productTable.getTable(FEATURE_MODEL_READER_FIELD_NAME)),
                             this.subjectConfig);
         }
 
