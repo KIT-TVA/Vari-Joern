@@ -126,8 +126,8 @@ RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
 ENV CLASSPATH="${CLASSPATH}:/opt/vari-joern/lib/xtc.jar:/opt/vari-joern/lib/superc.jar:/opt/vari-joern/lib/junit.jar:/opt/vari-joern/lib/antlr.jar:/opt/vari-joern/lib/javabdd.jar:/opt/vari-joern/lib/json-simple-1.1.1.jar:/opt/vari-joern/lib/org.sat4j.core.jar:/opt/vari-joern/lib/com.microsoft.z3.jar:/opt/vari-joern/lib/json-lib.jar"
 
 RUN python3.10 -m pip install --upgrade setuptools
-COPY --from=build /vari-joern/dist/Sugarlyzer-0.0.1a0-py3-none-any.whl /Sugarlyzer-0.0.1a0-py3-none-any.whl
-RUN python3.10 -m pip install /Sugarlyzer-0.0.1a0-py3-none-any.whl
+COPY --from=build /vari-joern/dist/sugarlyzer-0.0.1a0-py3-none-any.whl /sugarlyzer-0.0.1a0-py3-none-any.whl
+RUN python3.10 -m pip install /sugarlyzer-0.0.1a0-py3-none-any.whl
 
 # If the Docker daemon has been started in rootless mode, torte runs `whoami` to ensure that it does not run as root.
 # If the daemon has not been started in rootless mode, torte wants to run as root. We can fake the user by overriding
