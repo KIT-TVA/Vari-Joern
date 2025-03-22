@@ -255,7 +255,7 @@ public class LinePresenceConditionMapper {
         if (high.isEmpty()) return Optional.empty();
         Optional<Node> low = this.convertBDD(bdd.low(), presenceConditionManager);
         return low.map(lowNode -> new Or(
-                new And(condition.get(), high.get()),
+                new And(condition.get().clone(), high.get()),
                 new And(new Not(condition.get()), lowNode)
         ));
     }
@@ -278,12 +278,15 @@ public class LinePresenceConditionMapper {
 
     private void convertMacrosToFeatures(@NotNull Node node, @NotNull String system) {
         if (system.equals("busybox")) {
+            LOGGER.debug("{}", node);
             node.modifyFeatureNames(macro -> {
+                LOGGER.debug("Found macro: {}", macro);
                 Matcher matcher = BUSYBOX_FEATURE_MACRO_PATTERN.matcher(macro);
                 if (matcher.matches()) {
                     return matcher.group(1);
                 }
-                return macro;
+                LOGGER.warn("Symbol {} does not appear to be a BusyBox feature. Assuming it is false.", macro);
+                return "___notafeature___";
             });
         }
     }
