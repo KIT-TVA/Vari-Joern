@@ -5,3 +5,7 @@ config USE_GETS
 config USE_CPP_FILE
     bool "Include a file write in C++"
     default false
+
+config TEST
+    bool "An option with the dangerous name TEST"
+    default false

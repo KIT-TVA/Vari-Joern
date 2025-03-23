@@ -22,6 +22,16 @@ int main(void) {
 #ifdef CONFIG_USE_CPP_FILE
 	sayHello();
 #endif
+
+#ifdef TEST
+    printf("TEST is set");
+#endif
+#ifdef CONFIG_TEST
+    printf("Feature TEST is enabled");
+#endif
+#if ENABLE_TEST
+    printf("Feature TEST is still enabled");
+#endif
 }
 
 // This comment includes special characters to verify that the encoding is respected: äöüß

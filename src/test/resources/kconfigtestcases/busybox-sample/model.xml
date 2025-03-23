@@ -5,6 +5,7 @@
 			<feature name="INCLUDE_IO_FILE"/>
 			<feature name="PERFORM_RENAME"/>
 			<feature name="PERFORM_CHMOD"/>
+			<feature name="TEST"/>
 			<feature name="USE_GETS"/>
 			<feature name="USE_CPP_FILE"/>
 			<feature name="WERROR"/>
