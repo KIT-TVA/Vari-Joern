@@ -278,9 +278,7 @@ public class LinePresenceConditionMapper {
 
     private void convertMacrosToFeatures(@NotNull Node node, @NotNull String system) {
         if (system.equals("busybox")) {
-            LOGGER.debug("{}", node);
             node.modifyFeatureNames(macro -> {
-                LOGGER.debug("Found macro: {}", macro);
                 Matcher matcher = BUSYBOX_FEATURE_MACRO_PATTERN.matcher(macro);
                 if (matcher.matches()) {
                     return matcher.group(1);
