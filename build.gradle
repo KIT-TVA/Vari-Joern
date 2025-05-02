@@ -13,14 +13,24 @@ repositories {
     maven {
         url "https://artifacts.itemis.cloud/repository/maven-mps/"
     }
+    ivy {
+        url "https://github.com/"
+
+        patternLayout {
+            artifact "/[organisation]/raw/[revision]/[module].[ext]"
+        }
+
+        metadataSources {
+            artifact()
+        }
+    }
 }
 
 dependencies {
-    implementation files('lib/antenna/build/antenna.jar')
+    implementation 'FeatureIDE/Antenna:build/antenna:fa7b7c600028a3e6f1171dbb1ad745984545cab7@jar'
     implementation 'org.antlr:antlr-runtime:3.4'
     implementation files('lib/de.ovgu.featureide.lib.fm-v3.9.3.jar', 'lib/org.sat4j.core.jar')
     implementation files('lib/jSMTLIB.jar')
-    implementation files('lib/KernelHaven.jar', 'lib/KconfigReaderExtractor.jar')
     implementation 'org.apache.logging.log4j:log4j-api:2.23.1'
     implementation 'org.apache.logging.log4j:log4j-core:2.23.1'
     implementation 'org.apache.logging.log4j:log4j-iostreams:2.23.1'
@@ -34,7 +44,7 @@ dependencies {
     implementation 'com.beust:jcommander:1.82'
     implementation files('lib/superc.jar', 'lib/xtc.jar', 'lib/javabdd.jar')
     implementation files('lib/junit.jar', 'lib/antlr.jar', 'lib/json-simple-1.1.1.jar')
-    implementation files ('lib/org.sat4j.core.jar', 'lib/com.microsoft.z3.jar', 'lib/json-lib.jar')
+    implementation files('lib/org.sat4j.core.jar', 'lib/com.microsoft.z3.jar', 'lib/json-lib.jar')
     implementation 'com.microsoft.z3:java-jar:4.11.2'
     implementation 'com.google.guava:guava:33.3.0-jre'
 
