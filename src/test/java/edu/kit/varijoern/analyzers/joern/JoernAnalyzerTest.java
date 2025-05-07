@@ -10,12 +10,14 @@ import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.kbuild.KbuildComposer;
+import edu.kit.varijoern.composers.kbuild.subjects.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -83,7 +85,8 @@ class JoernAnalyzerTest {
                 )
         );
 
-        analyze(tempDirectory, testCaseManager, "busybox", configurations, expectedFindings);
+        analyze(tempDirectory, testCaseManager, "busybox", new BusyboxStrategyFactory(), expectedFindings,
+                configurations);
     }
 
     /**
@@ -146,11 +149,13 @@ class JoernAnalyzerTest {
                 )
         );
 
-        analyze(tempDirectory, testCaseManager, "fiasco", configurations, expectedFindings);
+        analyze(tempDirectory, testCaseManager, "fiasco", new FiascoStrategyFactory(), expectedFindings,
+                configurations);
     }
 
     private void analyze(Path tempDirectory, KconfigTestCaseManager testCaseManager, String system,
-                         List<Map<String, Boolean>> configurations, List<ExpectedFinding> expectedFindings)
+                         @NotNull ComposerStrategyFactory composerStrategyFactory,
+                         List<ExpectedFinding> expectedFindings, List<Map<String, Boolean>> configurations)
             throws IOException, ComposerException, InterruptedException, AnalyzerFailureException {
         Path workspaceDirectory = tempDirectory.resolve("workspace");
         Files.createDirectory(workspaceDirectory);
@@ -158,7 +163,7 @@ class JoernAnalyzerTest {
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
-        Composer composer = new KbuildComposer(testCaseManager.getPath(), system,
+        Composer composer = new KbuildComposer(testCaseManager.getPath(), system, composerStrategyFactory,
                 Charset.forName(testCaseManager.getMetadata().encoding()), composerTempDirectory, Set.of(),
                 false);
 

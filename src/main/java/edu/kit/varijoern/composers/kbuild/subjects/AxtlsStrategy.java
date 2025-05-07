@@ -1,0 +1,79 @@
+package edu.kit.varijoern.composers.kbuild.subjects;
+
+import edu.kit.varijoern.composers.ComposerException;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.regex.Pattern;
+
+public class AxtlsStrategy extends ComposerStrategy {
+    private static final Pattern OPTION_NAME_VALUE_PATTERN = Pattern.compile("(\\w+)=.*");
+    private static final Pattern OPTION_NOT_SET_PATTERN_AXTLS = Pattern.compile("# (\\w+) is not set");
+    private static final String ENABLED_OPTION_FORMAT_STRING = "%s=y";
+    private static final String DISABLED_OPTION_FORMAT_STRING = "# %s is not set";
+
+    public AxtlsStrategy(Path tmpSourcePath) {
+        super(tmpSourcePath);
+    }
+
+    @Override
+    public void clean() throws ComposerException, IOException, InterruptedException {
+        this.runMake("-i", "clean");
+        cleanConf();
+    }
+
+    private void cleanConf() throws ComposerException, IOException, InterruptedException {
+        this.runMake("-i", "cleanconf");
+        // axtls's cleanconf command should delete config/config.h, but due to a bug in a Makefile, it doesn't.
+        // We have to delete it manually.
+        Files.deleteIfExists(this.getTmpSourcePath().resolve("config/config.h"));
+    }
+
+    @Override
+    public void prepare() throws ComposerException, IOException, InterruptedException {
+        // Nothing to do
+    }
+
+    @Override
+    public void generateDefConfig() throws ComposerException, IOException, InterruptedException {
+        // axTLS does not have a `defconfig` command
+        this.runMake("allyesconfig");
+    }
+
+    @Override
+    public @NotNull Path getConfigPath() {
+        return this.getTmpSourcePath().resolve("config/.config");
+    }
+
+    @Override
+    public @NotNull Pattern getOptionNameValuePattern() {
+        return OPTION_NAME_VALUE_PATTERN;
+    }
+
+    @Override
+    public @NotNull Pattern getOptionNotSetPattern() {
+        return OPTION_NOT_SET_PATTERN_AXTLS;
+    }
+
+    @Override
+    protected @NotNull String getEnabledOptionFormatString() {
+        return ENABLED_OPTION_FORMAT_STRING;
+    }
+
+    @Override
+    protected @NotNull String getDisabledOptionFormatString() {
+        return DISABLED_OPTION_FORMAT_STRING;
+    }
+
+    @Override
+    public void processWrittenConfig() throws ComposerException, IOException, InterruptedException {
+        this.runMake("oldconfig");
+    }
+
+    @Override
+    public void prepareDependencyDetection() {
+        // Nothing to do
+    }
+}

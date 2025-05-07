@@ -29,7 +29,7 @@ import java.util.stream.Stream;
  * A class used to compute the presence conditions of source files using kmax.
  * There are a few cases in which no presence condition can be determined:
  * <ul>
- *     <li>The file is does not include kbuild information (e.g. header files and generated files).</li>
+ *     <li>The file does not include kbuild information (e.g. header files and generated files).</li>
  *     <li>The condition found by kmax includes unknown options.</li>
  * </ul>
  */

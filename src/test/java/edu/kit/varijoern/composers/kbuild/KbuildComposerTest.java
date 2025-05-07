@@ -5,6 +5,7 @@ import edu.kit.varijoern.KconfigTestCaseManager;
 import edu.kit.varijoern.KconfigTestCasePreparer;
 import edu.kit.varijoern.PresenceConditionExpectation;
 import edu.kit.varijoern.composers.*;
+import edu.kit.varijoern.composers.kbuild.subjects.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
@@ -86,6 +87,7 @@ class KbuildComposerTest {
                 new TestCase(
                         "busybox-sample",
                         "busybox",
+                        new BusyboxStrategyFactory(),
                         List.of(),
                         List.of(
                                 new FileAbsentVerifier(".*\\.src"),
@@ -105,6 +107,7 @@ class KbuildComposerTest {
                 new TestCase(
                         "busybox-sample",
                         "busybox",
+                        new BusyboxStrategyFactory(),
                         List.of(
                                 "INCLUDE_IO_FILE",
                                 "PERFORM_RENAME",
@@ -167,6 +170,7 @@ class KbuildComposerTest {
                 new TestCase(
                         "linux-sample",
                         "linux",
+                        new LinuxStrategyFactory(),
                         List.of(),
                         List.of(
                                 new FileAbsentVerifier(".*\\.o"),
@@ -178,6 +182,7 @@ class KbuildComposerTest {
                 new TestCase(
                         "linux-sample",
                         "linux",
+                        new LinuxStrategyFactory(),
                         List.of(
                                 "INCLUDE_IO_FILE",
                                 "PERFORM_RENAME",
@@ -220,6 +225,7 @@ class KbuildComposerTest {
                 new TestCase(
                         "fiasco-sample",
                         "fiasco",
+                        new FiascoStrategyFactory(),
                         List.of(
                                 "AMD64",
                                 "__VISIBILITY__CONFIG_CC",
@@ -238,6 +244,7 @@ class KbuildComposerTest {
                 new TestCase(
                         "fiasco-sample",
                         "fiasco",
+                        new FiascoStrategyFactory(),
                         List.of(
                                 "INCLUDE_IO_FILE",
                                 "PERFORM_RENAME",
@@ -270,6 +277,7 @@ class KbuildComposerTest {
         TestCase noUselessFunction = new TestCase(
                 "fiasco-sample",
                 "fiasco",
+                new FiascoStrategyFactory(),
                 List.of(
                         "AMD64",
                         "__VISIBILITY__CONFIG_CC",
@@ -314,6 +322,7 @@ class KbuildComposerTest {
                 new TestCase(
                         "axtls-sample",
                         "axtls",
+                        new AxtlsStrategyFactory(),
                         List.of("HAVE_DOT_CONFIG", "CONFIG_PLATFORM_LINUX", "__VISIBILITY__CONFIG_PREFIX"),
                         List.of(
                                 new FileAbsentVerifier(".*\\.o"),
@@ -325,6 +334,7 @@ class KbuildComposerTest {
                 new TestCase(
                         "axtls-sample",
                         "axtls",
+                        new AxtlsStrategyFactory(),
                         List.of(
                                 "HAVE_DOT_CONFIG",
                                 "CONFIG_PLATFORM_LINUX",
@@ -443,8 +453,8 @@ class KbuildComposerTest {
         CompositionInformation compositionInformation;
         try {
             Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system,
-                    Charset.forName(testCaseManager.getMetadata().encoding()), composerTmpDirectory,
-                    testCase.presenceConditionExcludes, false);
+                    testCase.composerStrategyFactory, Charset.forName(testCaseManager.getMetadata().encoding()),
+                    composerTmpDirectory, testCase.presenceConditionExcludes, false);
             compositionInformation = composer.compose(featureMap,
                     destinationDirectory,
                     testCaseManager.getCorrectFeatureModel()
@@ -466,22 +476,26 @@ class KbuildComposerTest {
      *
      * @param name                      the name of the test case
      * @param system                    the Kconfig/Kbuild implementation of the test case
+     * @param composerStrategyFactory   a {@link ComposerStrategyFactory} for the Kconfig/Kbuild implementation
      * @param enabledFeatures           the features to enable for the test case
      * @param verifiers                 the verifiers to run on the composition
      * @param presenceConditionExcludes the paths to exclude from presence condition determination
      */
-    private record TestCase(String name, String system, List<String> enabledFeatures, List<Verifier> verifiers,
+    private record TestCase(String name, String system, ComposerStrategyFactory composerStrategyFactory,
+                            List<String> enabledFeatures, List<Verifier> verifiers,
                             Set<Path> presenceConditionExcludes) {
         /**
          * Creates a new test case for the {@link KbuildComposer}.
          *
-         * @param name            the name of the test case
-         * @param system          the Kconfig/Kbuild implementation of the test case
-         * @param enabledFeatures the features to enable for the test case
-         * @param verifiers       the verifiers to run on the composition
+         * @param name                    the name of the test case
+         * @param system                  the Kconfig/Kbuild implementation of the test case
+         * @param composerStrategyFactory a {@link ComposerStrategyFactory} for the Kconfig/Kbuild implementation
+         * @param enabledFeatures         the features to enable for the test case
+         * @param verifiers               the verifiers to run on the composition
          */
-        public TestCase(String name, String system, List<String> enabledFeatures, List<Verifier> verifiers) {
-            this(name, system, enabledFeatures, verifiers, Set.of());
+        public TestCase(String name, String system, ComposerStrategyFactory composerStrategyFactory,
+                        List<String> enabledFeatures, List<Verifier> verifiers) {
+            this(name, system, composerStrategyFactory, enabledFeatures, verifiers, Set.of());
         }
     }
 

@@ -4,4 +4,7 @@
 
 int main(void);
 
+// Ensure that the compiler doesn't complain that gets is missing
+char *gets(char *s);
+
 #endif
