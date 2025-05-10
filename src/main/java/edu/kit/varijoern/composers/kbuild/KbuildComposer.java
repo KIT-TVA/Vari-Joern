@@ -6,6 +6,10 @@ import edu.kit.varijoern.composers.CCPPLanguageInformation;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import edu.kit.varijoern.composers.conditionmapping.OriginalFilePresenceConditionMapper;
+import edu.kit.varijoern.composers.kbuild.conditionmapping.FilePresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.CombinedPresenceConditionMapper;
+import edu.kit.varijoern.composers.kbuild.conditionmapping.LinePresenceConditionMapper;
 import edu.kit.varijoern.composers.kbuild.subjects.ComposerStrategy;
 import edu.kit.varijoern.composers.kbuild.subjects.ComposerStrategyFactory;
 import org.apache.commons.io.FileUtils;
@@ -100,7 +104,7 @@ public class KbuildComposer implements Composer {
     private final @NotNull Path tmpSourcePath;
     private final @NotNull Set<Path> presenceConditionExcludes;
     private final boolean shouldSkipPresenceConditionExtraction;
-    private @Nullable FilePresenceConditionMapper filePresenceConditionMapper = null;
+    private @Nullable OriginalFilePresenceConditionMapper filePresenceConditionMapper = null;
 
     /**
      * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
@@ -175,12 +179,13 @@ public class KbuildComposer implements Composer {
                         .map(IFeatureModelElement::getName)
                         .collect(Collectors.toSet())
         );
+        KbuildComposerSourceMap sourceMap = new KbuildComposerSourceMap(generationInformation, tmpSourcePath);
         return new CompositionInformation(
                 destination,
                 features,
-                new KbuildPresenceConditionMapper(this.filePresenceConditionMapper, linePresenceConditionMappers,
-                        generationInformation),
-                new KbuildComposerSourceMap(generationInformation, tmpSourcePath),
+                new CombinedPresenceConditionMapper(this.filePresenceConditionMapper, linePresenceConditionMappers,
+                        sourceMap),
+                sourceMap,
                 List.of(new CCPPLanguageInformation(
                         includedFiles.stream()
                                 .filter(dependency -> dependency instanceof CompiledDependency)
@@ -585,9 +590,9 @@ public class KbuildComposer implements Composer {
             }
             LOGGER.debug("Creating line presence condition mapper for {}", entry.getKey());
             linePresenceConditionMappers.put(
-                    generatedFilePath,
+                    fileGenerationInformation.originalPath(),
                     new LinePresenceConditionMapper(inclusionInformation, this.tmpSourcePath,
-                            fileGenerationInformation.addedLines(), knownFeatures, this.system, this.encoding)
+                            knownFeatures, this.system, this.encoding)
             );
         }
 

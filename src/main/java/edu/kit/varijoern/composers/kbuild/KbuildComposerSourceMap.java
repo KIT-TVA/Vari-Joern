@@ -67,7 +67,12 @@ public class KbuildComposerSourceMap implements SourceMap {
         if (lineDirectiveSourceMap == null) {
             return Optional.of(sourceFileLocation);
         }
-        SourceLocation originalLocation = lineDirectiveSourceMap.getOriginalLocation(sourceFileLocation.line());
+        Optional<SourceLocation> originalLocationOptional
+                = lineDirectiveSourceMap.getOriginalLocation(sourceFileLocation.line());
+        if (originalLocationOptional.isEmpty())
+            return Optional.empty();
+        SourceLocation originalLocation = originalLocationOptional.get();
+
         if (originalLocation.file().isAbsolute()) {
             originalLocation = new SourceLocation(
                     this.tmpSourceDirectory.relativize(originalLocation.file()),

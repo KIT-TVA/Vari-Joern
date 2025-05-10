@@ -5,9 +5,7 @@ import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -55,14 +53,18 @@ public class LineDirectiveSourceMap {
      * Returns the original source location of the given line number, as specified by the #line directives.
      *
      * @param line the line number
-     * @return the original source location
+     * @return the original source location, or an empty Optional if the line number is out of bounds for the file
      */
-    public SourceLocation getOriginalLocation(int line) {
-        Integer locationAnnotationBeginning = locationBeginnings.headMap(line + 1).lastKey();
+    public Optional<SourceLocation> getOriginalLocation(int line) {
+        SortedMap<Integer, SourceLocation> locationSection = locationBeginnings.headMap(line + 1);
+        if (locationSection.isEmpty()) {
+            return Optional.empty();
+        }
+        Integer locationAnnotationBeginning = locationSection.lastKey();
         SourceLocation originalLocationOfAnnotationBeginning = locationBeginnings.get(locationAnnotationBeginning);
-        return new SourceLocation(
+        return Optional.of(new SourceLocation(
                 originalLocationOfAnnotationBeginning.file(),
                 originalLocationOfAnnotationBeginning.line() + line - locationAnnotationBeginning
-        );
+        ));
     }
 }

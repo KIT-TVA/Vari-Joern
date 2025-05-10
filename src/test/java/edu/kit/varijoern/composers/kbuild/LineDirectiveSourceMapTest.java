@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -23,15 +24,15 @@ class LineDirectiveSourceMapTest {
     void emptyFile() throws IOException {
         Path file = prepareFile("");
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
     }
 
     @Test
     void emptyFileWithLineDirective() throws IOException {
         Path file = prepareFile("#line 42 \"foo.c\"\n");
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(2));
     }
 
@@ -39,10 +40,10 @@ class LineDirectiveSourceMapTest {
     void mapAfterFileEnd() throws IOException {
         Path file = prepareFile("#line 42 \"foo.c\"\n");
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(2));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 43),
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 43)),
                 sourceMap.getOriginalLocation(3));
     }
 
@@ -56,16 +57,16 @@ class LineDirectiveSourceMapTest {
                 }
                 """);
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(2));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 43),
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 43)),
                 sourceMap.getOriginalLocation(3));
-        assertEquals(new SourceLocation(Path.of("bar.c"), 1),
+        assertEquals(Optional.of(new SourceLocation(Path.of("bar.c"), 1)),
                 sourceMap.getOriginalLocation(4));
-        assertEquals(new SourceLocation(Path.of("bar.c"), 2),
+        assertEquals(Optional.of(new SourceLocation(Path.of("bar.c"), 2)),
                 sourceMap.getOriginalLocation(5));
-        assertEquals(new SourceLocation(Path.of("bar.c"), 3),
+        assertEquals(Optional.of(new SourceLocation(Path.of("bar.c"), 3)),
                 sourceMap.getOriginalLocation(6));
     }
 
@@ -73,8 +74,8 @@ class LineDirectiveSourceMapTest {
     void noFilename() throws IOException {
         Path file = prepareFile("#line 42\n");
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(file, 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(file, 42)),
                 sourceMap.getOriginalLocation(2));
     }
 
@@ -85,10 +86,10 @@ class LineDirectiveSourceMapTest {
                 #line 1
                 """);
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(2));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 1),
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 1)),
                 sourceMap.getOriginalLocation(3));
     }
 
@@ -96,8 +97,8 @@ class LineDirectiveSourceMapTest {
     void whitespaceBeforeHash() throws IOException {
         Path file = prepareFile(" #line 42 \"foo.c\"\n");
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(2));
     }
 
@@ -105,8 +106,8 @@ class LineDirectiveSourceMapTest {
     void whitespaceAfterHash() throws IOException {
         Path file = prepareFile("# line 42 \"foo.c\"\n");
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(2));
     }
 
@@ -114,8 +115,8 @@ class LineDirectiveSourceMapTest {
     void multipleWhitespacesAfterLine() throws IOException {
         Path file = prepareFile("#line  42 \"foo.c\"\n");
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(2));
     }
 
@@ -123,8 +124,8 @@ class LineDirectiveSourceMapTest {
     void multipleWhitespacesAfterLineNumber() throws IOException {
         Path file = prepareFile("#line 42  \"foo.c\"\n");
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(2));
     }
 
@@ -136,10 +137,10 @@ class LineDirectiveSourceMapTest {
                 #line 42 "foo.c"
                 """);
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(file, 2), sourceMap.getOriginalLocation(2));
-        assertEquals(new SourceLocation(file, 3), sourceMap.getOriginalLocation(3));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(file, 2)), sourceMap.getOriginalLocation(2));
+        assertEquals(Optional.of(new SourceLocation(file, 3)), sourceMap.getOriginalLocation(3));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(4));
     }
 
@@ -150,9 +151,9 @@ class LineDirectiveSourceMapTest {
                 #line 42 "foo.c"
                 """);
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(file, 2), sourceMap.getOriginalLocation(2));
-        assertEquals(new SourceLocation(file, 3), sourceMap.getOriginalLocation(3));
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(file, 2)), sourceMap.getOriginalLocation(2));
+        assertEquals(Optional.of(new SourceLocation(file, 3)), sourceMap.getOriginalLocation(3));
     }
 
     @Test
@@ -162,9 +163,9 @@ class LineDirectiveSourceMapTest {
                 "foo.c"
                 """);
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(file, 2), sourceMap.getOriginalLocation(2));
-        assertEquals(new SourceLocation(Path.of("foo.c"), 42),
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(file, 2)), sourceMap.getOriginalLocation(2));
+        assertEquals(Optional.of(new SourceLocation(Path.of("foo.c"), 42)),
                 sourceMap.getOriginalLocation(3));
     }
 
@@ -175,8 +176,8 @@ class LineDirectiveSourceMapTest {
                 #line 42
                 """);
         LineDirectiveSourceMap sourceMap = new LineDirectiveSourceMap(file);
-        assertEquals(new SourceLocation(file, 1), sourceMap.getOriginalLocation(1));
-        assertEquals(new SourceLocation(file, 2), sourceMap.getOriginalLocation(2));
-        assertEquals(new SourceLocation(file, 3), sourceMap.getOriginalLocation(3));
+        assertEquals(Optional.of(new SourceLocation(file, 1)), sourceMap.getOriginalLocation(1));
+        assertEquals(Optional.of(new SourceLocation(file, 2)), sourceMap.getOriginalLocation(2));
+        assertEquals(Optional.of(new SourceLocation(file, 3)), sourceMap.getOriginalLocation(3));
     }
 }

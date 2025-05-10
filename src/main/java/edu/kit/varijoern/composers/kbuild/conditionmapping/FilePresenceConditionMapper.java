@@ -1,10 +1,12 @@
-package edu.kit.varijoern.composers.kbuild;
+package edu.kit.varijoern.composers.kbuild.conditionmapping;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.composers.ComposerException;
+import edu.kit.varijoern.composers.conditionmapping.OriginalFilePresenceConditionMapper;
+import edu.kit.varijoern.composers.kbuild.SMTLibConverter;
 import jodd.io.StreamGobbler;
 import jodd.util.ResourcesUtil;
 import org.apache.commons.io.IOUtils;
@@ -33,7 +35,7 @@ import java.util.stream.Stream;
  *     <li>The condition found by kmax includes unknown options.</li>
  * </ul>
  */
-public class FilePresenceConditionMapper {
+public class FilePresenceConditionMapper implements OriginalFilePresenceConditionMapper {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
@@ -155,10 +157,14 @@ public class FilePresenceConditionMapper {
     /**
      * Returns the presence condition of the specified file if it could be determined.
      *
-     * @param path the path to the (compiled) object file, relative to the source directory
+     * @param path the path to the original file, relative to the source directory
      * @return the presence condition of the file or an empty optional if the presence condition could not be determined
      */
+    @Override
     public @NotNull Optional<Node> getPresenceCondition(@NotNull Path path) {
-        return Optional.ofNullable(this.filePresenceConditions.get(path.normalize()));
+        Path pathToObjectFile = path.getParent().resolve(
+                path.getFileName().toString().replaceAll("\\.[a-zA-Z0-9]+$", ".o")
+        );
+        return Optional.ofNullable(this.filePresenceConditions.get(pathToObjectFile.normalize()));
     }
 }
