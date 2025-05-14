@@ -114,7 +114,7 @@ RUN chmod +x joern-install.sh \
 ENV PATH="/opt/joern/joern-cli:${PATH}"
 RUN joern-scan --updatedb --dbversion 4.0.48
 
-RUN pipx install --python=$(which python3.11) kmax git+https://github.com/duckymirror/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
+RUN pipx install --python=$(which python3.11) kmax git+https://github.com/KIT-TVA/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
 
 # Responsible for making the lib directory available to the container.
 COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar
