@@ -5,6 +5,7 @@ import edu.kit.varijoern.KconfigTestCaseManager;
 import edu.kit.varijoern.KconfigTestCasePreparer;
 import edu.kit.varijoern.PresenceConditionExpectation;
 import edu.kit.varijoern.composers.*;
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.kbuild.subjects.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
@@ -452,7 +453,7 @@ class KbuildComposerTest {
 
         CompositionInformation compositionInformation;
         try {
-            Composer composer = new KbuildComposer(testCaseManager.getPath(), testCase.system,
+            Composer composer = new KbuildComposer(testCaseManager.getPath(),
                     testCase.composerStrategyFactory, Charset.forName(testCaseManager.getMetadata().encoding()),
                     composerTmpDirectory, testCase.presenceConditionExcludes, false);
             compositionInformation = composer.compose(featureMap,

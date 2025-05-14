@@ -1,6 +1,8 @@
-package edu.kit.varijoern.composers.conditionmapping;
+package edu.kit.varijoern.composers.kbuild.conditionmapping;
 
-import edu.kit.varijoern.composers.PresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.OriginalFilePresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.OriginalLinePresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import org.apache.logging.log4j.LogManager;
@@ -14,30 +16,34 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * A {@link PresenceConditionMapper} that combines a {@link SourceMap}, an {@link OriginalFilePresenceConditionMapper}
- * and multiple {@link OriginalLinePresenceConditionMapper}s.
+ * A {@link PresenceConditionMapper} that combines the presence conditions of the original files and the
+ * presence conditions of the lines in the generated files. The presence condition of a line in a generated file is
+ * the conjunction of the presence condition of the file and the presence condition of the line in the original
+ * file.
  */
-public class CombinedPresenceConditionMapper implements PresenceConditionMapper {
+public class KbuildPresenceConditionMapper implements PresenceConditionMapper {
     private static final Logger LOGGER = LogManager.getLogger();
     private final @NotNull OriginalFilePresenceConditionMapper filePresenceConditionMapper;
     private final @NotNull Map<Path, ? extends OriginalLinePresenceConditionMapper> linePresenceConditionMappers;
     private final @NotNull SourceMap sourceMap;
 
     /**
-     * Creates a new {@link CombinedPresenceConditionMapper} from the specified components.
+     * Creates a new {@link KbuildPresenceConditionMapper} from the specified components. The line presence condition
+     * mappers are specified individually for each generated file. This allows multiple line presence condition mappers
+     * to exist for the same original file, as the same original file can be used to generate multiple generated files
+     * with different preprocessor options, potentially leading to different presence conditions.
      *
      * @param filePresenceConditionMapper  a file presence condition mapper for the original files
      * @param linePresenceConditionMappers the {@link OriginalLinePresenceConditionMapper}s for the individual files.
-     *                                     This list should contain an entry for all files for which the composer
-     *                                     detected a GCC call. The keys are the paths to the original source files,
-     *                                     relative to the composer's source directory.
+     *                                     The keys are the paths to the generated files, relative to the output
+     *                                     directory of the composer.
      * @param sourceMap                    the source map mapping source locations in the composer output to the
      *                                     original source code
      */
-    public CombinedPresenceConditionMapper(@NotNull OriginalFilePresenceConditionMapper filePresenceConditionMapper,
-                                           @NotNull Map<Path, ? extends OriginalLinePresenceConditionMapper>
-                                                   linePresenceConditionMappers,
-                                           @NotNull SourceMap sourceMap) {
+    public KbuildPresenceConditionMapper(@NotNull OriginalFilePresenceConditionMapper filePresenceConditionMapper,
+                                         @NotNull Map<Path, ? extends OriginalLinePresenceConditionMapper>
+                                                 linePresenceConditionMappers,
+                                         @NotNull SourceMap sourceMap) {
         this.filePresenceConditionMapper = filePresenceConditionMapper;
         this.linePresenceConditionMappers = linePresenceConditionMappers;
         this.sourceMap = sourceMap;
@@ -62,7 +68,7 @@ public class CombinedPresenceConditionMapper implements PresenceConditionMapper 
         }
 
         OriginalLinePresenceConditionMapper linePresenceConditionMapper = this.linePresenceConditionMappers
-                .get(originalLocation.file().normalize());
+                .get(file.normalize());
         if (linePresenceConditionMapper == null) {
             LOGGER.warn("No line presence condition found for {}:{}", file, lineNumber);
             return Optional.empty();

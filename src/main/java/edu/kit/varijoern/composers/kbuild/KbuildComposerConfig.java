@@ -125,7 +125,7 @@ public class KbuildComposerConfig extends ComposerConfig {
             case "axtls" -> new AxtlsStrategyFactory();
             default -> throw new IllegalStateException("Unsupported system: " + this.system);
         };
-        return new KbuildComposer(this.sourceLocation, this.system, composerStrategyFactory, this.encoding, tmpPath,
+        return new KbuildComposer(this.sourceLocation, composerStrategyFactory, this.encoding, tmpPath,
                 this.presenceConditionExcludes, this.composerArgs.shouldSkipPCs());
     }
 }

@@ -4,6 +4,7 @@ import edu.kit.varijoern.composers.ComposerException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -14,8 +15,9 @@ public class AxtlsStrategy extends ComposerStrategy {
     private static final String ENABLED_OPTION_FORMAT_STRING = "%s=y";
     private static final String DISABLED_OPTION_FORMAT_STRING = "# %s is not set";
 
-    public AxtlsStrategy(Path tmpSourcePath) {
-        super(tmpSourcePath);
+    public AxtlsStrategy(@NotNull Path tmpSourcePath, @NotNull Path composerTmpPath,
+                         boolean skipPresenceConditionExtraction, @NotNull Charset encoding) {
+        super(tmpSourcePath, composerTmpPath, skipPresenceConditionExtraction, encoding);
     }
 
     @Override
@@ -29,11 +31,6 @@ public class AxtlsStrategy extends ComposerStrategy {
         // axtls's cleanconf command should delete config/config.h, but due to a bug in a Makefile, it doesn't.
         // We have to delete it manually.
         Files.deleteIfExists(this.getTmpSourcePath().resolve("config/config.h"));
-    }
-
-    @Override
-    public void prepare() throws ComposerException, IOException, InterruptedException {
-        // Nothing to do
     }
 
     @Override

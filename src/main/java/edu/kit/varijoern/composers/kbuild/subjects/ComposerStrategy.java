@@ -1,6 +1,11 @@
 package edu.kit.varijoern.composers.kbuild.subjects;
 
+import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.composers.ComposerException;
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.EmptyPresenceConditionMapper;
+import edu.kit.varijoern.composers.kbuild.InclusionInformation;
+import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import jodd.io.StreamGobbler;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -10,8 +15,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -19,19 +27,48 @@ public abstract class ComposerStrategy {
     protected static final Logger LOGGER = LogManager.getLogger();
     protected static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
-    private final Path tmpSourcePath;
+    private final @NotNull Path tmpSourcePath;
+    private final @NotNull Path composerTmpPath;
+    private final boolean skipPresenceConditionExtraction;
+    private final @NotNull Charset encoding;
 
-    protected ComposerStrategy(Path tmpSourcePath) {
+    protected ComposerStrategy(@NotNull Path tmpSourcePath, @NotNull Path composerTmpPath,
+                               boolean skipPresenceConditionExtraction, @NotNull Charset encoding) {
         this.tmpSourcePath = tmpSourcePath;
+        this.composerTmpPath = composerTmpPath;
+        this.skipPresenceConditionExtraction = skipPresenceConditionExtraction;
+        this.encoding = encoding;
     }
 
-    protected Path getTmpSourcePath() {
+    protected @NotNull Path getTmpSourcePath() {
         return this.tmpSourcePath;
+    }
+
+    protected @NotNull Path getComposerTmpPath() {
+        return this.composerTmpPath;
+    }
+
+    protected boolean shouldSkipPresenceConditionExtraction() {
+        return skipPresenceConditionExtraction;
+    }
+
+    protected @NotNull Charset getEncoding() {
+        return this.encoding;
     }
 
     public abstract void clean() throws ComposerException, IOException, InterruptedException;
 
-    public abstract void prepare() throws ComposerException, IOException, InterruptedException;
+    /**
+     * Called before the composition starts. This is a good place to extract presence conditions of files, if not
+     * already done in a previous composition process.
+     *
+     * @param featureModel the feature model that will be used for the composition
+     * @throws ComposerException    if an error occurs during the preparation
+     * @throws InterruptedException if the current thread is interrupted
+     */
+    public void beforeComposition(IFeatureModel featureModel)
+            throws ComposerException, IOException, InterruptedException {
+    }
 
     public abstract void generateDefConfig() throws ComposerException, IOException, InterruptedException;
 
@@ -63,6 +100,13 @@ public abstract class ComposerStrategy {
     public abstract void processWrittenConfig() throws ComposerException, IOException, InterruptedException;
 
     public abstract void prepareDependencyDetection() throws ComposerException, IOException, InterruptedException;
+
+    public @NotNull PresenceConditionMapper createPresenceConditionMapper(
+            Stream<Map.Entry<Path, InclusionInformation>> inclusionInformation, @NotNull SourceMap sourceMap,
+            @NotNull Set<String> knownFeatures) throws ComposerException, IOException, InterruptedException {
+        return new EmptyPresenceConditionMapper();
+    }
+
     /**
      * A helper function to run make with the specified arguments with the temporary source directory as the working
      * directory.

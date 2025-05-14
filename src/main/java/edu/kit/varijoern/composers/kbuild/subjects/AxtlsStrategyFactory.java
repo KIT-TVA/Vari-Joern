@@ -2,11 +2,15 @@ package edu.kit.varijoern.composers.kbuild.subjects;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 
 public class AxtlsStrategyFactory implements ComposerStrategyFactory {
     @Override
-    public @NotNull ComposerStrategy createComposerStrategy(@NotNull Path tmpSourcePath) {
-        return new AxtlsStrategy(tmpSourcePath);
+    public @NotNull ComposerStrategy createComposerStrategy(@NotNull Path tmpSourcePath,
+                                                            @NotNull Path composerTmpPath,
+                                                            boolean skipPresenceConditionExtraction,
+                                                            @NotNull Charset charset) {
+        return new AxtlsStrategy(tmpSourcePath, composerTmpPath, skipPresenceConditionExtraction, charset);
     }
 }

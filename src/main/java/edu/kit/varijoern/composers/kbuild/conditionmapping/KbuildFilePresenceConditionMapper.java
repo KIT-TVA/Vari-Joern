@@ -35,15 +35,15 @@ import java.util.stream.Stream;
  *     <li>The condition found by kmax includes unknown options.</li>
  * </ul>
  */
-public class FilePresenceConditionMapper implements OriginalFilePresenceConditionMapper {
+public class KbuildFilePresenceConditionMapper implements OriginalFilePresenceConditionMapper {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
 
     private final @NotNull Map<Path, Node> filePresenceConditions = new HashMap<>();
 
     /**
-     * Creates a new {@link FilePresenceConditionMapper} and tries computes the presence conditions of the files in the
-     * specified source directory.
+     * Creates a new {@link KbuildFilePresenceConditionMapper} and tries computes the presence conditions of the files
+     * in the specified source directory.
      *
      * @param sourcePath     the path to the source directory. Must be an absolute path.
      * @param system         the name of the system. Only busybox is supported at the moment. For any other system, no
@@ -52,8 +52,8 @@ public class FilePresenceConditionMapper implements OriginalFilePresenceConditio
      * @throws IOException       if an I/O error occurs
      * @throws ComposerException if kmax fails or the presence conditions cannot be parsed
      */
-    public FilePresenceConditionMapper(@NotNull Path sourcePath, @NotNull String system, @NotNull Path composerTmpDir,
-                                       @NotNull IFeatureModel featureModel)
+    public KbuildFilePresenceConditionMapper(@NotNull Path sourcePath, @NotNull String system,
+                                             @NotNull Path composerTmpDir, @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException, InterruptedException {
         this.createKmaxallScript(composerTmpDir);
         if (system.equals("busybox")) {
@@ -62,9 +62,9 @@ public class FilePresenceConditionMapper implements OriginalFilePresenceConditio
     }
 
     /**
-     * Creates a new {@link FilePresenceConditionMapper} with an empty presence condition map.
+     * Creates a new {@link KbuildFilePresenceConditionMapper} with an empty presence condition map.
      */
-    public FilePresenceConditionMapper() {
+    public KbuildFilePresenceConditionMapper() {
     }
 
     private void createKmaxallScript(@NotNull Path tmpDir) throws IOException {

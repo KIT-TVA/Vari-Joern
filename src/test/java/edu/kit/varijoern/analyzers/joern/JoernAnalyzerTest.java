@@ -85,7 +85,7 @@ class JoernAnalyzerTest {
                 )
         );
 
-        analyze(tempDirectory, testCaseManager, "busybox", new BusyboxStrategyFactory(), expectedFindings,
+        analyze(tempDirectory, testCaseManager, new BusyboxStrategyFactory(), expectedFindings,
                 configurations);
     }
 
@@ -149,11 +149,11 @@ class JoernAnalyzerTest {
                 )
         );
 
-        analyze(tempDirectory, testCaseManager, "fiasco", new FiascoStrategyFactory(), expectedFindings,
+        analyze(tempDirectory, testCaseManager, new FiascoStrategyFactory(), expectedFindings,
                 configurations);
     }
 
-    private void analyze(Path tempDirectory, KconfigTestCaseManager testCaseManager, String system,
+    private void analyze(Path tempDirectory, KconfigTestCaseManager testCaseManager,
                          @NotNull ComposerStrategyFactory composerStrategyFactory,
                          List<ExpectedFinding> expectedFindings, List<Map<String, Boolean>> configurations)
             throws IOException, ComposerException, InterruptedException, AnalyzerFailureException {
@@ -163,7 +163,7 @@ class JoernAnalyzerTest {
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
-        Composer composer = new KbuildComposer(testCaseManager.getPath(), system, composerStrategyFactory,
+        Composer composer = new KbuildComposer(testCaseManager.getPath(), composerStrategyFactory,
                 Charset.forName(testCaseManager.getMetadata().encoding()), composerTempDirectory, Set.of(),
                 false);
 

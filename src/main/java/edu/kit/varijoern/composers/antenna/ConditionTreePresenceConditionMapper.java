@@ -1,6 +1,6 @@
 package edu.kit.varijoern.composers.antenna;
 
-import edu.kit.varijoern.composers.PresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;

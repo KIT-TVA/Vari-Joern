@@ -4,6 +4,7 @@ import edu.kit.varijoern.composers.ComposerException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 
@@ -13,18 +14,14 @@ public class LinuxStrategy extends ComposerStrategy {
     private static final String ENABLED_OPTION_FORMAT_STRING = "CONFIG_%s=y";
     private static final String DISABLED_OPTION_FORMAT_STRING = "# CONFIG_%s is not set";
 
-    public LinuxStrategy(Path tmpSourcePath) {
-        super(tmpSourcePath);
+    public LinuxStrategy(@NotNull Path tmpSourcePath, @NotNull Path composerTmpPath,
+                         boolean skipPresenceConditionExtraction, @NotNull Charset encoding) {
+        super(tmpSourcePath, composerTmpPath, skipPresenceConditionExtraction, encoding);
     }
 
     @Override
     public void clean() throws ComposerException, IOException, InterruptedException {
         this.runMake("distclean");
-    }
-
-    @Override
-    public void prepare() throws ComposerException, IOException, InterruptedException {
-        // Nothing to do
     }
 
     @Override

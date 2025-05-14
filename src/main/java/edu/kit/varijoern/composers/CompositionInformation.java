@@ -1,5 +1,6 @@
 package edu.kit.varijoern.composers;
 
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import org.jetbrains.annotations.NotNull;
 

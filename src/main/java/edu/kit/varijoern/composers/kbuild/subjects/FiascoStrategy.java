@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -15,8 +16,9 @@ public class FiascoStrategy extends ComposerStrategy {
     private static final String ENABLED_OPTION_FORMAT_STRING = "CONFIG_%s=y";
     private static final String DISABLED_OPTION_FORMAT_STRING = "# CONFIG_%s is not set";
 
-    public FiascoStrategy(Path tmpSourcePath) {
-        super(tmpSourcePath);
+    public FiascoStrategy(@NotNull Path tmpSourcePath, @NotNull Path composerTmpPath,
+                          boolean skipPresenceConditionExtraction, @NotNull Charset encoding) {
+        super(tmpSourcePath, composerTmpPath, skipPresenceConditionExtraction, encoding);
     }
 
     @Override
@@ -25,11 +27,6 @@ public class FiascoStrategy extends ComposerStrategy {
         // assumes that it can delete it non-recursively with `rm`, which fails. We have to delete it manually.
         FileUtils.deleteDirectory(this.getTmpSourcePath().resolve("build/source").toFile());
         this.runMake("purge");
-    }
-
-    @Override
-    public void prepare() throws ComposerException, IOException, InterruptedException {
-        // Nothing to do
     }
 
     @Override

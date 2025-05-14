@@ -1,4 +1,4 @@
-package edu.kit.varijoern.composers;
+package edu.kit.varijoern.composers.conditionmapping;
 
 import org.jetbrains.annotations.NotNull;
 import org.prop4j.Node;

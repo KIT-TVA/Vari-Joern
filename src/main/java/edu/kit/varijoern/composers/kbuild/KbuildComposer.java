@@ -6,12 +6,13 @@ import edu.kit.varijoern.composers.CCPPLanguageInformation;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
-import edu.kit.varijoern.composers.conditionmapping.OriginalFilePresenceConditionMapper;
-import edu.kit.varijoern.composers.kbuild.conditionmapping.FilePresenceConditionMapper;
-import edu.kit.varijoern.composers.conditionmapping.CombinedPresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.EmptyPresenceConditionMapper;
+import edu.kit.varijoern.composers.kbuild.conditionmapping.KbuildFilePresenceConditionMapper;
 import edu.kit.varijoern.composers.kbuild.conditionmapping.LinePresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.kbuild.subjects.ComposerStrategy;
 import edu.kit.varijoern.composers.kbuild.subjects.ComposerStrategyFactory;
+import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -37,14 +38,14 @@ import java.util.stream.Stream;
  * command-line includes and defines to Joern.
  * <p>
  * The composer uses kmax to determine the presence conditions of the individual files
- * (see {@link FilePresenceConditionMapper}). The presence conditions of individual lines are determined using
+ * (see {@link KbuildFilePresenceConditionMapper}). The presence conditions of individual lines are determined using
  * SuperC (see {@link LinePresenceConditionMapper}).
  * <p>
  * Currently, only the Kbuild and Kconfig variants of Linux and Busybox are supported. For Linux, no presence
  * conditions can be determined at the moment.
  * <h2>How it works</h2>
  * <ol>
- *     <li>If not yet done, create a {@link FilePresenceConditionMapper} which determines the presence conditions
+ *     <li>If not yet done, create a {@link KbuildFilePresenceConditionMapper} which determines the presence conditions
  *     of most C files.</li>
  *     <li>Copy the source directory to a temporary directory.</li>
  *     <li>Generate a .config file based on the specified features:
@@ -78,8 +79,8 @@ import java.util.stream.Stream;
  *         <li>The presence conditions of lines are determined using the include and define arguments to their
  *         respective GCC calls. These can vary depending on the variant analyzed and since the conditions of the
  *         compiler flags can't be determined, the extracted presence conditions can vary as well.</li>
- *         <li>See {@link FilePresenceConditionMapper} and {@link LinePresenceConditionMapper} for more information.
- *         </li>
+ *         <li>See {@link KbuildFilePresenceConditionMapper} and {@link LinePresenceConditionMapper} for more
+ *         information.</li>
  *     </ul>
  *     </li>
  *     <li>Header files are copied to the output directory without adding define and include directives. This is
@@ -97,22 +98,17 @@ public class KbuildComposer implements Composer {
     private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox", "fiasco", "axtls");
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private final @NotNull String system;
     private final @NotNull ComposerStrategy composerStrategy;
     private final @NotNull Charset encoding;
     private final @NotNull Path tmpPath;
     private final @NotNull Path tmpSourcePath;
     private final @NotNull Set<Path> presenceConditionExcludes;
     private final boolean shouldSkipPresenceConditionExtraction;
-    private @Nullable OriginalFilePresenceConditionMapper filePresenceConditionMapper = null;
 
     /**
      * Creates a new {@link KbuildComposer} which will create variants from the specified source directory.
      *
      * @param sourcePath                the path to the source directory. Must be an absolute path.
-     * @param system                    the variant of the Kbuild/Kconfig system. Use
-     *                                  {@link KbuildComposer#isSupportedSystem(String)}
-     *                                  to determine if a given system is supported.
      * @param composerStrategyFactory   a {@link ComposerStrategyFactory} for the variant of the Kconfig system
      * @param encoding                  the encoding of the source files
      * @param tmpPath                   a {@link Path} to a temporary directory that can be used by the composer. Must
@@ -123,12 +119,10 @@ public class KbuildComposer implements Composer {
      * @throws ComposerException    if the composer could not be created for another reason
      * @throws InterruptedException if the current thread is interrupted
      */
-    public KbuildComposer(@NotNull Path sourcePath, @NotNull String system,
-                          @NotNull ComposerStrategyFactory composerStrategyFactory, @NotNull Charset encoding,
-                          @NotNull Path tmpPath, @NotNull Set<Path> presenceConditionExcludes,
-                          boolean shouldSkipPresenceConditionExtraction)
+    public KbuildComposer(@NotNull Path sourcePath, @NotNull ComposerStrategyFactory composerStrategyFactory,
+                          @NotNull Charset encoding, @NotNull Path tmpPath,
+                          @NotNull Set<Path> presenceConditionExcludes, boolean shouldSkipPresenceConditionExtraction)
             throws IOException, ComposerException, InterruptedException {
-        this.system = system;
         this.encoding = encoding;
         this.tmpPath = tmpPath;
         this.presenceConditionExcludes = presenceConditionExcludes
@@ -137,32 +131,20 @@ public class KbuildComposer implements Composer {
                 .collect(Collectors.toSet());
         this.shouldSkipPresenceConditionExtraction = shouldSkipPresenceConditionExtraction;
         this.tmpSourcePath = this.tmpPath.resolve("source");
-        this.composerStrategy = composerStrategyFactory.createComposerStrategy(this.tmpSourcePath);
+        this.composerStrategy = composerStrategyFactory.createComposerStrategy(this.tmpSourcePath, this.tmpPath,
+                this.shouldSkipPresenceConditionExtraction, this.encoding);
         this.copySourceTo(sourcePath, this.tmpSourcePath);
 
         // Make sure that there are no compilation artifacts.
         // These would break dependency detection because make would not try to recompile them.
         this.composerStrategy.clean();
-
-        // Some preparation steps might be necessary, depending on the subject system. In particular, BusyBox needs to
-        // generate Kbuild files before presence conditions can be determined.
-        this.composerStrategy.prepare();
     }
 
     @Override
     public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException, InterruptedException {
-        if (this.filePresenceConditionMapper == null) {
-            if (this.shouldSkipPresenceConditionExtraction) {
-                LOGGER.info("Skipping file presence condition extraction");
-                this.filePresenceConditionMapper = new FilePresenceConditionMapper();
-            } else {
-                LOGGER.info("Creating file presence condition mapper");
-                this.filePresenceConditionMapper = new FilePresenceConditionMapper(this.tmpSourcePath, this.system,
-                        this.tmpPath, featureModel);
-            }
-        }
+        this.composerStrategy.beforeComposition(featureModel);
 
         this.generateConfig(features);
 
@@ -172,19 +154,15 @@ public class KbuildComposer implements Composer {
         Map<Path, GenerationInformation> generationInformation = this.generateFiles(
                 includedFiles, destination, tmpSourcePath
         );
-        Map<Path, LinePresenceConditionMapper> linePresenceConditionMappers = this.createLinePresenceConditionMappers(
-                generationInformation,
-                includedFiles,
-                featureModel.getFeatures().stream()
-                        .map(IFeatureModelElement::getName)
-                        .collect(Collectors.toSet())
-        );
         KbuildComposerSourceMap sourceMap = new KbuildComposerSourceMap(generationInformation, tmpSourcePath);
         return new CompositionInformation(
                 destination,
                 features,
-                new CombinedPresenceConditionMapper(this.filePresenceConditionMapper, linePresenceConditionMappers,
-                        sourceMap),
+                this.createPresenceConditionMapper(generationInformation, includedFiles, sourceMap,
+                        featureModel.getFeatures().stream()
+                                .map(IFeatureModelElement::getName)
+                                .collect(Collectors.toSet())
+                ),
                 sourceMap,
                 List.of(new CCPPLanguageInformation(
                         includedFiles.stream()
@@ -552,51 +530,38 @@ public class KbuildComposer implements Composer {
         ));
     }
 
-    private @NotNull Map<Path, LinePresenceConditionMapper> createLinePresenceConditionMappers(
+    private @NotNull PresenceConditionMapper createPresenceConditionMapper(
             @NotNull Map<Path, GenerationInformation> generationInformation,
             @NotNull Set<Dependency> dependencies,
-            @NotNull Set<String> knownFeatures)
-            throws IOException, ComposerException, InterruptedException {
+            @NotNull SourceMap sourceMap,
+            @NotNull Set<String> knownFeatures) throws ComposerException, IOException, InterruptedException {
         if (this.shouldSkipPresenceConditionExtraction) {
-            LOGGER.info("Skipping line presence condition extraction");
-            return Map.of();
-        }
-        if (!LinePresenceConditionMapper.isSupportedSystem(this.system)) {
-            LOGGER.warn("System {} is not supported, skipping line presence condition mapper creation",
-                    this.system);
-            return Map.of();
+            LOGGER.info("Skipping presence condition extraction");
+            return new EmptyPresenceConditionMapper();
         }
 
-        LOGGER.info("Creating line presence condition mappers");
-
-        // Clean up to ensure that the header file containing config definitions doesn't exist
-        this.composerStrategy.clean();
-
-        Map<Path, LinePresenceConditionMapper> linePresenceConditionMappers = new HashMap<>();
         Map<Path, Dependency> dependenciesByPath = dependencies.stream()
                 .collect(Collectors.toMap(Dependency::getComposedFilePath, dependency -> dependency));
-        for (Map.Entry<Path, GenerationInformation> entry : generationInformation.entrySet()) {
-            Path generatedFilePath = entry.getKey();
-            GenerationInformation fileGenerationInformation = entry.getValue();
-            Dependency dependency = dependenciesByPath.get(generatedFilePath);
-            if (!(dependency instanceof CompiledDependency)) {
-                continue;
-            }
-            InclusionInformation inclusionInformation = ((CompiledDependency) dependency).getInclusionInformation();
-            if (this.presenceConditionExcludes.contains(inclusionInformation.filePath())) {
-                LOGGER.debug("File {} has been excluded from presence condition extraction",
-                        inclusionInformation.filePath());
-                continue;
-            }
-            LOGGER.debug("Creating line presence condition mapper for {}", entry.getKey());
-            linePresenceConditionMappers.put(
-                    fileGenerationInformation.originalPath(),
-                    new LinePresenceConditionMapper(inclusionInformation, this.tmpSourcePath,
-                            knownFeatures, this.system, this.encoding)
-            );
-        }
+        Stream<Map.Entry<Path, InclusionInformation>> inclusionInformation = generationInformation.keySet().stream()
+                .map(generatedFilePath -> {
+                    Dependency dependency = dependenciesByPath.get(generatedFilePath);
+                    if (!(dependency instanceof CompiledDependency)) {
+                        return null;
+                    }
+                    return Map.entry(generatedFilePath, ((CompiledDependency) dependency)
+                            .getInclusionInformation());
+                })
+                .filter(Objects::nonNull)
+                .filter(entry -> {
+                    Path filePath = entry.getValue().filePath();
+                    if (this.presenceConditionExcludes.contains(filePath)) {
+                        LOGGER.debug("File {} is excluded from presence condition extraction", filePath);
+                        return false;
+                    }
+                    return true;
+                });
 
-        return linePresenceConditionMappers;
+        return this.composerStrategy.createPresenceConditionMapper(inclusionInformation, sourceMap, knownFeatures);
     }
 
     private void copySourceTo(@NotNull Path originalSourcePath, @NotNull Path tmpSourcePath) throws IOException {

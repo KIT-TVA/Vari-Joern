@@ -8,7 +8,7 @@ import edu.kit.varijoern.analyzers.AnalyzerFailureException;
 import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.LanguageInformation;
-import edu.kit.varijoern.composers.PresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import jodd.io.StreamGobbler;
