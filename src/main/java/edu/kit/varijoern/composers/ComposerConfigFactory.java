@@ -2,8 +2,8 @@ package edu.kit.varijoern.composers;
 
 import edu.kit.varijoern.composers.antenna.AntennaComposer;
 import edu.kit.varijoern.composers.antenna.AntennaComposerConfig;
-import edu.kit.varijoern.composers.kbuild.KbuildComposer;
-import edu.kit.varijoern.composers.kbuild.KbuildComposerConfig;
+import edu.kit.varijoern.composers.kconfig.KconfigComposer;
+import edu.kit.varijoern.composers.kconfig.KconfigComposerConfig;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
 import edu.kit.varijoern.config.SubjectConfig;
@@ -48,7 +48,7 @@ public final class ComposerConfigFactory extends NamedComponentConfigFactory<Com
             throws InvalidConfigException {
         return switch (componentName) {
             case AntennaComposer.NAME -> new AntennaComposerConfig(toml, subjectConfig, COMPOSER_ARGS);
-            case KbuildComposer.NAME -> new KbuildComposerConfig(toml, subjectConfig, COMPOSER_ARGS);
+            case KconfigComposer.NAME -> new KconfigComposerConfig(toml, subjectConfig, COMPOSER_ARGS);
             default -> throw new InvalidConfigException(String.format("Unknown composer \"%s\"", componentName));
         };
     }

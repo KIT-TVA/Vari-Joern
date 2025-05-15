@@ -9,8 +9,8 @@ import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
-import edu.kit.varijoern.composers.kbuild.KbuildComposer;
-import edu.kit.varijoern.composers.kbuild.subjects.*;
+import edu.kit.varijoern.composers.kconfig.KconfigComposer;
+import edu.kit.varijoern.composers.kconfig.subjects.*;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.FixedSampler;
@@ -163,7 +163,7 @@ class JoernAnalyzerTest {
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
-        Composer composer = new KbuildComposer(testCaseManager.getPath(), composerStrategyFactory,
+        Composer composer = new KconfigComposer(testCaseManager.getPath(), composerStrategyFactory,
                 Charset.forName(testCaseManager.getMetadata().encoding()), composerTempDirectory, Set.of(),
                 false);
 

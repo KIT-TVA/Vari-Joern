@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     # Required for building and running SuperC
     libz3-java=4.8.12-3.1build1 \
-    # Required for building SuperC and for executing Vari-Joern's KBuildComposer.
+    # Required for building SuperC and for executing Vari-Joern's KconfigComposer.
     make \
     # Required by Sugarlyzer.
     python3.10 python3-pip python3-apt python3.10-venv

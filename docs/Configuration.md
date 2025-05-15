@@ -65,7 +65,7 @@ Composers create a variant of the software by enabling a set of features which h
 The following composers are available:
 
 - [Antenna composer](composers/Antenna.md): A simple preprocessor for Java source files.
-- [Kbuild composer](composers/Kbuild.md): A composer for Kbuild, the Linux kernel build system.
+- [Kconfig composer](composers/Kconfig.md): A composer for Kconfig, the Linux kernel configuration system.
 
 ### Analyzers
 
@@ -123,7 +123,7 @@ features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
 
 # Mandatory table for product-based strategy.
 [product.composer]
-name = "kbuild"
+name = "kconfig"
 # Either absolute or relative to subject.source_root.
 source = "path/to/source-code"
 
