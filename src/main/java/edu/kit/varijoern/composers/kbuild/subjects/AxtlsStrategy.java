@@ -15,6 +15,14 @@ public class AxtlsStrategy extends ComposerStrategy {
     private static final String ENABLED_OPTION_FORMAT_STRING = "%s=y";
     private static final String DISABLED_OPTION_FORMAT_STRING = "# %s is not set";
 
+    /**
+     * Creates a new {@link AxtlsStrategy} with the specified parameters.
+     *
+     * @param tmpSourcePath                   the path to the composer's original source directory
+     * @param composerTmpPath                 the path to the temporary directory of the composer
+     * @param skipPresenceConditionExtraction whether to skip presence condition extraction
+     * @param encoding                        the encoding of the subject system's source files
+     */
     public AxtlsStrategy(@NotNull Path tmpSourcePath, @NotNull Path composerTmpPath,
                          boolean skipPresenceConditionExtraction, @NotNull Charset encoding) {
         super(tmpSourcePath, composerTmpPath, skipPresenceConditionExtraction, encoding);
@@ -23,12 +31,9 @@ public class AxtlsStrategy extends ComposerStrategy {
     @Override
     public void clean() throws ComposerException, IOException, InterruptedException {
         this.runMake("-i", "clean");
-        cleanConf();
-    }
-
-    private void cleanConf() throws ComposerException, IOException, InterruptedException {
         this.runMake("-i", "cleanconf");
-        // axtls's cleanconf command should delete config/config.h, but due to a bug in a Makefile, it doesn't.
+
+        // axTLS's cleanconf command should delete config/config.h, but due to a bug in a Makefile, it doesn't.
         // We have to delete it manually.
         Files.deleteIfExists(this.getTmpSourcePath().resolve("config/config.h"));
     }

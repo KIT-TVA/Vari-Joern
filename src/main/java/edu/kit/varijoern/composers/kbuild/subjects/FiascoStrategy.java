@@ -16,6 +16,14 @@ public class FiascoStrategy extends ComposerStrategy {
     private static final String ENABLED_OPTION_FORMAT_STRING = "CONFIG_%s=y";
     private static final String DISABLED_OPTION_FORMAT_STRING = "# CONFIG_%s is not set";
 
+    /**
+     * Creates a new {@link FiascoStrategy} with the specified parameters.
+     *
+     * @param tmpSourcePath                   the path to the composer's original source directory
+     * @param composerTmpPath                 the path to the temporary directory of the composer
+     * @param skipPresenceConditionExtraction whether to skip presence condition extraction
+     * @param encoding                        the encoding of the subject system's source files
+     */
     public FiascoStrategy(@NotNull Path tmpSourcePath, @NotNull Path composerTmpPath,
                           boolean skipPresenceConditionExtraction, @NotNull Charset encoding) {
         super(tmpSourcePath, composerTmpPath, skipPresenceConditionExtraction, encoding);
