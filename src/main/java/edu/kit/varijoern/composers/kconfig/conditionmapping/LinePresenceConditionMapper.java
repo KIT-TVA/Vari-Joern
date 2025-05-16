@@ -23,19 +23,22 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Determines the presence conditions of individual lines of a file. This is done by parsing the preprocessor directives
+ * Determines the presence conditions of a file's individual lines. This is done by parsing the preprocessor directives
  * in the file. The presence condition at the beginning of a line is considered to be the presence condition of the
  * whole line. If an unknown preprocessor macro is encountered, it is considered to be undefined, unless defined in the
  * {@link InclusionInformation} passed to the constructor of this class. Feature names are translated to macro names
- * in a subject system-specific way. Currently, only BusyBox is supported.
+ * in a subject-system-specific way. Currently, only BusyBox is supported.
  * <p>
  * The presence condition of the file itself is not considered.
  * <h2>Issues</h2>
  * <ul>
- *     <li>Conditions including non-boolean operations (e.g. integer comparisons) are ignored.</li>
+ *     <li>Conditions including non-boolean operations (e.g., integer comparisons) are ignored.</li>
+ *     <li>In certain cases, the presence condition at the beginning of a line is not what someone would intuitively
+ *     consider the presence condition of the line. For example, there are macros that conditionally output their
+ *     argument. A call to such a macro that spans the full line would not be considered in the extracted presence
+ *     condition.</li>
  *     <li>Occurrences of variables are always treated as if they were used in a defined() condition. This may result in
- *     wrong presence conditions if the variable can be defined as 0 and is not an {@code ENABLE_<feature>} variable as
- *     they are used in BusyBox.</li>
+ *     wrong presence conditions if a macro set by Kconfig is redefined with different semantics.</li>
  * </ul>
  */
 public class LinePresenceConditionMapper implements OriginalLinePresenceConditionMapper {
@@ -53,8 +56,8 @@ public class LinePresenceConditionMapper implements OriginalLinePresenceConditio
     /**
      * Creates a new {@link LinePresenceConditionMapper} for the specified file.
      * <p>
-     * The defines declared in {@code inclusionInformation} are considered to be enabled in every configuration because
-     * there is currently no way to determine their conditions.
+     * The definitions declared in {@code inclusionInformation} are considered to be enabled in every configuration
+     * because there is currently no way to determine their conditions.
      *
      * @param inclusionInformation the information about how the file is compiled
      * @param sourcePath           the path to the root of the source directory. Must be an absolute path.

@@ -7,9 +7,10 @@ import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.conditionmapping.EmptyPresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.kconfig.conditionmapping.KbuildFilePresenceConditionMapper;
 import edu.kit.varijoern.composers.kconfig.conditionmapping.LinePresenceConditionMapper;
-import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
+import edu.kit.varijoern.composers.kconfig.subjects.BusyboxStrategy;
 import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategy;
 import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategyFactory;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
@@ -35,50 +36,65 @@ import java.util.stream.Stream;
 /**
  * A composer for Kconfig-based systems. It copies the files required by the specified variant to the output
  * directory and adds {@code #define} and {@code #include} directives to C files because it is not possible to pass
- * command-line includes and defines to Joern.
- * <h2>How it works</h2>
+ * command-line includes and definitions to Joern. In addition to composing the files, it also supports extracting
+ * presence conditions of individual lines of code.
+ * <p>
+ * The exact commands used to compose a variant are subject-specific and implemented by a {@link ComposerStrategy}. The
+ * composition process works as follows:
  * <ol>
- *     <li>If not yet done, create a {@link KbuildFilePresenceConditionMapper} which determines the presence conditions
- *     of most C files.</li>
- *     <li>Copy the source directory to a temporary directory.</li>
+ *     <li>Before the composition process starts, {@link ComposerStrategy#beforeComposition(IFeatureModel)} is called.
+ *     This can be used for system-specific preparation steps.
+ *     {@link BusyboxStrategy} uses this step to determine the presence
+ *     conditions of most C files.</li>
  *     <li>Generate a .config file based on the specified features:
  *     <ol>
- *         <li>Run {@code make defconfig} to generate a default .config file. This is used to set options not present
- *         in the feature model (e.g. because they aren't booleans) to their default values.</li>
- *         <li>Read the .config file and replace the values of the known options with the specified values.</li>
+ *         <li>Run {@link ComposerStrategy#generateDefConfig()} to generate a default .config file. This is used to
+ *         set options not present in the feature model (e.g., because they aren't booleans) to their default values.
+ *         For example, {@link BusyboxStrategy} calls {@code make defconfig} to generate the default .config file.
+ *         </li>
+ *         <li>Read the .config file (from the path specified by {@link ComposerStrategy#getConfigPath()}), and replace
+ *         the values of the options known from the feature model with the specified values, using the formats given
+ *         by {@link ComposerStrategy#getOptionNameValuePattern()}, {@link ComposerStrategy#getOptionNotSetPattern()}
+ *         and {@link ComposerStrategy#formatOption(String, boolean)}.</li>
+ *         <li>Generate the header file containing the preprocessor macros corresponding to the configuration. This is
+ *         done by {@link ComposerStrategy#processWrittenConfig()}.</li>
+ *         <li>Perform a sanity check of the .config file to ensure that no options have been changed by the previous
+ *         step.</li>
  *     </ol>
  *     </li>
- *     <li>Generate required header files (specifically {@code autoconf.h}) by invoking {@code make oldconfig}.</li>
+ *     <li>Perform system-specific steps in preparation for the dependency detection by calling
+ *     {@link ComposerStrategy#prepareDependencyDetection()}. For example, {@link BusyboxStrategy} uses this step to
+ *     generate several required header files.</li>
  *     <li>Determine the set of files relevant to the variant:
  *     <ol>
  *         <li>Run {@code make -in} to determine the files explicitly compiled by {@code make} and the GCC flags they're
  *         compiled with.</li>
  *         <li>Run {@code gcc -M -MG} on each of the files determined in the previous step to determine the files they
  *         depend on. Files that are compiled with different include or define flags are treated as different
- *         dependencies. </li>
+ *         dependencies.</li>
  *     </ol>
- *     </li>
  *     </li>
  *     <li>Copy the files determined in the previous step to the output directory and add {@code #define} and
  *     {@code #include} directives to non-header files.</li>
- *     <li>Determine the presence conditions of the individual lines of the files in the output directory. See
- *     {@link LinePresenceConditionMapper} for details.</li>
+ *     <li>Create a {@link KconfigComposerSourceMap} for the generated files.</li>
+ *     <li>Determine the presence conditions of the source code lines by calling
+ *     {@link ComposerStrategy#createPresenceConditionMapper(Stream, SourceMap, Set)}.</li>
  * </ol>
  *
  * <h2>Issues</h2>
  * <ul>
- *     <li>The extracted presence conditions need not be accurate:
+ *     <li>The extracted presence conditions may not be accurate:
  *     <ul>
- *         <li>The presence conditions of lines are determined using the include and define arguments to their
- *         respective GCC calls. These can vary depending on the variant analyzed and since the conditions of the
- *         compiler flags can't be determined, the extracted presence conditions can vary as well.</li>
+ *         <li>Although it depends on the {@link ComposerStrategy}, the presence conditions of lines are usually
+ *         determined using the include and define arguments to their respective GCC calls. These can vary depending on
+ *         the variant analyzed, and since the conditions of the compiler flags can't be determined, the extracted
+ *         presence conditions can vary as well.</li>
  *         <li>See {@link KbuildFilePresenceConditionMapper} and {@link LinePresenceConditionMapper} for more
  *         information.</li>
  *     </ul>
  *     </li>
  *     <li>Header files are copied to the output directory without adding define and include directives. This is
- *     necessary because otherwise the number of files would be too large.</li>
- *     <li>Include paths specified as compiler arguments can't be passed to the analyzer.</li>
+ *     necessary because otherwise the number of generated files would become too large.</li>
  *     <li>Files that are generated during the make build and their dependencies may be missing in the result.</li>
  * </ul>
  */
@@ -88,7 +104,6 @@ public class KconfigComposer implements Composer {
     // kmax when it encounters prompts.
     private static final Pattern IGNORED_FEATURES_PATTERN = Pattern.compile("^__VISIBILITY__.*|^Root$");
     private static final Pattern HEADER_FILE_PATTERN = Pattern.compile(".*\\.(?:h|H|hpp|hxx|h++)");
-    private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox", "fiasco", "axtls");
     private static final Logger LOGGER = LogManager.getLogger();
 
     private final @NotNull ComposerStrategy composerStrategy;
@@ -147,15 +162,19 @@ public class KconfigComposer implements Composer {
         Map<Path, GenerationInformation> generationInformation = this.generateFiles(
                 includedFiles, destination, tmpSourcePath
         );
+
         KconfigComposerSourceMap sourceMap = new KconfigComposerSourceMap(generationInformation, tmpSourcePath);
+        PresenceConditionMapper presenceConditionMapper = this.createPresenceConditionMapper(generationInformation,
+                includedFiles, sourceMap,
+                featureModel.getFeatures().stream()
+                        .map(IFeatureModelElement::getName)
+                        .collect(Collectors.toSet())
+        );
+
         return new CompositionInformation(
                 destination,
                 features,
-                this.createPresenceConditionMapper(generationInformation, includedFiles, sourceMap,
-                        featureModel.getFeatures().stream()
-                                .map(IFeatureModelElement::getName)
-                                .collect(Collectors.toSet())
-                ),
+                presenceConditionMapper,
                 sourceMap,
                 List.of(new CCPPLanguageInformation(
                         includedFiles.stream()
@@ -174,7 +193,7 @@ public class KconfigComposer implements Composer {
 
     /**
      * Generates a .config file based on the specified features and ensures that the {@code include/autoconf.h} file
-     * exists and is up-to-date.
+     * exists and is up to date.
      *
      * @param features the enabled and disabled features
      * @throws IOException          if an I/O error occurs
@@ -367,7 +386,7 @@ public class KconfigComposer implements Composer {
 
     /**
      * Calls GCC with the specified compiler flags to determine the dependencies of the specified file. The dependencies
-     * using the syntax of a make rule. Dependencies of files generated during a full build may be missed.
+     * use the syntax of a make rule. Dependencies of files generated during a full build may be missed.
      *
      * @param inclusionInformation the file to determine the dependencies of
      * @param tmpSourcePath        the absolute path to the temporary source directory
@@ -563,16 +582,6 @@ public class KconfigComposer implements Composer {
                 originalSourcePath.toFile(), tmpSourcePath.toFile(),
                 file -> !file.getName().equals(".git")
         );
-    }
-
-    /**
-     * Determines whether the specified variant of Kbuild/Kconfig is supported.
-     *
-     * @param system the variant to check
-     * @return if the variant is supported
-     */
-    public static boolean isSupportedSystem(@NotNull String system) {
-        return SUPPORTED_SYSTEMS.contains(system);
     }
 
     /**

@@ -81,7 +81,8 @@ public class BusyboxStrategy extends ComposerStrategy {
 
     @Override
     public void prepareDependencyDetection() throws ComposerException, IOException, InterruptedException {
-        // We have to run `make applets` to generate several header files.
+        // We have to run `make applets` to generate several header files. Not doing so would lead to a Make error in
+        // libbb and ultimately lead to missing all files in libbb.
         this.runMake("applets");
         // `make applets` generates `applets/applets.o`, which is part of the final BusyBox executables and would
         // break dependency detection. We have to delete it.
@@ -102,7 +103,7 @@ public class BusyboxStrategy extends ComposerStrategy {
 
         LOGGER.info("Creating file presence condition mapper");
 
-        // BusyBox's Kbuild variant allows to specify Kbuild information in the source files. Since kmax cannot
+        // BusyBox's Kbuild variant allows specifying Kbuild information in the source files. Since kmax cannot
         // handle this, we use `make gen_build_files` to generate Kbuild files.
         this.runMake("gen_build_files");
 
