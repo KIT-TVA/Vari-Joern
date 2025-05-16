@@ -171,23 +171,25 @@ public class KconfigComposer implements Composer {
                         .collect(Collectors.toSet())
         );
 
+        CCPPLanguageInformation languageInformation = new CCPPLanguageInformation(
+                includedFiles.stream()
+                        .filter(dependency -> dependency instanceof CompiledDependency)
+                        .map(dependency -> ((CompiledDependency) dependency).getInclusionInformation())
+                        .collect(Collectors.toMap(InclusionInformation::getComposedFilePath,
+                                InclusionInformation::includePaths)),
+                includedFiles.stream()
+                        .filter(dependency -> dependency instanceof CompiledDependency)
+                        .map(dependency -> ((CompiledDependency) dependency).getInclusionInformation())
+                        .collect(Collectors.toMap(InclusionInformation::getComposedFilePath,
+                                InclusionInformation::systemIncludePaths))
+        );
+
         return new CompositionInformation(
                 destination,
                 features,
                 presenceConditionMapper,
                 sourceMap,
-                List.of(new CCPPLanguageInformation(
-                        includedFiles.stream()
-                                .filter(dependency -> dependency instanceof CompiledDependency)
-                                .map(dependency -> ((CompiledDependency) dependency).getInclusionInformation())
-                                .collect(Collectors.toMap(InclusionInformation::getComposedFilePath,
-                                        InclusionInformation::includePaths)),
-                        includedFiles.stream()
-                                .filter(dependency -> dependency instanceof CompiledDependency)
-                                .map(dependency -> ((CompiledDependency) dependency).getInclusionInformation())
-                                .collect(Collectors.toMap(InclusionInformation::getComposedFilePath,
-                                        InclusionInformation::systemIncludePaths))
-                ))
+                List.of(languageInformation)
         );
     }
 
@@ -205,6 +207,21 @@ public class KconfigComposer implements Composer {
         LOGGER.info("Generating .config");
         this.composerStrategy.generateDefConfig();
 
+        writeToExistingConfig(features);
+
+        // Make sure that `include/autoconf.h` (or `build/globalconfig.out`) is generated
+        this.composerStrategy.processWrittenConfig();
+
+        verifyConfig(features);
+    }
+
+    /**
+     * Writes the specified configuration to an existing .config file by replacing the values of the relevant options.
+     *
+     * @param features the enabled and disabled features
+     * @throws IOException if an I/O error occurs
+     */
+    private void writeToExistingConfig(@NotNull Map<String, Boolean> features) throws IOException {
         // Remove ignored features
         features.keySet().removeIf(feature -> IGNORED_FEATURES_PATTERN.matcher(feature).matches());
 
@@ -241,9 +258,19 @@ public class KconfigComposer implements Composer {
                     features.get(remainingFeature)));
         }
         Files.write(configPath, defaultConfigLines, this.encoding);
+    }
 
-        // Make sure that `include/autoconf.h` (or `build/globalconfig.out`) is generated
-        this.composerStrategy.processWrittenConfig();
+    /**
+     * A sanity check which verifies that the generated .config file contains the expected options. If not, a warning is
+     * logged.
+     *
+     * @param features the enabled and disabled features
+     * @throws IOException if an I/O error occurs
+     */
+    private void verifyConfig(@NotNull Map<String, Boolean> features) throws IOException {
+        Path configPath = this.composerStrategy.getConfigPath();
+        Pattern optionNameValuePattern = this.composerStrategy.getOptionNameValuePattern();
+        Pattern optionNotSetPattern = this.composerStrategy.getOptionNotSetPattern();
 
         Map<String, Boolean> generatedConfig = Files.readAllLines(configPath, this.encoding).stream()
                 .map(line -> {
@@ -259,6 +286,7 @@ public class KconfigComposer implements Composer {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
         Map<String, Boolean> modifiedFeatures = features.entrySet().stream()
                 .filter(entry -> entry.getValue() != generatedConfig.getOrDefault(entry.getKey(), false))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -282,6 +310,7 @@ public class KconfigComposer implements Composer {
                 .directory(tmpSourcePath.toFile());
         makeProcessBuilder.environment().put("CC", "gcc");
         makeProcessBuilder.environment().put("LANG", "C");
+
         int makeExitCode;
         String output;
         LOGGER.debug("Running make -in");
@@ -295,6 +324,7 @@ public class KconfigComposer implements Composer {
         }
         if (makeExitCode != 0)
             throw new ComposerException("make -in failed with exit code %d".formatted(makeExitCode));
+
         List<GCCCall> gccCalls;
         try {
             LOGGER.debug("Parsing gcc calls");
@@ -303,6 +333,7 @@ public class KconfigComposer implements Composer {
             throw new ComposerException("gcc calls could not be parsed", e);
         }
         LOGGER.debug("Found {} gcc calls", gccCalls.size());
+
         List<InclusionInformation> compiledFiles = new ArrayList<>();
         for (GCCCall gccCall : gccCalls) {
             List<InclusionInformation> inclusionInformation = InclusionInformation.fromGCCCall(gccCall, tmpSourcePath);
@@ -355,10 +386,12 @@ public class KconfigComposer implements Composer {
             return List.of();
         }
         LOGGER.info("Getting dependencies of {}", inclusionInformation.filePath());
+
         String makeRule = this.getFileMakeRule(inclusionInformation, tmpSourcePath);
         String dependencyList = makeRule.substring(makeRule.indexOf(':') + 1);
         Stream<String> dependencies = Arrays.stream(dependencyList.replace("\\", "").split("\\s+"))
                 .filter(dependency -> !dependency.isBlank());
+
         // This is only an approximation. The files included earlier don't see the files included later. This should be
         // reflected in this list, but since we don't know the order of the includes, we can't do that.
         List<Dependency> dependencyInformation = dependencies
@@ -380,6 +413,7 @@ public class KconfigComposer implements Composer {
                     }
                 })
                 .toList();
+
         LOGGER.debug("Found {} dependencies", dependencyInformation.size());
         return dependencyInformation;
     }
@@ -467,7 +501,7 @@ public class KconfigComposer implements Composer {
      * {@code #define} and {@code #include} directives to the original files.
      *
      * @param filePath       the path to the file to generate, relative to the temporary and output source directories
-     * @param configurations information about which variants of the file to generate (e.g. with which preprocessor
+     * @param configurations information about which variants of the file to generate (e.g., with which preprocessor
      *                       directives)
      * @param destination    the absolute path to the output directory
      * @param tmpSourcePath  the absolute path to the temporary source directory
@@ -486,19 +520,20 @@ public class KconfigComposer implements Composer {
         }
         Path destinationDirectory = destination.resolve(filePath).getParent();
         Files.createDirectories(destinationDirectory);
+
         Map<Path, GenerationInformation> generationInformation = new HashMap<>();
         boolean copied = false;
         boolean generated = false;
         for (Dependency configuration : configurations) {
-            if (configuration instanceof CompiledDependency) {
+            if (configuration instanceof CompiledDependency compiledDependency) {
                 Map.Entry<Path, GenerationInformation> fileGenerationInformation
                         = this.generateFileWithPreprocessorDirectives(
-                        ((CompiledDependency) configuration).getInclusionInformation(),
+                        compiledDependency.getInclusionInformation(),
                         destination,
                         tmpSourcePath
                 );
-                generationInformation.put(fileGenerationInformation.getKey(), fileGenerationInformation.getValue());
                 generated = true;
+                generationInformation.put(fileGenerationInformation.getKey(), fileGenerationInformation.getValue());
             } else if (configuration instanceof HeaderDependency) {
                 if (!copied) {
                     LOGGER.debug("Copying {}", filePath);
@@ -509,6 +544,7 @@ public class KconfigComposer implements Composer {
                 }
             }
         }
+
         if (!generated && !copied) {
             throw new RuntimeException("File %s was neither copied nor generated".formatted(filePath));
         }
@@ -536,6 +572,7 @@ public class KconfigComposer implements Composer {
             }
             stream.write(Files.readAllBytes(tmpSourcePath.resolve(inclusionInformation.filePath())));
         }
+
         return Map.entry(relativeDestinationPath, new GenerationInformation(
                 inclusionInformation.filePath().normalize(),
                 inclusionInformation.defines().size() + inclusionInformation.includedFiles().size()
