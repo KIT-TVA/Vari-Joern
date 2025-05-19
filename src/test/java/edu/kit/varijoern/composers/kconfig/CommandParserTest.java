@@ -1,4 +1,4 @@
-package edu.kit.varijoern.composers.kbuild;
+package edu.kit.varijoern.composers.kconfig;
 
 import org.junit.jupiter.api.Test;
 

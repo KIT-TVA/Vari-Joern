@@ -1,4 +1,4 @@
-package edu.kit.varijoern.composers.kbuild;
+package edu.kit.varijoern.composers.kconfig;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
@@ -72,7 +72,7 @@ public record InclusionInformation(Path filePath, Set<Path> includedFiles, Map<S
     }
 
     /**
-     * Returns the relative path to the file that the {@link KbuildComposer} would use for the composed file.
+     * Returns the relative path to the file that the {@link KconfigComposer} would use for the composed file.
      *
      * @return the path, relative to the composer's output directory
      */

@@ -1,9 +1,14 @@
-package edu.kit.varijoern.composers.kbuild;
+package edu.kit.varijoern.composers.kconfig;
 
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerArgs;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
+import edu.kit.varijoern.composers.kconfig.subjects.AxtlsStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.BusyboxStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.FiascoStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.LinuxStrategyFactory;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.SubjectConfig;
 import edu.kit.varijoern.config.TomlUtils;
@@ -22,13 +27,15 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Contains the configuration of the Kbuild composer.
+ * Contains the configuration of the Kconfig composer.
  */
-public class KbuildComposerConfig extends ComposerConfig {
+public class KconfigComposerConfig extends ComposerConfig {
     private static final String SOURCE_FIELD_NAME = "source";
     private static final String ENCODING_FIELD_NAME = "encoding";
     private static final String SYSTEM_FIELD_NAME = "system";
     private static final String PRESENCE_CONDITION_EXCLUDES_FIELD_NAME = "presence_condition_excludes";
+
+    private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox", "fiasco", "axtls");
 
     private final @NotNull Path sourceLocation;
     private final @NotNull Charset encoding;
@@ -37,35 +44,35 @@ public class KbuildComposerConfig extends ComposerConfig {
     private final ComposerArgs composerArgs;
 
     /**
-     * Creates a new {@link KbuildComposerConfig} by extracting data from the specified TOML section.
+     * Creates a new {@link KconfigComposerConfig} by extracting data from the specified TOML section.
      *
      * @param toml          the TOML section
      * @param subjectConfig the {@link SubjectConfig} with which to resolve sourceLocation if not absolute and to set the system name.
-     * @param composerArgs the general command line arguments for the composer.
+     * @param composerArgs  the general command line arguments for the composer.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public KbuildComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig, @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
+    public KconfigComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig, @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
         super(toml);
         this.composerArgs = composerArgs;
         String sourceLocation = TomlUtils.getMandatoryString(
                 SOURCE_FIELD_NAME,
                 toml,
-                "Source location for Kbuild composer is missing or not a string"
+                "Source location for Kconfig composer is missing or not a string"
         );
 
         try {
             this.encoding = Charset.forName(toml.getString(ENCODING_FIELD_NAME, () -> "UTF-8"));
         } catch (IllegalArgumentException e) {
-            throw new InvalidConfigException("Encoding for Kbuild composer is not supported", e);
+            throw new InvalidConfigException("Encoding for Kconfig composer is not supported", e);
         } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Encoding for Kbuild composer is not a string", e);
+            throw new InvalidConfigException("Encoding for Kconfig composer is not a string", e);
         }
 
         Path sourcePath;
         try {
             sourcePath = Path.of(sourceLocation);
         } catch (InvalidPathException e) {
-            throw new InvalidConfigException("Source location for Kbuild composer is not a valid path", e);
+            throw new InvalidConfigException("Source location for Kconfig composer is not a valid path", e);
         }
         if (!sourcePath.isAbsolute()) {
             sourcePath = subjectConfig.getSourceRoot().resolve(sourcePath);
@@ -74,13 +81,13 @@ public class KbuildComposerConfig extends ComposerConfig {
         this.sourceLocation = sourcePath;
         this.system = subjectConfig.getSubjectName();
 
-        if (!KbuildComposer.isSupportedSystem(this.system)) {
-            throw new InvalidConfigException("System for Kbuild composer is not supported");
+        if (!SUPPORTED_SYSTEMS.contains(this.system)) {
+            throw new InvalidConfigException("System for Kconfig composer is not supported");
         }
 
         if (toml.contains(PRESENCE_CONDITION_EXCLUDES_FIELD_NAME)) {
             if (!toml.isArray(PRESENCE_CONDITION_EXCLUDES_FIELD_NAME)) {
-                throw new InvalidConfigException("Presence conditions excludes for Kbuild composer are not an array");
+                throw new InvalidConfigException("Presence conditions excludes for Kconfig composer are not an array");
             }
 
             List<Path> excludedPathsList = new ArrayList<>();
@@ -115,7 +122,14 @@ public class KbuildComposerConfig extends ComposerConfig {
     @Override
     public @NotNull Composer newComposer(@NotNull Path tmpPath)
             throws IOException, ComposerException, InterruptedException {
-        return new KbuildComposer(this.sourceLocation, this.system, this.encoding, tmpPath,
+        ComposerStrategyFactory composerStrategyFactory = switch (this.system) {
+            case "linux" -> new LinuxStrategyFactory();
+            case "busybox" -> new BusyboxStrategyFactory();
+            case "fiasco" -> new FiascoStrategyFactory();
+            case "axtls" -> new AxtlsStrategyFactory();
+            default -> throw new IllegalStateException("Unsupported system: " + this.system);
+        };
+        return new KconfigComposer(this.sourceLocation, composerStrategyFactory, this.encoding, tmpPath,
                 this.presenceConditionExcludes, this.composerArgs.shouldSkipPCs());
     }
 }

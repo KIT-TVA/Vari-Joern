@@ -9,13 +9,17 @@ import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
-import edu.kit.varijoern.composers.kbuild.KbuildComposer;
+import edu.kit.varijoern.composers.kconfig.KconfigComposer;
+import edu.kit.varijoern.composers.kconfig.subjects.BusyboxStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.FiascoStrategyFactory;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.FixedSampler;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -83,7 +87,8 @@ class JoernAnalyzerTest {
                 )
         );
 
-        analyze(tempDirectory, testCaseManager, "busybox", configurations, expectedFindings);
+        analyze(tempDirectory, testCaseManager, new BusyboxStrategyFactory(), expectedFindings,
+                configurations);
     }
 
     /**
@@ -146,11 +151,13 @@ class JoernAnalyzerTest {
                 )
         );
 
-        analyze(tempDirectory, testCaseManager, "fiasco", configurations, expectedFindings);
+        analyze(tempDirectory, testCaseManager, new FiascoStrategyFactory(), expectedFindings,
+                configurations);
     }
 
-    private void analyze(Path tempDirectory, KconfigTestCaseManager testCaseManager, String system,
-                         List<Map<String, Boolean>> configurations, List<ExpectedFinding> expectedFindings)
+    private void analyze(Path tempDirectory, KconfigTestCaseManager testCaseManager,
+                         @NotNull ComposerStrategyFactory composerStrategyFactory,
+                         List<ExpectedFinding> expectedFindings, List<Map<String, Boolean>> configurations)
             throws IOException, ComposerException, InterruptedException, AnalyzerFailureException {
         Path workspaceDirectory = tempDirectory.resolve("workspace");
         Files.createDirectory(workspaceDirectory);
@@ -158,7 +165,7 @@ class JoernAnalyzerTest {
         JoernAnalyzer analyzer = new JoernAnalyzer(null, workspaceDirectory, resultAggregator);
 
         Path composerTempDirectory = tempDirectory.resolve("composer");
-        Composer composer = new KbuildComposer(testCaseManager.getPath(), system,
+        Composer composer = new KconfigComposer(testCaseManager.getPath(), composerStrategyFactory,
                 Charset.forName(testCaseManager.getMetadata().encoding()), composerTempDirectory, Set.of(),
                 false);
 

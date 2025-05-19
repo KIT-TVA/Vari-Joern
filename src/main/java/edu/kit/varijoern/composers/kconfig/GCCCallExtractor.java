@@ -1,4 +1,4 @@
-package edu.kit.varijoern.composers.kbuild;
+package edu.kit.varijoern.composers.kconfig;
 
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.JCommander;

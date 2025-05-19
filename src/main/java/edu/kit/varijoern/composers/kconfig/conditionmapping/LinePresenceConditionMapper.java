@@ -1,5 +1,8 @@
-package edu.kit.varijoern.composers.kbuild;
+package edu.kit.varijoern.composers.kconfig.conditionmapping;
 
+import edu.kit.varijoern.composers.conditionmapping.OriginalLinePresenceConditionMapper;
+import edu.kit.varijoern.composers.kconfig.CloseablePresenceConditionManager;
+import edu.kit.varijoern.composers.kconfig.InclusionInformation;
 import net.sf.javabdd.BDD;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,19 +23,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Maps lines of a single file to presence conditions. More specifically, it maps each line to the presence condition
- * at the beginning of the line.
+ * Determines the presence conditions of a file's individual lines. This is done by parsing the preprocessor directives
+ * in the file. The presence condition at the beginning of a line is considered to be the presence condition of the
+ * whole line. If an unknown preprocessor macro is encountered, it is considered to be undefined, unless defined in the
+ * {@link InclusionInformation} passed to the constructor of this class. Feature names are translated to macro names
+ * in a subject-system-specific way. Currently, only BusyBox is supported.
+ * <p>
+ * The presence condition of the file itself is not considered.
  * <h2>Issues</h2>
  * <ul>
- *     <li>Currently, only BusyBox and similar systems are supported.</li>
- *     <li>Conditions including non-boolean operations (e.g. integer comparisons) are ignored.</li>
- *     <li>Unknown preprocessor symbols are assumed to be undefined. This may be false.</li>
+ *     <li>Conditions including non-boolean operations (e.g., integer comparisons) are ignored.</li>
+ *     <li>In certain cases, the presence condition at the beginning of a line is not what someone would intuitively
+ *     consider the presence condition of the line. For example, there are macros that conditionally output their
+ *     argument. A call to such a macro that spans the full line would not be considered in the extracted presence
+ *     condition.</li>
  *     <li>Occurrences of variables are always treated as if they were used in a defined() condition. This may result in
- *     wrong presence conditions if the variable can be defined as 0 and is now {@code ENABLE_<feature>} variable as
- *     they are used in BusyBox.</li>
+ *     wrong presence conditions if a macro set by Kconfig is redefined with different semantics.</li>
  * </ul>
  */
-public class LinePresenceConditionMapper {
+public class LinePresenceConditionMapper implements OriginalLinePresenceConditionMapper {
     private static final Pattern DEFINED_PATTERN = Pattern.compile("\\(defined (.+)\\)|([A-Za-z0-9_]+)");
     // In busybox, enabled (non-module) tristate features are defined as CONFIG_<feature> as well as ENABLE_<feature>
     private static final Pattern BUSYBOX_FEATURE_MACRO_PATTERN
@@ -42,31 +51,26 @@ public class LinePresenceConditionMapper {
     private final Charset encoding;
 
     private final Map<Integer, Node> linePresenceConditions = new HashMap<>();
-    private final int addedLines;
     private final int totalLines;
 
     /**
      * Creates a new {@link LinePresenceConditionMapper} for the specified file.
      * <p>
-     * The defines declared in {@code inclusionInformation} are considered to be enabled in every configuration because
-     * there is currently no way to determine their conditions.
+     * The definitions declared in {@code inclusionInformation} are considered to be enabled in every configuration
+     * because there is currently no way to determine their conditions.
      *
      * @param inclusionInformation the information about how the file is compiled
      * @param sourcePath           the path to the root of the source directory. Must be an absolute path.
-     * @param addedLines           the number of lines (#include and #define directives) added to the file by the
-     *                             composer
      * @param knownFeatures        the features recorded in the feature model
      * @param system               the system the file belongs to. Currently, only {@code busybox} is supported.
      * @param encoding             the encoding of the file
      */
     public LinePresenceConditionMapper(@NotNull InclusionInformation inclusionInformation, @NotNull Path sourcePath,
-                                       int addedLines, @NotNull Set<String> knownFeatures, @NotNull String system,
-                                       Charset encoding)
+                                       @NotNull Set<String> knownFeatures, @NotNull String system, Charset encoding)
             throws IOException {
         this.encoding = encoding;
         if (!isSupportedSystem(system)) throw new UnsupportedOperationException("Only busybox is supported");
 
-        this.addedLines = addedLines;
         this.totalLines = Files.readAllLines(sourcePath.resolve(inclusionInformation.filePath()), this.encoding).size();
         this.determinePresenceConditions(inclusionInformation, sourcePath, knownFeatures, system);
     }
@@ -291,13 +295,14 @@ public class LinePresenceConditionMapper {
 
     /**
      * Returns the presence condition for the specified line if it could be determined. The line is the line number in
-     * the file generated by the composer.
+     * the original source file.
      *
      * @param line the line number
      * @return the presence condition for the specified line
      */
+    @Override
     public @NotNull Optional<Node> getPresenceCondition(int line) {
-        return Optional.ofNullable(this.linePresenceConditions.get(line - this.addedLines));
+        return Optional.ofNullable(this.linePresenceConditions.get(line));
     }
 
     /**

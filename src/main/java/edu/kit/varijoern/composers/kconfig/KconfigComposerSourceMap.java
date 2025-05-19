@@ -1,4 +1,4 @@
-package edu.kit.varijoern.composers.kbuild;
+package edu.kit.varijoern.composers.kconfig;
 
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 
 /**
  * A {@link SourceMap} that maps locations in the composed code to locations in the original code using the generation
- * information provided by a {@link KbuildComposer}.
+ * information provided by a {@link KconfigComposer}.
  */
-public class KbuildComposerSourceMap implements SourceMap {
+public class KconfigComposerSourceMap implements SourceMap {
     private static final @NotNull Logger LOGGER = LogManager.getLogger();
 
     private final @NotNull Map<Path, GenerationInformation> generationInformation;
@@ -25,15 +25,15 @@ public class KbuildComposerSourceMap implements SourceMap {
     private final @NotNull Map<Path, LineDirectiveSourceMap> lineDirectiveSourceMaps;
 
     /**
-     * Creates a new {@link KbuildComposerSourceMap} instance.
+     * Creates a new {@link KconfigComposerSourceMap} instance.
      *
      * @param generationInformation a map of paths to generation information. The paths are relative to the directory
      *                              containing the composed code.
      * @param tmpSourceDirectory    the temporary directory containing the original source files and their build
-     *                              artifacts, as produced by the {@link KbuildComposer}.
+     *                              artifacts, as produced by the {@link KconfigComposer}.
      */
-    public KbuildComposerSourceMap(@NotNull Map<Path, GenerationInformation> generationInformation,
-                                   Path tmpSourceDirectory) {
+    public KconfigComposerSourceMap(@NotNull Map<Path, GenerationInformation> generationInformation,
+                                    Path tmpSourceDirectory) {
         LOGGER.info("Creating source map");
         this.generationInformation = generationInformation;
         this.tmpSourceDirectory = tmpSourceDirectory;
@@ -67,7 +67,12 @@ public class KbuildComposerSourceMap implements SourceMap {
         if (lineDirectiveSourceMap == null) {
             return Optional.of(sourceFileLocation);
         }
-        SourceLocation originalLocation = lineDirectiveSourceMap.getOriginalLocation(sourceFileLocation.line());
+        Optional<SourceLocation> originalLocationOptional
+                = lineDirectiveSourceMap.getOriginalLocation(sourceFileLocation.line());
+        if (originalLocationOptional.isEmpty())
+            return Optional.empty();
+        SourceLocation originalLocation = originalLocationOptional.get();
+
         if (originalLocation.file().isAbsolute()) {
             originalLocation = new SourceLocation(
                     this.tmpSourceDirectory.relativize(originalLocation.file()),
