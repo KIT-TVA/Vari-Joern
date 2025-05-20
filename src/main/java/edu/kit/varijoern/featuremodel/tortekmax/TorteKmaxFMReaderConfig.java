@@ -2,7 +2,6 @@ package edu.kit.varijoern.featuremodel.tortekmax;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.SubjectConfig;
-import edu.kit.varijoern.config.TomlUtils;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfig;
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +15,6 @@ import java.nio.file.Path;
  */
 public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
     private static final String PATH_FIELD_NAME = "path";
-    private static final String SYSTEM_FIELD_NAME = "system";
 
     private final @NotNull Path sourcePath;
     private final @NotNull String system;
@@ -32,14 +30,9 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
     public TorteKmaxFMReaderConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig)
             throws InvalidConfigException {
         super(toml);
-        String path = TomlUtils.getMandatoryString(
-                PATH_FIELD_NAME,
-                toml,
-                "Path to source directory is missing or not a string"
-        );
         Path sourcePath;
         try {
-            sourcePath = Path.of(path);
+            sourcePath = Path.of(toml.getString(PATH_FIELD_NAME, () -> "."));
         } catch (InvalidPathException e) {
             throw new InvalidConfigException("Path to source directory is not a valid path", e);
         }
@@ -48,11 +41,7 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
         }
         this.sourcePath = sourcePath;
 
-        String system = TomlUtils.getMandatoryString(
-                SYSTEM_FIELD_NAME,
-                toml,
-                "System is missing or not a string"
-        );
+        String system = subjectConfig.getSubjectName();
         if (!TorteKmaxFMReader.supportsSystem(system)) {
             throw new InvalidConfigException("Unknown system: " + system);
         }

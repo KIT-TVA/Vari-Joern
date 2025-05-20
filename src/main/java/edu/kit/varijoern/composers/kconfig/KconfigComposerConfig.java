@@ -7,7 +7,6 @@ import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.kconfig.subjects.*;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.SubjectConfig;
-import edu.kit.varijoern.config.TomlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlArray;
 import org.tomlj.TomlInvalidTypeException;
@@ -26,9 +25,8 @@ import java.util.Set;
  * Contains the configuration of the Kconfig composer.
  */
 public class KconfigComposerConfig extends ComposerConfig {
-    private static final String SOURCE_FIELD_NAME = "source";
+    private static final String PATH_FIELD_NAME = "path";
     private static final String ENCODING_FIELD_NAME = "encoding";
-    private static final String SYSTEM_FIELD_NAME = "system";
     private static final String PRESENCE_CONDITION_EXCLUDES_FIELD_NAME = "presence_condition_excludes";
 
     private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox", "fiasco", "axtls");
@@ -52,11 +50,6 @@ public class KconfigComposerConfig extends ComposerConfig {
                                  @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
         super(toml);
         this.composerArgs = composerArgs;
-        String sourceLocation = TomlUtils.getMandatoryString(
-                SOURCE_FIELD_NAME,
-                toml,
-                "Source location for Kconfig composer is missing or not a string"
-        );
 
         try {
             this.encoding = Charset.forName(toml.getString(ENCODING_FIELD_NAME, () -> "UTF-8"));
@@ -68,7 +61,7 @@ public class KconfigComposerConfig extends ComposerConfig {
 
         Path sourcePath;
         try {
-            sourcePath = Path.of(sourceLocation);
+            sourcePath = Path.of(toml.getString(PATH_FIELD_NAME, () -> "."));
         } catch (InvalidPathException e) {
             throw new InvalidConfigException("Source location for Kconfig composer is not a valid path", e);
         }

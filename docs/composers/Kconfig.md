@@ -18,7 +18,7 @@ variable.
 
 The Kconfig composer is configured using the following options:
 
-- `source`
+- `path`
     - Specifies the location of the source code.
       Relative paths are relative to the location of the configuration file.
     - Optional: no
@@ -40,7 +40,7 @@ For example, the composer could be configured as follows:
 [composer]
 name = "kconfig"
 encoding = "iso-8859-1"
-source = "path/to/source-code"
+path = "path/to/source-code"
 system = "busybox"
 presence_condition_excludes = ["miscutils/setserial.c"]
 ```
