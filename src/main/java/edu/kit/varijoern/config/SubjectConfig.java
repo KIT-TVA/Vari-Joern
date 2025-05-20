@@ -24,15 +24,19 @@ public class SubjectConfig {
     private final @NotNull Path sourceRoot;
 
     /**
-     * Constructor initializing the {@link SubjectConfig} with the fields contained in the subject table passed in as parameter.
+     * Constructor initializing the {@link SubjectConfig} with the fields contained in the subject table passed in as
+     * parameter.
      *
      * @param subjectTable the subject table whose fields should be used to initialize the {@link SubjectConfig}.
-     * @param configPath   the path to the path to the configuration file. Can be relative (will be interpreted relative to the configPath).
+     * @param configPath   the path to the path to the configuration file. Can be relative (will be interpreted relative
+     *                     to the configPath).
      * @throws InvalidConfigException if a mandatory field of the {@link SubjectConfig} could not be initialized.
      */
     public SubjectConfig(@NotNull TomlTable subjectTable, @NotNull Path configPath) throws InvalidConfigException {
-        this.subjectName = TomlUtils.getMandatoryString(SubjectConfig.NAME_KEY, subjectTable, "Subject system name was not specified");
-        String sourceRoot = TomlUtils.getMandatoryString(SubjectConfig.SOURCE_ROOT_KEY, subjectTable, "Path to the root directory of the subject system was not specified");
+        this.subjectName = TomlUtils.getMandatoryString(SubjectConfig.NAME_KEY, subjectTable,
+                "Subject system name was not specified");
+        String sourceRoot = TomlUtils.getMandatoryString(SubjectConfig.SOURCE_ROOT_KEY, subjectTable,
+                "Path to the root directory of the subject system was not specified");
 
         try {
             Path sourceRootPath = Path.of(sourceRoot);

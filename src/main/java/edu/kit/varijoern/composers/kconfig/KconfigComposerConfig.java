@@ -4,11 +4,7 @@ import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerArgs;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
-import edu.kit.varijoern.composers.kconfig.subjects.AxtlsStrategyFactory;
-import edu.kit.varijoern.composers.kconfig.subjects.BusyboxStrategyFactory;
-import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategyFactory;
-import edu.kit.varijoern.composers.kconfig.subjects.FiascoStrategyFactory;
-import edu.kit.varijoern.composers.kconfig.subjects.LinuxStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.*;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.SubjectConfig;
 import edu.kit.varijoern.config.TomlUtils;
@@ -47,11 +43,13 @@ public class KconfigComposerConfig extends ComposerConfig {
      * Creates a new {@link KconfigComposerConfig} by extracting data from the specified TOML section.
      *
      * @param toml          the TOML section
-     * @param subjectConfig the {@link SubjectConfig} with which to resolve sourceLocation if not absolute and to set the system name.
+     * @param subjectConfig the {@link SubjectConfig} with which to resolve sourceLocation if not absolute and to set
+     *                      the system name.
      * @param composerArgs  the general command line arguments for the composer.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public KconfigComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig, @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
+    public KconfigComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig,
+                                 @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
         super(toml);
         this.composerArgs = composerArgs;
         String sourceLocation = TomlUtils.getMandatoryString(

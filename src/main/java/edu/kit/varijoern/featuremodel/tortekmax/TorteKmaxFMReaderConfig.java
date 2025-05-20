@@ -29,7 +29,8 @@ public class TorteKmaxFMReaderConfig extends FeatureModelReaderConfig {
      *                      systems if not specified absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid analyzer configuration
      */
-    public TorteKmaxFMReaderConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig) throws InvalidConfigException {
+    public TorteKmaxFMReaderConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig)
+            throws InvalidConfigException {
         super(toml);
         String path = TomlUtils.getMandatoryString(
                 PATH_FIELD_NAME,

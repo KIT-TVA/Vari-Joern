@@ -31,17 +31,18 @@ public class Args {
             validateWith = PositiveIntegerValidator.class)
     private int numAnalyzers = 1;
 
-    @Parameter(names = "--composition-queue", description = "Maximum number of compositions to queue up for analysis (product-based)",
+    @Parameter(names = "--composition-queue",
+            description = "Maximum number of compositions to queue up for analysis (product-based)",
             validateWith = PositiveIntegerValidator.class)
     private int compositionQueueCapacity = 1;
 
     // Parameters specific to the family-based strategy.
-    @Parameter(names = "--sugarlyzer-workers", description = "The number of concurrent workers to use for desugaring " +
-            "/analysis within Sugarlyzer (family-based)", validateWith = PositiveIntegerValidator.class)
+    @Parameter(names = "--sugarlyzer-workers", description = "The number of concurrent workers to use for desugaring "
+            + "/analysis within Sugarlyzer (family-based)", validateWith = PositiveIntegerValidator.class)
     private int sugarlyzerWorkers = 1;
 
-    @Parameter(names = "--sugarlyzer-max-heap", description = "The number of gigabytes to use as the maximum heap size " +
-            "for every Sugarlyzer worker (family-based)", validateWith = PositiveIntegerValidator.class)
+    @Parameter(names = "--sugarlyzer-max-heap", description = "The number of gigabytes to use as the maximum heap size "
+            + "for every Sugarlyzer worker (family-based)", validateWith = PositiveIntegerValidator.class)
     private int sugarlyzerWorkerMaxHeap = 8;
 
     @Parameter(names = "--result-cache", description = "Use the specified directory as a cache for results",

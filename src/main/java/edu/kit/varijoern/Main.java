@@ -6,10 +6,10 @@ import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.analyzers.AnalyzerConfigFactory;
 import edu.kit.varijoern.analyzers.ResultAggregator;
-import edu.kit.varijoern.cli.Args;
 import edu.kit.varijoern.caching.DummyResultCache;
 import edu.kit.varijoern.caching.ResultCache;
 import edu.kit.varijoern.caching.SimpleResultCache;
+import edu.kit.varijoern.cli.Args;
 import edu.kit.varijoern.composers.ComposerConfigFactory;
 import edu.kit.varijoern.config.Config;
 import edu.kit.varijoern.config.InvalidConfigException;
@@ -54,7 +54,8 @@ public class Main {
     public static final int STATUS_INVALID_CONFIG = 78;
     public static final int STATUS_INTERRUPTED = 130;
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final OutputStream SUGARLYZER_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
+    private static final OutputStream SUGARLYZER_LOGGER
+            = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
 
     private static final CountDownLatch EXITED_LATCH = new CountDownLatch(1);
 
@@ -265,7 +266,7 @@ public class Main {
         sugarlyzerCommandList.add("tester");
 
         // Add options.
-        if(args.isVerbose()){
+        if (args.isVerbose()) {
             sugarlyzerCommandList.add("-v");
         }
 
@@ -275,11 +276,11 @@ public class Main {
         sugarlyzerCommandList.add("--max-heap-per-job");
         sugarlyzerCommandList.add(String.valueOf(args.getSugarlyzerWorkerMaxHeap()));
 
-        if(sugarlyzerConfig.getKeepIntermediaryFiles()) {
+        if (sugarlyzerConfig.getKeepIntermediaryFiles()) {
             sugarlyzerCommandList.add("--keep-intermediary-files");
         }
 
-        if(sugarlyzerConfig.getRelativePaths()){
+        if (sugarlyzerConfig.getRelativePaths()) {
             sugarlyzerCommandList.add("--relative-paths");
         }
 

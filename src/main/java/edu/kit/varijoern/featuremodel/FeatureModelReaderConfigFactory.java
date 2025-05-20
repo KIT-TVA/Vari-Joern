@@ -43,7 +43,8 @@ public final class FeatureModelReaderConfigFactory extends NamedComponentConfigF
 
     @Override
     protected @NotNull FeatureModelReaderConfig newConfigFromName(@NotNull String componentName,
-                                                                  @NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig)
+                                                                  @NotNull TomlTable toml,
+                                                                  @NotNull SubjectConfig subjectConfig)
             throws InvalidConfigException {
         return switch (componentName) {
             case FeatureIDEFMReader.NAME -> new FeatureIDEFMReaderConfig(toml, subjectConfig);

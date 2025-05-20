@@ -28,7 +28,8 @@ public class AntennaComposerConfig extends ComposerConfig {
      * @param composerArgs the general command line arguments for the composer.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public AntennaComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig, @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
+    public AntennaComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig,
+                                 @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
         super(toml);
         this.composerArgs = composerArgs;
         String sourceLocation = TomlUtils.getMandatoryString(
