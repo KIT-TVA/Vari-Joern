@@ -38,6 +38,9 @@ experiment-subjects() {
 
 experiment-stages() {
     push "$INPUT_DIRECTORY"/fiasco
+    if [ ! -d .git ]; then
+        git init
+    fi
     git add .
     if [ -n "$(git status --porcelain)" ]; then
         git commit -m "Automatic commit by Vari-Joern"
