@@ -1,12 +1,12 @@
 # Vari-Joern
 
-Vari-Joern is a tool for analyzing software product lines with [Joern](https://joern.io) for the presence of potential
-vulnerabilities
+Vari-Joern is an analysis platform for analyzing highly-configurable software systems for the presence of potential
+vulnerabilities using the Q-SAST tool [Joern](https://joern.io).
 It features two analysis strategies:
-- **Optimized Product-Based Strategy**: Run Joern on a subset of all valid configurations of a software system determined 
-  by a specific sampling strategy.
-- **Family-Based Strategy**: Analyze the SPL as a whole by transforming its variable C code into plain C that can then be
-  analyzed by Joern.
+- **Optimized Product-Based Strategy**: Run Joern on a subset of all valid configurations of a configurable software 
+  system as determined through a specific sampling strategy.
+- **Family-Based Strategy**: Analyze a configurable software system as a whole by transforming its variable C code into
+  plain C (also known as variability encoding) that can then be analyzed by Joern.
 
 ## Installation 
 
@@ -18,12 +18,17 @@ It features two analysis strategies:
 
 ### Native Execution (Without Docker)
 
-### Product-Based Strategy
+Vari-Joern itself is implemented in Java and requires a JDK of version 19 or later. A corresponding open-source JDK can
+be found [here](https://openjdk.org/). 
 
-*TODO*
+### Product-Based Strategy
+Beyond a suitable JDK, Vari-Joern's product-based analysis strategy requires the following software to be installed for
+native execution:
+- *TODO*
 
 #### Family-Based Strategy
-- A Java JDK >= 19 is installed.
+Beyond a suitable JDK, Vari-Joern's family-based analysis strategy requires the following software to be installed for
+native execution:
 - A working installation of [KIT-TVA/superc](https://github.com/KIT-TVA/superc)
   - Corresponding jars are expected to be part of the `PATH` environment variable (the `java superc.SugarC` command 
     should launch SuperC)
@@ -33,7 +38,7 @@ It features two analysis strategies:
   - The query database is expected to be already populated (e.g., via `joern-scan --updatedb --dbversion 4.0.48`)
 - A working installation of a C compiler (preferably GCC as clang has not been tested)
 - Python 3 (>= 3.10.0)
-  - `python` should point to Python 3, not to Python 2 (can be solved via a symbolic link or alias). 
+  - The `python` command should point to Python 3, not to Python 2 (can be solved via a symbolic link or alias). 
   - Pip is installed (can be installed via `sudo apt install python3-pip`)
   - Python dependencies are installed (can be installed with `python -m pip install -r requirements.txt`)
 - `PYTHONPATH` points to `Vari-Joern/src/main`
@@ -76,3 +81,10 @@ Vari-Joern [options] path/to/config.toml
 ```
 
 Again, for an overview of the configuration file and available options see [Configuration.md](docs/Configuration.md) and [Arguments.md](docs/Arguments.md).
+
+
+## Licensing
+Vari-Joern is licensed under a GNU General Public License version 3 (GPLv3). More details on this license can be found 
+in the [LICENSE](LICENSE) file.
+Third-party software that was reused is licensed under its respective license, as indicated by the license files in the
+corresponding subdirectory.
