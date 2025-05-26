@@ -63,14 +63,14 @@ public class KbuildPresenceConditionMapper implements PresenceConditionMapper {
         Optional<Node> filePresenceCondition = this.filePresenceConditionMapper
                 .getPresenceCondition(originalLocation.file());
         if (filePresenceCondition.isEmpty()) {
-            LOGGER.warn("No file presence condition found for {}", file);
+            LOGGER.debug("No file presence condition found for {}", file);
             return Optional.empty();
         }
 
         OriginalLinePresenceConditionMapper linePresenceConditionMapper = this.linePresenceConditionMappers
                 .get(file.normalize());
         if (linePresenceConditionMapper == null) {
-            LOGGER.warn("No line presence condition found for {}:{}", file, lineNumber);
+            LOGGER.debug("No line presence condition found for {}:{}", file, lineNumber);
             return Optional.empty();
         }
 
