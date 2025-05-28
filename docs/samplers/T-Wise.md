@@ -1,7 +1,8 @@
-# The t-wise sampler
+# The t-wise Sampler
 
-This sampler returns a sample that achieves t-wise feature coverage, i.e., that covers all t-wise feature
-interactions (a t-wise feature interaction is a partial configuration setting t features to on or off).
+This sampler returns a sample that achieves t-wise feature interaction coverage. Internally, it uses the YASA
+implementation provided by FeatureIDE. To enable statistical analysis, the internally used random number generator is
+initialized with a random seed.
 
 ## Configuration
 
@@ -18,7 +19,7 @@ The t-wise sampler is configured using the following option:
 For example, the sampler could be configured as follows:
 
 ```toml
-[sampler]
+[product.sampler]
 name = "t-wise"
 t = 2
 ```

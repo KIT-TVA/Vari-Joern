@@ -26,6 +26,8 @@ import java.util.Set;
  *     </li>
  *     <li>Example: {@code |(&("a b" -(c)) d)}</li>
  * </ul>
+ * Note that an empty {@link And} node represents a tautology, while an empty {@link Or} node represents
+ * a contradiction.
  */
 public class NodeDeserializer {
     private static final Set<Character> OPERATORS = Set.of('&', '|', '!');

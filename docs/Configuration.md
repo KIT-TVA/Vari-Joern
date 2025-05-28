@@ -1,4 +1,4 @@
-# The configuration file
+# The Configuration File
 
 The configuration file contains project-specific information about how Vari-Joern should analyze source code.
 It is written in the [TOML](https://toml.io/) format.
@@ -20,9 +20,8 @@ name = "busybox"
 # Either absolute or relative to the config file.
 source_root = "path/to/busybox"
 ```
-Depending on the chosen analysis strategy (product-based vs. family-based) additional `product` and `family` tables need
+Depending on the chosen analysis strategy (product-based vs. family-based), additional `product` and `family` tables need
 to be populated as described below:
-
 
 
 ## Product-Based Strategy.
@@ -33,7 +32,7 @@ implementation-specific options.
 For example, the `fixed` sampler could be configured as follows:
 
 ```toml
-[sampler]
+[product.sampler]
 name = "fixed"
 features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
 ```
@@ -49,28 +48,28 @@ The following feature model readers are available:
 
 ### Samplers
 
-Samplers return a set of feature combinations which are then used by a composer to configure a variant of the software.
+Samplers return a set of configurations which are then used by a composer to configure a variant of the software.
 The resulting code is analyzed by Joern.
-Samplers may use the results of the analysis to optimize the set of feature combinations returned in the next iteration.
 
 The following samplers are available:
 
-- [Fixed sampler](samplers/Fixed.md): Always returns the same set of features.
 - [T-Wise sampler](samplers/T-Wise.md): Returns a set of configurations that achieves t-wise coverage.
+- [Uniform sampler](samplers/Uniform.md): Returns a set of uniformly chosen configurations.
+- [Fixed sampler](samplers/Fixed.md): Always returns the same pre-defined set of configurations.
 
 ### Composers
 
-Composers create a variant of the software by enabling a set of features which has been chosen by a sampler.
+Composers create a representation of a software variant from a configuration chosen by a sampler. This representation is
+later analyzed by Joern. They are also responsible for determining the presence conditions of individual lines of code.
 
 The following composers are available:
 
-- [Antenna composer](composers/Antenna.md): A simple preprocessor for Java source files.
 - [Kconfig composer](composers/Kconfig.md): A composer for Kconfig, the Linux kernel configuration system.
+- [Antenna composer](composers/Antenna.md): A simple preprocessor for Java source files.
 
 ### Analyzers
 
 Analyzers are used to scan a composed software variant. Only [Joern](analyzers/Joern.md) is supported at the moment.
-
 
 
 ## Family-Based Strategy
@@ -83,7 +82,7 @@ This section has three fields:
 - `keep_intermediary_files`: Specifies, whether Sugarlyzer should omit cleaning intermediary files after the analysis has
   finished.
   - Optional, `false` by default
-- `relative_paths`: Should absolute or relative paths be used in the resulting report file.
+- `relative_paths`: Should absolute or relative paths be used in the resulting report file?
   - Optional, `false` by default
 
 
@@ -101,36 +100,34 @@ name = "busybox"
 # Either absolute or relative to the config file.
 source_root = "path/to/busybox"
 
-####################################################
-# Only checked if product-based strategy is chosen.
-####################################################
-[product]
+#####################################################################
+# `product` table: only checked if product-based strategy is chosen
+#####################################################################
+
+# Mandatory table for product-based strategy.
+[product.feature-model-reader]
+name = "torte-kmax"
+# Either absolute or relative to subject.source_root. Can be omitted.
+path = "."
+
+# Mandatory table for product-based strategy.
+[product.sampler]
+name = "uniform"
+sample-size = 10
+
+# Mandatory table for product-based strategy.
+[product.composer]
+name = "kconfig"
+# Either absolute or relative to subject.source_root. Can be omitted.
+source = "."
 
 # Mandatory table for product-based strategy.
 [product.analyzer]
 name = "joern"
 
-# Mandatory table for product-based strategy.
-[feature-model-reader]
-name = "featureide"
-# Either absolute or relative to subject.source_root.
-path = "path/to/feature-model.xml"
-
-# Mandatory table for product-based strategy.
-[product.sampler]
-name = "fixed"
-features = [["MyAwesomeFeature"], ["MyAwesomeFeature", "AnotherFeature"]]
-
-# Mandatory table for product-based strategy.
-[product.composer]
-name = "kconfig"
-# Either absolute or relative to subject.source_root.
-source = "path/to/source-code"
-
-####################################################
-# Only checked if family-based strategy is chosen.
-####################################################
-[family]
+###################################################################
+# `family` table: only checked if family-based strategy is chosen.
+###################################################################
 
 # Mandatory table for family-based strategy.
 [family.sugarlyzer]
