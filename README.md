@@ -10,12 +10,42 @@ It features two analysis strategies:
 
 ## Installation 
 
-### General Prerequisites
-- Clone the repository and initialize & update the contained  `Antenna` submodule. 
-  - Execute `git clone` followed by `cd <target_location>/Vari-Joern`.
-  - Execute ``git sobmodule init`` followed by `git submodule update`
+Vari-Joern can only be run on a Linux system.
 
 ### Native Execution
+
+#### Product-Based Strategy
+- A Java JDK >= 17 is installed.
+- A working installation of Joern >= 4 (e.g., version 4.0.48)
+  - You may want to add Joern's executables to your `PATH` environment variable
+  - Query database is already populated (e.g., via `joern-scan --updatedb --dbversion 4.0.48`)
+- A working installation of curl
+- A working installation of Git
+- A working installation of GNU Make
+- A working installation of Docker
+  - Ensure that Docker runs in [rootless mode](https://docs.docker.com/engine/security/rootless/), or execute Vari-Joern
+    as root.
+- A working installation of gcc
+- A working installation of Smarch
+  - Can be installed via `pipx install git+https://github.com/KIT-TVA/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c`
+    - This step requires g++, cmake, python3.11-dev (or later) and libgmp-dev to be installed on the system.
+- A working installation nof kmax
+  - Can be installed via `pipx install kmax` (see https://github.com/paulgazz/kmax)
+    - This step requires python3.11-dev (or later) to be installed on the system.
+- A working installation of libz3java (version 4.8.12 is known to work)
+    - Package `libz3-java` on Debian and Ubuntu
+
+Additional dependencies are required for some subject systems:
+- BusyBox:
+ - SELinux headers (`libselinux1-dev` on Debian/Ubuntu)
+- Fiasco:
+  - A working installation of flex
+  - A working installation of bison
+  - A working installation of g++
+  - The headers of SDL (`libsdl2-dev` on Debian/Ubuntu)
+- Linux:
+  - A working installation of flex
+  - A working installation of bison
 
 #### Family-Based Strategy
 - A Java JDK >= 19 is installed.
@@ -51,22 +81,29 @@ path to the Docker socket on the host system. It is usually located at `/var/run
 
 
 ## Usage
+Before running Vari-Joern, download the source code of the software system you want to analyze. For example, to
+analyze version 1.36.1 of the BusyBox project, you can run:
+```shell
+git clone --branch 1_36_1 https://git.busybox.net/busybox/
+```
+Next, you will need to create a configuration file that specifies how Vari-Joern should analyze the source code.
+See [Configuration.md](docs/Configuration.md) for more information on how to create this file.
+
+Finally, you can run Vari-Joern to analyze the source code. Depending on whether you run Vari-Joern inside a Docker
+container or natively, you need to use a different command. For either method, see [Arguments.md](docs/Arguments.md) for
+a list of available command-line arguments.
 
 ### Native Execution
-In the simplest case, Vari-Joern can be run with the following command:
+Vari-Joern can be run with the following command:
 ```shell
-./gradlew run --args="path/to/config.toml"
+./gradlew run --args="-s product [further options] path/to/config.toml"
 ```
-This will run Vari-Joern with the configuration file `path/to/config.toml` and print a summary of the findings to the
-console.
-For an overview of the configuration file, see [Configuration.md](docs/Configuration.md). The available command-line
-arguments are described in [Arguments.md](docs/Arguments.md).
+This will launch a product-based analysis with the configuration file `path/to/config.toml` and print a summary of the
+findings to the console.
 
 ### Using the Docker container
 From within the Docker container, you can run Vari-Joern as
 follows:
 ```shell
-Vari-Joern [options] path/to/config.toml
+Vari-Joern -s product [further options] path/to/config.toml
 ```
-
-Again, for an overview of the configuration file and available options see [Configuration.md](docs/Configuration.md) and [Arguments.md](docs/Arguments.md).
