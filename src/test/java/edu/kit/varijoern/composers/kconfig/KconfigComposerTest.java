@@ -453,9 +453,9 @@ class KconfigComposerTest {
         }
 
         Path originalDirectory = testCaseManager.getPath();
-        Path destinationBaseDirectory = Files.createTempDirectory("vari-joern-test-kconfig-composer");
-        Path destinationDirectory = Files.createDirectory(destinationBaseDirectory.resolve("composition"));
-        Path composerTmpDirectory = Files.createDirectory(destinationBaseDirectory.resolve("tmp"));
+        Path destinationBaseDirectory = tempDir.resolve("composer");
+        Path destinationDirectory = Files.createDirectories(destinationBaseDirectory.resolve("composition"));
+        Path composerTmpDirectory = Files.createDirectories(destinationBaseDirectory.resolve("tmp"));
 
         System.err.println("Created temporary directory " + destinationBaseDirectory);
 
