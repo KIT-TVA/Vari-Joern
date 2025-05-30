@@ -163,7 +163,7 @@ public class ParallelIterationRunner {
                 results.add(result);
             }
         } catch (InterruptedException e) {
-            LOGGER.atWarn().withThrowable(e).log("The runner was interrupted");
+            LOGGER.atDebug().withThrowable(e).log("The runner was interrupted");
             stop();
             throw new InterruptedException();
         } finally {
@@ -243,7 +243,7 @@ public class ParallelIterationRunner {
                     this.outputQueue.put(result);
                 }
             } catch (InterruptedException e) {
-                LOGGER.atWarn().withThrowable(e).log("Interrupted");
+                LOGGER.atDebug().withThrowable(e).log("Interrupted");
             }
             // CHECKSTYLE:OFF: IllegalCatch
             catch (Throwable t) {
