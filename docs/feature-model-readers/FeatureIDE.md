@@ -9,13 +9,13 @@ This reader is configured using the following option:
 
 - `path`
     - Specifies the location of the FeatureIDE feature model file.
-      Relative paths are relative to the location of the configuration file.
+      Relative paths are relative to the source root of the subject.
     - Optional: no
 
 For example, the reader could be configured as follows:
 
 ```toml
-[feature-model-reader]
+[product.feature-model-reader]
 name = "featureide"
 path = "path/to/feature-model.xml"
 ```

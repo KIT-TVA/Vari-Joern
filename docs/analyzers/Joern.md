@@ -19,7 +19,7 @@ joern-scan --updatedb
 Add the following section to your configuration file to select the Joern analyzer:
 
 ```toml
-[analyzer]
+[product.analyzer]
 name = "joern"
 ```
 

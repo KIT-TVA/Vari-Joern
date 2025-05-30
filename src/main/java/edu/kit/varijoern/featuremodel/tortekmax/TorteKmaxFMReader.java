@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 
 /**
  * Reads a feature model from Kconfig files using <a href="https://github.com/ekuiter/torte/tree/main">torte</a> and
- * <a href="https://github.com/paulgazz/kmax">kmax</a>. So far, only the Linux kernel is supported.
+ * <a href="https://github.com/paulgazz/kmax">kmax</a>.
  */
 public class TorteKmaxFMReader implements FeatureModelReader {
     public static final String NAME = "torte-kmax";
