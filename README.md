@@ -102,7 +102,7 @@ a list of available command-line arguments.
 ### Native Execution
 Vari-Joern can be run with the following command:
 ```shell
-./gradlew run --args="-s product [further options] path/to/config.toml"
+./gradlew run --args="-s [product/family] [further options] path/to/config.toml"
 ```
 This will launch a product-based analysis with the configuration file `path/to/config.toml` and print a summary of the
 findings to the console.
@@ -111,7 +111,7 @@ findings to the console.
 From within the Docker container, you can run Vari-Joern as
 follows:
 ```shell
-Vari-Joern -s product [further options] path/to/config.toml
+Vari-Joern -s [product/family] [further options] path/to/config.toml
 ```
 
 ## Licensing
