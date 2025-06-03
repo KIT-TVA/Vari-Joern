@@ -1,17 +1,20 @@
 # The Kconfig composer
 
-Kconfig is a variability management system used by the Linux kernel and other projects. This composer generates variants for such
-codebases. It does this by determining the files that are included in the variant described by the specified
-configuration. These files are then copied to a new directory, adding `#define` and `#include` directives that would be
-specified using command line arguments to the compiler. Presence conditions are determined in two steps: It first
-determines the presence conditions of all files that are listed in the Kbuild files. Then, it determines the presence
-conditions of the individual lines. Due to the exact implementation of this last step, it is possible in very rare cases
-that the composer will determine different presence conditions when composing different variants. So far, determining
-presence conditions has only been implemented for BusyBox.
+Kconfig is a variability management system used by the Linux kernel and other projects.
+This composer generates variants for codebases that are built on this system.
+It does this by determining the files that are included in the variant described by the sampled configuration.
+These files are then copied to a new directory, adding `#define` and `#include` directives that would be
+specified using command line arguments to the compiler.
+For BusyBox, the composer also supports presence condition extraction.
+For details on how the composer works and its limitations, see the Javadoc comment for the
+[KconfigComposer class](../../src/main/java/edu/kit/varijoern/composers/kconfig/KconfigComposer.java).
+Due to the differences in the Kconfig implementations, the composer checks the `name` option of the subject section to
+adapt to the used implementation. It currently supports the Kconfig implementations of the Linux kernel
+(`name = "linux"`), BusyBox (`name = "busybox"`), Fiasco (`name = "fiasco"`), and axTLS (`name = "axtls"`).
 
 ## Requirements
 
-The Kconfig composer depends on [kmax 4.5.3](https://github.com/paulgazz/kmax) being installed and available in the path
+The Kconfig composer depends on [kmax](https://github.com/paulgazz/kmax) 4.5.3 or later being installed and available in the path
 variable.
 
 ## Configuration
@@ -20,27 +23,23 @@ The Kconfig composer is configured using the following options:
 
 - `path`
     - Specifies the location of the source code.
-      Relative paths are relative to the location of the configuration file.
-    - Optional: no
+      Relative paths are relative to the root location of the subject.
+    - Optional: yes
+    - Default: `.`
 - `encoding`
   - Specifies the encoding of the source files.
     - Optional: yes
     - Default: "utf-8"
-- `system`
-    - Specifies the used Kconfig/Kbuild implementation. Currently, `busybox`, `linux` and `fiasco` are supported.
-    - Optional: no
 - `presence_condition_excludes`
     - Specifies a list of files for which presence conditions should not be determined. The paths are relative to the
-      source directory.
+      source directory specified by the `path` field.
     - Optional: yes
 
-For example, the composer could be configured as follows:
+For example, the configuration for BusyBox would typically look like this:
 
 ```toml
-[composer]
+[product.composer]
 name = "kconfig"
 encoding = "iso-8859-1"
-path = "path/to/source-code"
-system = "busybox"
 presence_condition_excludes = ["miscutils/setserial.c"]
 ```

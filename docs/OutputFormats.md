@@ -31,8 +31,7 @@ described in the next section.
         - `possibleConditions`: An array of strings representing the determined presence conditions of the finding. Most
           of the time, this array will have at most one element, but it may contain more than one because, due to
           inaccuracies, the determined presence condition depends on the variant in which it was determined.
-          See [NodeDeserializer.java](../src/main/java/edu/kit/varijoern/serialization/NodeDeserializer.java) for the
-          syntax of the presence condition.
+          See [NodeDeserializer.java](../src/main/java/edu/kit/varijoern/serialization/NodeDeserializer.java) for the syntax of the presence condition.
 
 #### Finding
 
