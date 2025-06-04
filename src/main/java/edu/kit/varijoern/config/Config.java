@@ -91,7 +91,9 @@ public class Config {
         this.initializeFamilyBasedConfig(parsedConfig);
     }
 
-    private void initializeProductBasedConfig(@NotNull TomlParseResult parsedConfig, @NotNull Path absoluteConfigLocation) throws InvalidConfigException {
+    private void initializeProductBasedConfig(@NotNull TomlParseResult parsedConfig,
+                                              @NotNull Path absoluteConfigLocation)
+            throws InvalidConfigException {
         if (!parsedConfig.isTable(PRODUCT_FIELD_NAME)) {
             return;
         }
@@ -135,7 +137,9 @@ public class Config {
 
         // Sugarlyzer.
         if (familyTable.isTable(SUGARLYZER_FIELD_NAME)) {
-            this.sugarlyzerConfig = new SugarlyzerConfig(Objects.requireNonNull(familyTable.getTable(SUGARLYZER_FIELD_NAME)));
+            this.sugarlyzerConfig = new SugarlyzerConfig(
+                    Objects.requireNonNull(familyTable.getTable(SUGARLYZER_FIELD_NAME))
+            );
         }
     }
 
@@ -146,7 +150,8 @@ public class Config {
                     throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, ANALYZER_FIELD_NAME));
                 }
                 if (this.featureModelReaderConfig == null) {
-                    throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, FEATURE_MODEL_READER_FIELD_NAME));
+                    throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT,
+                            FEATURE_MODEL_READER_FIELD_NAME));
                 }
                 if (this.samplerConfig == null) {
                     throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SAMPLER_FIELD_NAME));
@@ -160,6 +165,8 @@ public class Config {
                     throw new InvalidConfigException(String.format(ERR_SECTION_MISSING_FMT, SUGARLYZER_FIELD_NAME));
                 }
                 break;
+            default:
+                throw new IllegalStateException();
         }
     }
 
@@ -181,7 +188,7 @@ public class Config {
         return analyzerConfig;
     }
 
-    public @NotNull SubjectConfig getSubjectConfig(){
+    public @NotNull SubjectConfig getSubjectConfig() {
         return this.subjectConfig;
     }
 

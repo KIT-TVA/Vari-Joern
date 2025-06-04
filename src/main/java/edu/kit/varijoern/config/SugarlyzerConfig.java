@@ -13,8 +13,10 @@ public class SugarlyzerConfig {
     private final boolean relativePaths;
 
     public SugarlyzerConfig(@NotNull TomlTable sugarlyzerTable) throws InvalidConfigException {
-        this.analyzerName = TomlUtils.getMandatoryString(ANALYZER_NAME_KEY, sugarlyzerTable, "Analyzer for Sugarlyzer was not specified");
-        this.keepIntermediaryFiles = TomlUtils.getOptionalBoolean(KEEP_INTERMEDIARY_FILES_KEY, sugarlyzerTable).orElse(false);
+        this.analyzerName = TomlUtils.getMandatoryString(ANALYZER_NAME_KEY, sugarlyzerTable,
+                "Analyzer for Sugarlyzer was not specified");
+        this.keepIntermediaryFiles = TomlUtils.getOptionalBoolean(KEEP_INTERMEDIARY_FILES_KEY, sugarlyzerTable)
+                .orElse(false);
         this.relativePaths = TomlUtils.getOptionalBoolean(RELATIVE_PATHS_KEY, sugarlyzerTable).orElse(false);
     }
 

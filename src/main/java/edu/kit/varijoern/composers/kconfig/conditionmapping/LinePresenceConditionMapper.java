@@ -145,7 +145,7 @@ public class LinePresenceConditionMapper implements OriginalLinePresenceConditio
 
                     Optional<Node> nodeOptional = this.convertBDD(condition.getBDD(), presenceConditionManager);
                     if (nodeOptional.isEmpty()) {
-                        LOGGER.warn("Could not convert presence condition to node at {}:{}: {}", filePath,
+                        LOGGER.debug("Could not convert presence condition to node at {}:{}: {}", filePath,
                                 line, condition);
                         continue;
                     }
@@ -161,7 +161,7 @@ public class LinePresenceConditionMapper implements OriginalLinePresenceConditio
                             .toList();
 
                     if (!unknownFeatures.isEmpty()) {
-                        LOGGER.warn("Unknown features {} in presence condition at {}:{}", unknownFeatures, filePath,
+                        LOGGER.debug("Unknown features {} in presence condition at {}:{}", unknownFeatures, filePath,
                                 line);
                         node = Node.replaceLiterals(node, unknownFeatures, true);
                     }
@@ -287,7 +287,7 @@ public class LinePresenceConditionMapper implements OriginalLinePresenceConditio
                 if (matcher.matches()) {
                     return matcher.group(1);
                 }
-                LOGGER.warn("Symbol {} does not appear to be a BusyBox feature. Assuming it is false.", macro);
+                LOGGER.debug("Symbol {} does not appear to be a BusyBox feature. Assuming it is false.", macro);
                 return "___notafeature___";
             });
         }

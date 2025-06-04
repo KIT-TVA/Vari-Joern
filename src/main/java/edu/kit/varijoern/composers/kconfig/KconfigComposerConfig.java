@@ -11,7 +11,6 @@ import edu.kit.varijoern.composers.kconfig.subjects.FiascoStrategyFactory;
 import edu.kit.varijoern.composers.kconfig.subjects.LinuxStrategyFactory;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.SubjectConfig;
-import edu.kit.varijoern.config.TomlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlArray;
 import org.tomlj.TomlInvalidTypeException;
@@ -30,9 +29,8 @@ import java.util.Set;
  * Contains the configuration of the Kconfig composer.
  */
 public class KconfigComposerConfig extends ComposerConfig {
-    private static final String SOURCE_FIELD_NAME = "source";
+    private static final String PATH_FIELD_NAME = "path";
     private static final String ENCODING_FIELD_NAME = "encoding";
-    private static final String SYSTEM_FIELD_NAME = "system";
     private static final String PRESENCE_CONDITION_EXCLUDES_FIELD_NAME = "presence_condition_excludes";
 
     private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox", "fiasco", "axtls");
@@ -47,18 +45,15 @@ public class KconfigComposerConfig extends ComposerConfig {
      * Creates a new {@link KconfigComposerConfig} by extracting data from the specified TOML section.
      *
      * @param toml          the TOML section
-     * @param subjectConfig the {@link SubjectConfig} with which to resolve sourceLocation if not absolute and to set the system name.
+     * @param subjectConfig the {@link SubjectConfig} with which to resolve sourceLocation if not absolute and to set
+     *                      the system name.
      * @param composerArgs  the general command line arguments for the composer.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public KconfigComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig, @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
+    public KconfigComposerConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig,
+                                 @NotNull ComposerArgs composerArgs) throws InvalidConfigException {
         super(toml);
         this.composerArgs = composerArgs;
-        String sourceLocation = TomlUtils.getMandatoryString(
-                SOURCE_FIELD_NAME,
-                toml,
-                "Source location for Kconfig composer is missing or not a string"
-        );
 
         try {
             this.encoding = Charset.forName(toml.getString(ENCODING_FIELD_NAME, () -> "UTF-8"));
@@ -70,7 +65,7 @@ public class KconfigComposerConfig extends ComposerConfig {
 
         Path sourcePath;
         try {
-            sourcePath = Path.of(sourceLocation);
+            sourcePath = Path.of(toml.getString(PATH_FIELD_NAME, () -> "."));
         } catch (InvalidPathException e) {
             throw new InvalidConfigException("Source location for Kconfig composer is not a valid path", e);
         }

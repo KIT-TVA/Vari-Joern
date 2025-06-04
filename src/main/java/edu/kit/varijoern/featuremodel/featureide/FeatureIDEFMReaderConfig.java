@@ -2,7 +2,6 @@ package edu.kit.varijoern.featuremodel.featureide;
 
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.SubjectConfig;
-import edu.kit.varijoern.config.TomlUtils;
 import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfig;
 import org.jetbrains.annotations.NotNull;
@@ -23,19 +22,16 @@ public class FeatureIDEFMReaderConfig extends FeatureModelReaderConfig {
      * Creates a new {@link FeatureIDEFMReaderConfig} by extracting data from the specified TOML section.
      *
      * @param toml          the TOML section
-     * @param subjectConfig the {@link SubjectConfig} with which to resolve the path to the feature model if not specified absolute.
+     * @param subjectConfig the {@link SubjectConfig} with which to resolve the path to the feature model if not
+     *                      specified absolute.
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    public FeatureIDEFMReaderConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig) throws InvalidConfigException {
+    public FeatureIDEFMReaderConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig)
+            throws InvalidConfigException {
         super(toml);
-        String path = TomlUtils.getMandatoryString(
-                PATH_FIELD_NAME,
-                toml,
-                "Path to FeatureIDE feature model is missing or not a string"
-        );
         Path featureModelPath;
         try {
-            featureModelPath = Path.of(path);
+            featureModelPath = Path.of(toml.getString(PATH_FIELD_NAME, () -> "."));
         } catch (InvalidPathException e) {
             throw new InvalidConfigException("Path to FeatureIDE feature model is not a valid path", e);
         }

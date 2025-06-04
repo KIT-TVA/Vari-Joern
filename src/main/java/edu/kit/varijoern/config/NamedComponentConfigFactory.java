@@ -36,7 +36,8 @@ public abstract class NamedComponentConfigFactory<C extends NamedComponentConfig
      * @return the parsed configuration
      * @throws InvalidConfigException if the TOML section did not represent a valid configuration
      */
-    public @NotNull C readConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig) throws InvalidConfigException {
+    public @NotNull C readConfig(@NotNull TomlTable toml, @NotNull SubjectConfig subjectConfig)
+            throws InvalidConfigException {
         String componentName = getComponentName(toml, getComponentType());
         return newConfigFromName(componentName, toml, subjectConfig);
     }
