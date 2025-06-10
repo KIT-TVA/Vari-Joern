@@ -27,6 +27,9 @@ This reader takes the following option:
       Relative paths are relative to the source root of the subject.
     - Optional: yes
     - Default: `.`
+> **NOTE:** For all currently supported subject systems, this `path` should be `.`.
+> Ensure that the `source_root` in the `[subject]` table points to the directory wich contains the top-level Makefile.
+> Specifying a different path will lead to a cryptic error.
 
 For example, the reader could be configured as follows:
 
