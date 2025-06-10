@@ -20,6 +20,11 @@ name = "busybox"
 # Either absolute or relative to the config file.
 source_root = "path/to/busybox"
 ```
+> **NOTE**: Ensure that `source_root` really contains the path to the root of the subject system.
+> For axTLS, BusyBox and Fiasco, this is the directory that contains the top-level Makefile.
+> Unzipping a source code archive may create a wrapper directory around the source root.
+> Specifying this wrapper will lead to errors.
+
 Depending on the chosen analysis strategy (product-based vs. family-based), additional `product` and `family` tables need
 to be populated as described below:
 
