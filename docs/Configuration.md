@@ -9,6 +9,9 @@ Currently, there is one key used at the top level of the configuration file:
     - Specifies how many sampler-composer-analyzer cycles should be executed.
     - Is only relevant for the product-based strategy.
     - Optional: yes, default: `1`
+    > **NOTE:** This results of all cycles are aggregated and cannot be attributed to individual iterations.
+    > Do not use this option if your goal is to create statistics over multiple analysis runs.
+    > In this case, run Vari-Joern multiple times instead.
 
 Furthermore, the `subject` section is required.
 This section contains the `name` and `source_root` path to the system that should be analyzed.
@@ -96,8 +99,9 @@ This section has three fields:
 A complete configuration file that can be used for both analysis strategies might look like this:
 
 ```toml
-# Optional.
-iterations = 2
+# How many sampler-composer-analyzer cycles should be executed?
+# Optional, defaults to 1.
+iterations = 1
 
 # Mandatory table.
 [subject]
@@ -125,6 +129,12 @@ sample-size = 10
 name = "kconfig"
 # Either absolute or relative to subject.source_root. Can be omitted.
 source = "."
+# Required for BusyBox's as it does not use the default encoding.
+# Not needed for axTLS and Fiasco.
+encoding = "iso-8859-1"
+# Required as setserial.c causes SuperC to become unresponsive.
+# Not needed for axTLS and Fiasco.
+presence_condition_excludes = ["miscutils/setserial.c"]
 
 # Mandatory table for product-based strategy.
 [product.analyzer]
