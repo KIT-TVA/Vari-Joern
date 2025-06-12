@@ -9,7 +9,7 @@ Currently, there is one key used at the top level of the configuration file:
     - Specifies how many sampler-composer-analyzer cycles should be executed.
     - Is only relevant for the product-based strategy.
     - Optional: yes, default: `1`
-    > **NOTE:** This results of all cycles are aggregated and cannot be attributed to individual iterations.
+    > **NOTE:** The results of all cycles are aggregated and cannot be attributed to individual iterations.
     > Do not use this option if your goal is to create statistics over multiple analysis runs.
     > In this case, run Vari-Joern multiple times instead.
 
@@ -29,10 +29,10 @@ source_root = "path/to/busybox"
 > Specifying this wrapper will lead to errors.
 
 Depending on the chosen analysis strategy (product-based vs. family-based), additional `product` and `family` tables need
-to be populated as described below:
+to be populated as described in the sections below.
 
 
-## Product-Based Strategy.
+## Product-Based Strategy
 
 Within the product table, the `feature-model-reader`, `sampler`, `composer` and `analyzer` sections are required.
 Each section configures a component implementation to be used by specifying its name and other configuration
