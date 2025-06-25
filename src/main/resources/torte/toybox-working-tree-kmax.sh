@@ -1,9 +1,8 @@
 #!/bin/bash
-#set -o xtrace
 # The following line uses curl to reproducibly install and run the specified revision of torte.
 # Alternatively, torte can be installed manually (see https://github.com/ekuiter/torte).
 # In that case, make sure to check out the correct revision manually and run ./torte.sh <this-file>.
-TORTE_REVISION=f0c6e1f; [[ $TOOL != torte ]] && builtin source /dev/stdin <<<"$(curl -fsSL https://raw.githubusercontent.com/ekuiter/torte/$TORTE_REVISION/torte.sh)" "$@"
+TORTE_REVISION=3d70243; [[ $TOOL != torte ]] && builtin source /dev/stdin <<<"$(curl -fsSL https://raw.githubusercontent.com/ekuiter/torte/$TORTE_REVISION/torte.sh)" "$@"
 
 export INPUT_DIRECTORY=$TORTE_INPUT_DIRECTORY
 export OUTPUT_DIRECTORY=$TORTE_OUTPUT_DIRECTORY
@@ -11,7 +10,7 @@ export OUTPUT_DIRECTORY=$TORTE_OUTPUT_DIRECTORY
 # This experiment extracts, transforms, and analyzes a single feature model.
 # It serves as a demo and integration test for torte and also returns some common statistics of the model.
 
-experiment-subjects() {
+experiment-systems() {
     # Inject our own variant of add-system. We don't want to clone the Linux kernel with all its history.
     # This is taken from https://github.com/ekuiter/torte/blob/79a4df311c6ccb4eec3c2b20572ecde488fbd638/scripts/utilities.sh
     add-system(system, url) {
@@ -60,7 +59,12 @@ experiment-stages() {
     git tag -f vari-joern-auto-tag
     pop
 
-    extract-kconfig-models-with kmax
+    mkdir -p "$TORTE_OUTPUT_DIRECTORY/clone-systems"
+    mv -T "$INPUT_DIRECTORY/toybox" "$TORTE_OUTPUT_DIRECTORY/clone-systems/toybox"
+
+    read-toybox-configs
+
+    extract-kconfig-models-with kclause
 
     # transform
     transform-models-with-featjar --transformer model_to_xml_featureide --output-extension xml --jobs 2

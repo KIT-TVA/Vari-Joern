@@ -113,6 +113,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         int readerExitCode;
         try {
             readerExitCode = readerProcess.waitFor();
+            stdoutGobbler.join();
+            stderrGobbler.join();
         } catch (InterruptedException e) {
             readerProcess.destroy();
             throw e;
