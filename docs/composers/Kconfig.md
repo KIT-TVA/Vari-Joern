@@ -10,7 +10,8 @@ For details on how the composer works and its limitations, see the Javadoc comme
 [KconfigComposer class](../../src/main/java/edu/kit/varijoern/composers/kconfig/KconfigComposer.java).
 Due to the differences in the Kconfig implementations, the composer checks the `name` option of the subject section to
 adapt to the used implementation. It currently supports the Kconfig implementations of the Linux kernel
-(`name = "linux"`), BusyBox (`name = "busybox"`), Fiasco (`name = "fiasco"`), and axTLS (`name = "axtls"`).
+(`name = "linux"`), BusyBox (`name = "busybox"`), Fiasco (`name = "fiasco"`), axTLS (`name = "axtls"`),
+and Toybox (`name = "toybox"`).
 
 ## Requirements
 
