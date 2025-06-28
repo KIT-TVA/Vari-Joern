@@ -1,0 +1,5 @@
+This is a test case for Toybox's variant of the Kconfig system. It
+was created from the Toybox source code (version 0.8.12,
+see https://github.com/landley/toybox/tree/0.8.12) by stripping out
+most files that are not needed for this test case. A test C program
+was added in the toys/example directory.

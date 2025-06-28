@@ -15,6 +15,7 @@ import edu.kit.varijoern.composers.kconfig.subjects.BusyboxStrategyFactory;
 import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategyFactory;
 import edu.kit.varijoern.composers.kconfig.subjects.FiascoStrategyFactory;
 import edu.kit.varijoern.composers.kconfig.subjects.LinuxStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.ToyboxStrategyFactory;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
@@ -47,7 +48,7 @@ class KconfigComposerTest {
     );
 
     private static Stream<Arguments> testCases() {
-        return Stream.of(busyboxTestCases(), linuxTestCases(), fiascoTestCases(), axtlsTestCases())
+        return Stream.of(busyboxTestCases(), linuxTestCases(), fiascoTestCases(), axtlsTestCases(), toyboxTestCases())
                 .flatMap(s -> s);
     }
 
@@ -365,6 +366,71 @@ class KconfigComposerTest {
                                 new FileContentVerifier(Path.of("src/io-file.h")),
                                 new FileContentVerifier(mainC),
                                 new FileContentVerifier(Path.of("src/main.h"))
+                        )
+                )
+        );
+        return testCases.flatMap(
+                testCase -> STANDARD_PREPARERS.stream()
+                        .map(preparer -> Arguments.of(testCase, preparer))
+        );
+    }
+
+    private static Stream<Arguments> toyboxTestCases() {
+        Set<Path> standardIncludedFiles = Set.of();
+        List<Path> standardIncludePaths = List.of(Path.of(""));
+        List<Path> standardSystemIncludePaths = List.of();
+        Map<String, String> standardDefines = Map.of(
+                "TOYBOX_VERSION", "0.8.12"
+        );
+
+        InclusionInformation mainC = new InclusionInformation(
+                Path.of("main.c"),
+                standardIncludedFiles,
+                standardDefines,
+                standardIncludePaths,
+                standardSystemIncludePaths
+        );
+        InclusionInformation libC = new InclusionInformation(
+                Path.of("libs/lib.c"),
+                standardIncludedFiles,
+                standardDefines,
+                standardIncludePaths,
+                standardSystemIncludePaths
+        );
+
+        Stream<TestCase> testCases = Stream.of(
+                new TestCase(
+                        "toybox-sample",
+                        "toybox",
+                        new ToyboxStrategyFactory(),
+                        List.of("TOYBOX", "TOYBOX_FORK"),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.o"),
+                                FileAbsentVerifier.originalSourceAndHeader("toys/example/gets"),
+                                new FileContentVerifier(mainC),
+                                new FileContentVerifier(libC),
+                                new FileContentVerifier(Path.of("libs/lib.h")),
+                                new FileContentVerifier(Path.of("toys.h"))
+                        )
+                ),
+                new TestCase(
+                        "toybox-sample",
+                        "toybox",
+                        new ToyboxStrategyFactory(),
+                        List.of("TOYBOX", "TOYBOX_FORK", "GETS"),
+                        List.of(
+                                new FileAbsentVerifier(".*\\.o"),
+                                new FileContentVerifier(new InclusionInformation(
+                                        Path.of("toys/example/gets.c"),
+                                        standardIncludedFiles,
+                                        standardDefines,
+                                        standardIncludePaths,
+                                        standardSystemIncludePaths
+                                )),
+                                new FileContentVerifier(mainC),
+                                new FileContentVerifier(libC),
+                                new FileContentVerifier(Path.of("libs/lib.h")),
+                                new FileContentVerifier(Path.of("toys.h"))
                         )
                 )
         );

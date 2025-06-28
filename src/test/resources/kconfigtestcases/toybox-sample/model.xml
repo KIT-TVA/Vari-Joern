@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<featureModel>
+	<struct>
+		<and mandatory="true" name="Root">
+			<feature name="TOYBOX"/>
+			<feature name="TOYBOX_SUID"/>
+			<feature name="TOYBOX_FLOAT"/>
+			<feature name="TOYBOX_HELP"/>
+			<feature name="TOYBOX_HELP_DASHDASH"/>
+			<feature name="TOYBOX_ZHELP"/>
+			<feature name="TOYBOX_FREE"/>
+			<feature name="TOYBOX_NORECURSE"/>
+			<feature name="TOYBOX_DEBUG"/>
+			<feature name="TOYBOX_FORCE_NOMMU"/>
+
+			<feature name="TOYBOX_ON_ANDROID"/>
+			<feature name="TOYBOX_FORK"/>
+
+			<feature name="GETS"/>
+			<feature name="USE_GETS"/>
+		</and>
+	</struct>
+	<constraints>
+		<rule>
+			<disj>
+				<conj>
+					<var>GETS</var>
+					<disj>
+						<var>GETS</var>
+						<not>
+							<var>USE_GETS</var>
+						</not>
+					</disj>
+				</conj>
+				<conj>
+					<not>
+						<var>GETS</var>
+					</not>
+					<not>
+						<var>USE_GETS</var>
+					</not>
+				</conj>
+			</disj>
+		</rule>
+		<rule>
+			<var>TOYBOX</var>
+		</rule>
+		<rule>
+			<disj>
+				<conj>
+					<var>TOYBOX_HELP</var>
+					<disj>
+						<var>TOYBOX_HELP</var>
+						<not>
+							<var>TOYBOX_HELP_DASHDASH</var>
+						</not>
+					</disj>
+				</conj>
+				<conj>
+					<not>
+						<var>TOYBOX_HELP</var>
+					</not>
+					<conj>
+						<disj>
+							<var>TOYBOX_HELP</var>
+							<not>
+								<var>TOYBOX_HELP_DASHDASH</var>
+							</not>
+						</disj>
+						<disj>
+							<not>
+								<var>TOYBOX_HELP</var>
+							</not>
+							<var>TOYBOX_HELP_DASHDASH</var>
+						</disj>
+					</conj>
+				</conj>
+			</disj>
+		</rule>
+		<rule>
+			<disj>
+				<conj>
+					<var>TOYBOX_HELP</var>
+					<disj>
+						<var>TOYBOX_HELP</var>
+						<not>
+							<var>TOYBOX_ZHELP</var>
+						</not>
+					</disj>
+				</conj>
+				<conj>
+					<not>
+						<var>TOYBOX_HELP</var>
+					</not>
+					<conj>
+						<disj>
+							<var>TOYBOX_HELP</var>
+							<not>
+								<var>TOYBOX_ZHELP</var>
+							</not>
+						</disj>
+						<disj>
+							<not>
+								<var>TOYBOX_HELP</var>
+							</not>
+							<var>TOYBOX_ZHELP</var>
+						</disj>
+					</conj>
+				</conj>
+			</disj>
+		</rule>
+		<rule>
+			<not>
+				<var>TOYBOX_ON_ANDROID</var>
+			</not>
+		</rule>
+		<rule>
+			<conj>
+				<disj>
+					<not>
+						<var>TOYBOX_FORK</var>
+					</not>
+					<not>
+						<var>TOYBOX_FORCE_NOMMU</var>
+					</not>
+				</disj>
+				<disj>
+					<var>TOYBOX_FORK</var>
+					<var>TOYBOX_FORCE_NOMMU</var>
+				</disj>
+			</conj>
+		</rule>
+	</constraints>
+</featureModel>
