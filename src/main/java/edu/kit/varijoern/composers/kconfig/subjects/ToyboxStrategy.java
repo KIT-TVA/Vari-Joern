@@ -103,6 +103,10 @@ public class ToyboxStrategy extends ComposerStrategy {
 
     @Override
     public List<String> getDependencyDetectionMakeArgs() {
+        // For other subjects, `-in` would be passed to make to prevent it from building anything.
+        // Toybox is special in that it delegates the build to a shell script (`make.sh`).
+        // In the `prepareDependencyDetection` method, we patched this script to echo the commands
+        // instead of executing them. Therefore, we do not need to pass `-in` to make.
         return List.of();
     }
 }
