@@ -377,11 +377,9 @@ class KconfigComposerTest {
 
     private static Stream<Arguments> toyboxTestCases() {
         Set<Path> standardIncludedFiles = Set.of();
-        List<Path> standardIncludePaths = List.of(Path.of(""));
+        List<Path> standardIncludePaths = List.of(Path.of(".").normalize());
         List<Path> standardSystemIncludePaths = List.of();
-        Map<String, String> standardDefines = Map.of(
-                "TOYBOX_VERSION", "0.8.12"
-        );
+        Map<String, String> standardDefines = Map.of();
 
         InclusionInformation mainC = new InclusionInformation(
                 Path.of("main.c"),
@@ -391,7 +389,7 @@ class KconfigComposerTest {
                 standardSystemIncludePaths
         );
         InclusionInformation libC = new InclusionInformation(
-                Path.of("libs/lib.c"),
+                Path.of("lib/lib.c"),
                 standardIncludedFiles,
                 standardDefines,
                 standardIncludePaths,
@@ -409,7 +407,7 @@ class KconfigComposerTest {
                                 FileAbsentVerifier.originalSourceAndHeader("toys/example/gets"),
                                 new FileContentVerifier(mainC),
                                 new FileContentVerifier(libC),
-                                new FileContentVerifier(Path.of("libs/lib.h")),
+                                new FileContentVerifier(Path.of("lib/lib.h")),
                                 new FileContentVerifier(Path.of("toys.h"))
                         )
                 ),
@@ -429,7 +427,7 @@ class KconfigComposerTest {
                                 )),
                                 new FileContentVerifier(mainC),
                                 new FileContentVerifier(libC),
-                                new FileContentVerifier(Path.of("libs/lib.h")),
+                                new FileContentVerifier(Path.of("lib/lib.h")),
                                 new FileContentVerifier(Path.of("toys.h"))
                         )
                 )
