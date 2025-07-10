@@ -306,7 +306,11 @@ public class KconfigComposer implements Composer {
     private @NotNull Set<Dependency> getIncludedFiles(@NotNull Path tmpSourcePath)
             throws IOException, ComposerException, InterruptedException {
         LOGGER.info("Determining files to be included");
-        ProcessBuilder makeProcessBuilder = new ProcessBuilder("make", "-in")
+
+        List<String> makeCall = new ArrayList<>(List.of("make"));
+        makeCall.addAll(this.composerStrategy.getDependencyDetectionMakeArgs());
+
+        ProcessBuilder makeProcessBuilder = new ProcessBuilder(makeCall)
                 .directory(tmpSourcePath.toFile());
         makeProcessBuilder.environment().put("CC", "gcc");
         makeProcessBuilder.environment().put("LANG", "C");
@@ -434,7 +438,12 @@ public class KconfigComposer implements Composer {
         List<String> gccCall = new ArrayList<>();
         gccCall.add("gcc");
         gccCall.addAll(inclusionInformation.includePaths().stream()
-                .map(includePath -> "-I" + includePath)
+                .map(includePath -> {
+                    if (includePath.toString().isEmpty())
+                        return "-I.";
+
+                    return "-I" + includePath;
+                })
                 .toList());
         gccCall.addAll(inclusionInformation.defines().entrySet().stream()
                 .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue())

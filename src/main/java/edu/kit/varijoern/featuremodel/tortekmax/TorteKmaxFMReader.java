@@ -41,7 +41,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             "linux", "linux-working-tree-kmax.sh",
             "busybox", "busybox-working-tree-kmax.sh",
             "fiasco", "fiasco-working-tree-kmax.sh",
-            "axtls", "axtls-working-tree-kmax.sh"
+            "axtls", "axtls-working-tree-kmax.sh",
+            "toybox", "toybox-working-tree-kmax.sh"
     );
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
@@ -112,6 +113,8 @@ public class TorteKmaxFMReader implements FeatureModelReader {
         int readerExitCode;
         try {
             readerExitCode = readerProcess.waitFor();
+            stdoutGobbler.join();
+            stderrGobbler.join();
         } catch (InterruptedException e) {
             readerProcess.destroy();
             throw e;

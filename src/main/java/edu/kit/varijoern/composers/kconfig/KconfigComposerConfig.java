@@ -9,6 +9,7 @@ import edu.kit.varijoern.composers.kconfig.subjects.BusyboxStrategyFactory;
 import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategyFactory;
 import edu.kit.varijoern.composers.kconfig.subjects.FiascoStrategyFactory;
 import edu.kit.varijoern.composers.kconfig.subjects.LinuxStrategyFactory;
+import edu.kit.varijoern.composers.kconfig.subjects.ToyboxStrategyFactory;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.SubjectConfig;
 import org.jetbrains.annotations.NotNull;
@@ -33,7 +34,7 @@ public class KconfigComposerConfig extends ComposerConfig {
     private static final String ENCODING_FIELD_NAME = "encoding";
     private static final String PRESENCE_CONDITION_EXCLUDES_FIELD_NAME = "presence_condition_excludes";
 
-    private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox", "fiasco", "axtls");
+    private static final Set<String> SUPPORTED_SYSTEMS = Set.of("linux", "busybox", "fiasco", "axtls", "toybox");
 
     private final @NotNull Path sourceLocation;
     private final @NotNull Charset encoding;
@@ -122,6 +123,7 @@ public class KconfigComposerConfig extends ComposerConfig {
             case "busybox" -> new BusyboxStrategyFactory();
             case "fiasco" -> new FiascoStrategyFactory();
             case "axtls" -> new AxtlsStrategyFactory();
+            case "toybox" -> new ToyboxStrategyFactory();
             default -> throw new IllegalStateException("Unsupported system: " + this.system);
         };
         return new KconfigComposer(this.sourceLocation, composerStrategyFactory, this.encoding, tmpPath,

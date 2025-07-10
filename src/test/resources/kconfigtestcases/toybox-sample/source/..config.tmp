@@ -1,0 +1,9 @@
+deps_config := \
+	generated/Config.in \
+	generated/Config.probed \
+	Config.in
+
+include/config/auto.conf: \
+	$(deps_config)
+
+$(deps_config): ;

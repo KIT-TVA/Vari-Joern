@@ -2,8 +2,8 @@ package edu.kit.varijoern.composers.kconfig.subjects;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.composers.ComposerException;
-import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.conditionmapping.EmptyPresenceConditionMapper;
+import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.kconfig.InclusionInformation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import jodd.io.StreamGobbler;
@@ -18,6 +18,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -198,6 +199,19 @@ public abstract class ComposerStrategy {
      * @throws InterruptedException if the current thread is interrupted
      */
     public abstract void prepareDependencyDetection() throws ComposerException, IOException, InterruptedException;
+
+    /**
+     * The arguments with which make is called to detect which files are included in a variant. The command is
+     * expected to print the required GCC calls to stdout. Ideally, the files are not compiled to save computational
+     * resources. Usually, this method returns `-in`, which tells make to not execute anything, and to instead print all
+     * commands it would otherwise execute. Toybox, for example, requires a different make call because the GCC calls
+     * are not directly executed by make itself.
+     *
+     * @return the arguments passed to make
+     */
+    public List<String> getDependencyDetectionMakeArgs() {
+        return List.of("-in");
+    }
 
     /**
      * Creates a {@link PresenceConditionMapper} for the given inclusion information. This method is called after the

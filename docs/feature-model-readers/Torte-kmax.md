@@ -5,7 +5,7 @@ This reader extracts a feature model from a Kconfig files. It uses
 codebase uses its own implementation. The feature model reader knows which implementation to assume by reading the
 `name` field of the subject configuration. It supports the Kconfig implementation of the Linux kernel
 (`name = "linux"`, version 6.7 works, but broke in some later version), BusyBox (`name = "busybox"`),
-Fiasco (`name = "fiasco"`), and axTLS (`name = "axtls"`).
+Fiasco (`name = "fiasco"`), axTLS (`name = "axtls"`), and Toybox (`name = "toybox"`).
 
 A limitation of Vari-Joern is that it only supports boolean options in feature models, while Kconfig has more types.
 For this reason, tristate options are treated as boolean options and some options, for example numerical option, are not
