@@ -158,20 +158,38 @@ def map_source_line(line_number: int,
             function_line_range_end = next(iter(function_line_range[1].files.values()))[-1].end_line
 
             curren_line_number: int = line_number
-            open_parentheses: int = 0
+            open_parentheses: list[str] = []
+
+            parentheses = "{}()[]"
 
             while curren_line_number < len(lines):
                 current_line: str = lines[curren_line_number]
-                if "{" in current_line:
-                    open_parentheses += current_line.count("{")
-                if "}" in current_line and open_parentheses > 0:
-                    open_parentheses -= min(current_line.count("}"), open_parentheses)
+                current_line_without_comments: str = re.sub(r"//.*", "", current_line).strip()
+                if "\"" in current_line_without_comments or "'" in current_line_without_comments:
+                    raise ValueError("Cannot approximate line number for "
+                                     f"{desugared_file}:{line_number} ({the_line}) because it contains a string literal.")
 
-                if open_parentheses <= 0:
+                if "/*" in current_line_without_comments or "*/" in current_line_without_comments:
+                    raise ValueError("Cannot approximate line number for "
+                                     f"{desugared_file}:{line_number} ({the_line}) because it contains a block comment.")
+
+                for c in current_line_without_comments:
+                    parenthesis_idx = parentheses.find(c)
+                    if parenthesis_idx == -1:
+                        continue
+                    if parenthesis_idx % 2 == 0:  # Opening parenthesis
+                        open_parentheses.append(c)
+                    elif len(open_parentheses) > 0:  # Closing parenthesis
+                        if open_parentheses[-1] == parentheses[parenthesis_idx - 1]:
+                            open_parentheses.pop()
+                        else:
+                            raise ValueError("Cannot approximate line number for "
+                                             f"{desugared_file}:{line_number} ({the_line}) because it contains"
+                                             f" mismatched parentheses.")
+
+                if len(open_parentheses) == 0:
                     original_line_range: Lines = try_parse_comment(current_line)
-                    if original_line_range is not None \
-                        and len(original_line_range.files) == 1 \
-                        and (next(iter(original_line_range.files.values()))[0].end_line <= function_line_range_end):
+                    if original_line_range is not None:
                         original_line_range.approximated = True
                         return original_line_range
 
