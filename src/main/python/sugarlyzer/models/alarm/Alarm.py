@@ -26,7 +26,7 @@ class Lines:
         # not covered by any line range.
         for file, ranges in self.files.items():
             for i in range(len(ranges) - 1):
-                if ranges[i].end_line < ranges[i + 1].start_line:
+                if ranges[i].end_line >= ranges[i + 1].start_line:
                     raise ValueError(f"Line ranges for file {file} are not monotonic: {ranges[i]} and {ranges[i + 1]}.")
 
     def is_valid(self) -> bool:
@@ -94,7 +94,7 @@ def try_parse_comment(line: str) -> Lines | None:
     :param line: The line containing the comment to parse.
     :return: A LineMapping instance if the comment was successfully parsed, None otherwise.
     """
-    line_comment_pattern: str = r"//\s?L\s+((?:[^:]+:\d+(?:-\d+)?;?)+)"
+    line_comment_pattern: str = r"//\s?L\s+((?:[^:]+:(?:\d+(?:-\d+)?,?)+;?)+)"
     if match := re.search(line_comment_pattern, line):
         files: dict[Path, list[IntegerRange]] = {}
         for file_range in match.group(1).split(';'):
