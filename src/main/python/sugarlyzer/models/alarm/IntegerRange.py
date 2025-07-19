@@ -10,7 +10,6 @@ class IntegerRange:
 
     start_line: int
     end_line: int
-    approximated: bool = False
 
     @classmethod
     def same_range(cls, range1: 'IntegerRange', range2: 'IntegerRange') -> bool:
@@ -65,4 +64,4 @@ class IntegerRange:
             return self.start_line <= other <= self.end_line
 
     def __str__(self):
-        return f"{self.start_line}:{self.end_line}{' (Approximated)' if self.approximated else ''}"
+        return f"{self.start_line}-{self.end_line}"

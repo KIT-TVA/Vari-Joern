@@ -3,7 +3,8 @@ import re
 from pathlib import Path
 from typing import Dict, TextIO
 
-from python.sugarlyzer.models.alarm.Alarm import Alarm, IntegerRange
+from python.sugarlyzer.models.alarm.Alarm import Alarm, Lines
+from python.sugarlyzer.models.alarm.IntegerRange import IntegerRange
 
 logger = logging.getLogger(__name__)
 
@@ -86,22 +87,28 @@ class JoernAlarm(Alarm):
                 return open(file, 'r', encoding=file_encoding)
 
         # Check whether original line range can be established.
-        original_line_mapping: IntegerRange
+        original_line_mapping: Lines
         try:
-            original_line_mapping = self.original_line_range
+            original_line_mapping = self.original_lines
         except ValueError as ve:
             logger.debug(f"Could not establish a line mapping for an alarm of type {self.message} in "
                          f"{self.input_file}:{self.line_in_input_file}")
             logger.debug(ve)
             return False
 
-        original_file: Path = self.unpreprocessed_source_file
+        original_file: Path = self.unpreprocessed_source_file.absolute()
+        if original_file not in original_line_mapping.files:
+            logger.debug(f"Alarm {self.name} at {self.input_file}:{self.line_in_input_file} "
+                         f"did not originate from {original_file}.")
+            return False
+
         query_name: str = self.name
 
         try:
-            with open_source_file(original_file) as source_file:
+            with (open_source_file(original_file) as source_file):
                 for current_line_number, line in enumerate(source_file, start=1):
-                    if original_line_mapping.start_line <= current_line_number <= original_line_mapping.end_line:
+                    if Lines({original_file: [IntegerRange(current_line_number, current_line_number)]}
+                             ).is_in(original_line_mapping):
                         if re.search(pattern=self.sanity_check_pattern_per_query[query_name], string=line):
                             return True
 
