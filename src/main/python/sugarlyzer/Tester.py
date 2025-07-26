@@ -220,6 +220,10 @@ class Tester:
             alarms = [alarm for alarm in alarms if line_mapping_exists(alarm)]
             logger.info(f"{len(alarms)} alarms remain after pruning without a line mapping.")
 
+            logger.info("Pruning alarms that do not originate from their original source files...")
+            alarms = [alarm for alarm in alarms if alarm.unpreprocessed_source_file.absolute() in alarm.original_lines.files]
+            logger.info(f"{len(alarms)} alarms remain after pruning alarms that do not originate from their original source files.")
+
             # Internal function that checks whether two alarms refer to the same issue in the unpreprocessed
             # source code.
             def alarm_match(a: Alarm, b: Alarm) -> bool:
@@ -259,11 +263,6 @@ class Tester:
                 alarms[-1].other_lines_in_input_file = [alarm.line_in_input_file for alarm in bucket[1:]]
             logger.debug("Done.")
             logger.info(f"{len(alarms)} alarms remain after aggregation.")
-
-            # Perform a sanity check on the remaining alarms.
-            logger.info(f"Sanity checking the {len(alarms)} alarms...")
-            alarms = [alarm for alarm in alarms if alarm.is_alarm_valid(self.program.source_file_encoding)]
-            logger.info(f"{len(alarms)} remain after sanity checking.")
 
             if self.validate:
                 logger.info("Now validating....")
