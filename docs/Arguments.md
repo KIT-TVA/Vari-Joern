@@ -28,6 +28,12 @@ The following options are available:
     the composers will wait until there is space.
   - Affects only the product-based strategy.
   - Default: `1`
+- `--sequential`
+  - Runs the analysis strictly sequentially, without parallelization. This is different from setting the number of
+    analyzers and composers to `1`, as it also prevents the composer from running in parallel with the analyzer. If this
+    option is set, the `analyzers`, `composers` and `composition-queue` options do not have any effect.
+  - Affects only the product-based strategy.
+  - Default: `false`
 - `-o`, `--output`
     - Specifies the output file. Accepted values are file paths and `-` for standard output (standard output is only
       supported by the product-based strategy).
