@@ -81,7 +81,7 @@ public class JoernAnalyzer implements Analyzer {
             findings.addAll(this.parseFindings(outFile, compositionInformation.getPresenceConditionMapper(),
                     compositionInformation.getSourceMap()));
         }
-        JoernAnalysisResult result = new JoernAnalysisResult(findings, compositionInformation.getEnabledFeatures());
+        JoernAnalysisResult result = new JoernAnalysisResult(findings, compositionInformation.getConfiguration());
         if (this.resultAggregator != null) {
             this.resultAggregator.addResult(result);
         }

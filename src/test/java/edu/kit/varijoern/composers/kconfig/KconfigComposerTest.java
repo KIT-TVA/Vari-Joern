@@ -19,7 +19,9 @@ import edu.kit.varijoern.composers.kconfig.subjects.ToyboxStrategyFactory;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
+import edu.kit.varijoern.samplers.Configuration;
 import edu.kit.varijoern.samplers.FixedSampler;
+import edu.kit.varijoern.samplers.SampleTracker;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
@@ -507,11 +509,14 @@ class KconfigComposerTest {
     void runTestCase(TestCase testCase, KconfigTestCasePreparer preparer, @TempDir Path tempDir)
             throws IOException, GitAPIException, InterruptedException, FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager(testCase.name, preparer);
-        Map<String, Boolean> featureMap;
+        SampleTracker sampleTracker = new SampleTracker();
+        Configuration configuration;
         try {
-            featureMap = new FixedSampler(List.of(testCase.enabledFeatures), testCaseManager.getCorrectFeatureModel())
+            Map<String, Boolean> featureMap = new FixedSampler(List.of(testCase.enabledFeatures),
+                    testCaseManager.getCorrectFeatureModel())
                     .sample(null, tempDir.resolve("sampler"))
                     .get(0);
+            configuration = sampleTracker.trackConfiguration(featureMap);
         } catch (SamplerException e) {
             throw new RuntimeException(e);
         }
@@ -528,7 +533,7 @@ class KconfigComposerTest {
             Composer composer = new KconfigComposer(testCaseManager.getPath(),
                     testCase.composerStrategyFactory, Charset.forName(testCaseManager.getMetadata().encoding()),
                     composerTmpDirectory, testCase.presenceConditionExcludes, false);
-            compositionInformation = composer.compose(featureMap,
+            compositionInformation = composer.compose(configuration,
                     destinationDirectory,
                     testCaseManager.getCorrectFeatureModel()
             );
