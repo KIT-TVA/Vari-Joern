@@ -34,6 +34,8 @@ public class ParallelIterationRunner {
 
     private boolean isStopped = false;
 
+    private final boolean sequential;
+
     private final @NotNull IFeatureModel featureModel;
     private final @NotNull ResultAggregator<?, ?> resultAggregator;
     private final @NotNull ResultCache resultCache;
@@ -55,6 +57,11 @@ public class ParallelIterationRunner {
      * @param numAnalyzers             the number of analyzer workers
      * @param compositionQueueCapacity the capacity of the composition queue, i.e., the maximum number of compositions
      *                                 that can the composer workers can queue for analysis
+     * @param sequential               if {@code true}, the runner will perform the analysis sequentially, i.e., it will
+     *                                 wait for each analysis result before starting the next composition.
+     *                                 If {@code false}, the runner will perform the analysis in parallel,
+     *                                 i.e., it will start all compositions and analyses in parallel and wait for all
+     *                                 results to be available before returning.
      * @param composerConfig           the configuration for the composer
      * @param analyzerConfig           the configuration for the analyzer
      * @param featureModel             the feature model of the source code
@@ -63,7 +70,7 @@ public class ParallelIterationRunner {
      * @throws RunnerException      if an error occurs during instantiation
      * @throws InterruptedException if the current thread is interrupted
      */
-    public ParallelIterationRunner(int numComposers, int numAnalyzers, int compositionQueueCapacity,
+    public ParallelIterationRunner(int numComposers, int numAnalyzers, int compositionQueueCapacity, boolean sequential,
                                    @NotNull ComposerConfig composerConfig, @NotNull AnalyzerConfig<?, ?> analyzerConfig,
                                    @NotNull IFeatureModel featureModel, @NotNull ResultCache resultCache,
                                    @NotNull Path tmpDir)
@@ -73,6 +80,8 @@ public class ParallelIterationRunner {
         this.resultCache = resultCache;
         this.tmpDir = tmpDir;
         this.compositionQueue = new LinkedBlockingDeque<>(compositionQueueCapacity);
+
+        this.sequential = sequential;
 
         this.runners = new ArrayList<>(numComposers + numAnalyzers);
 
@@ -142,25 +151,18 @@ public class ParallelIterationRunner {
                 sampleQueue.put(Message.of(new ComposerInvocation(features,
                         this.tmpDir.resolve(Path.of(iteration + "-" + i))
                 ), i));
+
+                if (this.sequential) {
+                    Output output = processNextResult(results);
+                    if (output != null) return output;
+                }
             }
 
-            for (int i = 0; i < uncachedResults; i++) {
-                Message<AnalysisResult<?>> message;
-                do {
-                    if (this.checkForDeadWorkers()) {
-                        stop();
-                        return Output.error(Main.STATUS_INTERNAL_ERROR);
-                    }
-                    message = resultQueue.poll(1, TimeUnit.SECONDS);
-                } while (message == null);
-                if (message.isError()) {
-                    LOGGER.error("A worker failed. Stopping the runner.");
-                    stop();
-                    return Output.error(Objects.requireNonNull(message.exitCode()));
+            if (!this.sequential) {
+                for (int i = 0; i < uncachedResults; i++) {
+                    Output output = processNextResult(results);
+                    if (output != null) return output;
                 }
-                AnalysisResult<?> result = Objects.requireNonNull(message.data());
-                this.resultCache.cacheAnalysisResult(result, iteration, message.configurationIndex());
-                results.add(result);
             }
         } catch (InterruptedException e) {
             LOGGER.atDebug().withThrowable(e).log("The runner was interrupted");
@@ -170,6 +172,27 @@ public class ParallelIterationRunner {
             this.iteration++;
         }
         return Output.of(results);
+    }
+
+    private synchronized @Nullable Output processNextResult(List<AnalysisResult<?>> results)
+            throws InterruptedException {
+        Message<AnalysisResult<?>> message;
+        do {
+            if (this.checkForDeadWorkers()) {
+                stop();
+                return Output.error(Main.STATUS_INTERNAL_ERROR);
+            }
+            message = resultQueue.poll(1, TimeUnit.SECONDS);
+        } while (message == null);
+        if (message.isError()) {
+            LOGGER.error("A worker failed. Stopping the runner.");
+            stop();
+            return Output.error(Objects.requireNonNull(message.exitCode()));
+        }
+        AnalysisResult<?> result = Objects.requireNonNull(message.data());
+        this.resultCache.cacheAnalysisResult(result, iteration, message.configurationIndex());
+        results.add(result);
+        return null;
     }
 
     private boolean checkForDeadWorkers() {

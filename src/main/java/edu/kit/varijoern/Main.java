@@ -193,8 +193,8 @@ public class Main {
         ParallelIterationRunner runner;
         try {
             runner = new ParallelIterationRunner(args.getNumComposers(), args.getNumAnalyzers(),
-                    args.getCompositionQueueCapacity(), config.getComposerConfig(), config.getAnalyzerConfig(),
-                    featureModel, resultCache, tmpDir);
+                    args.getCompositionQueueCapacity(), args.isSequential(), config.getComposerConfig(),
+                    config.getAnalyzerConfig(), featureModel, resultCache, tmpDir);
         } catch (RunnerException e) {
             LOGGER.atFatal().withThrowable(e).log("Failed to create runner");
             return STATUS_INTERNAL_ERROR;

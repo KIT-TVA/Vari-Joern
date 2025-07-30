@@ -4,7 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.impl.FeatureModel;
-import edu.kit.varijoern.analyzers.*;
+import edu.kit.varijoern.analyzers.AggregatedAnalysisResult;
+import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.analyzers.Analyzer;
+import edu.kit.varijoern.analyzers.AnalyzerConfig;
+import edu.kit.varijoern.analyzers.Finding;
+import edu.kit.varijoern.analyzers.ResultAggregator;
 import edu.kit.varijoern.caching.DummyResultCache;
 import edu.kit.varijoern.caching.ResultCache;
 import edu.kit.varijoern.caching.SimpleResultCache;
@@ -13,8 +18,9 @@ import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -29,10 +35,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ParallelIterationRunnerTest {
 
-    @Test
-    void pipelineWorks(@TempDir Path tmpDir) throws RunnerException, InterruptedException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void pipelineWorks(boolean sequential, @TempDir Path tmpDir) throws RunnerException, InterruptedException {
         List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
-        ParallelIterationRunner runner = new ParallelIterationRunner(2, 1, 1,
+        ParallelIterationRunner runner = new ParallelIterationRunner(2, 1, 1, sequential,
                 new ComposerConfigMock(false, false, false, -1), new AnalyzerConfigMock(),
                 new FeatureModel("test"), new DummyResultCache(), tmpDir);
         ParallelIterationRunner.Output result = runner.run(sample);
@@ -44,12 +51,13 @@ class ParallelIterationRunnerTest {
         runner.stop();
     }
 
-    @Test
-    void manyConfigurations(@TempDir Path tmpDir) throws RunnerException, InterruptedException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void manyConfigurations(boolean sequential, @TempDir Path tmpDir) throws RunnerException, InterruptedException {
         List<Map<String, Boolean>> sample = IntStream.range(0, 100)
                 .mapToObj(i -> Map.of("F" + i, true))
                 .toList();
-        ParallelIterationRunner runner = new ParallelIterationRunner(3, 2, 1,
+        ParallelIterationRunner runner = new ParallelIterationRunner(3, 2, 1, sequential,
                 new ComposerConfigMock(false, false, false, -1), new AnalyzerConfigMock(),
                 new FeatureModel("test"), new DummyResultCache(), tmpDir);
         ParallelIterationRunner.Output result = runner.run(sample);
@@ -62,11 +70,13 @@ class ParallelIterationRunnerTest {
         runner.stop();
     }
 
-    @Test
-    void interruption(@TempDir Path tmpDir) throws RunnerException, InterruptedException, BrokenBarrierException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void interruption(boolean sequential, @TempDir Path tmpDir)
+            throws RunnerException, InterruptedException, BrokenBarrierException {
         List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
         ComposerConfigMock composerConfig = new ComposerConfigMock(true, false, true, -1);
-        ParallelIterationRunner runner = new ParallelIterationRunner(1, 1, 1, composerConfig,
+        ParallelIterationRunner runner = new ParallelIterationRunner(1, 1, 1, sequential, composerConfig,
                 new AnalyzerConfigMock(), new FeatureModel("test"), new DummyResultCache(), tmpDir);
         Thread runnerThread = new Thread(() -> {
             try {
@@ -84,12 +94,13 @@ class ParallelIterationRunnerTest {
         assertTrue(composerConfig.composers.get(0).wasInterrupted);
     }
 
-    @Test
-    void ignoredInterruption(@TempDir Path tmpDir)
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void ignoredInterruption(boolean sequential, @TempDir Path tmpDir)
             throws RunnerException, InterruptedException, BrokenBarrierException {
         List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
         ComposerConfigMock composerConfig = new ComposerConfigMock(true, true, true, -1);
-        ParallelIterationRunner runner = new ParallelIterationRunner(1, 1, 1, composerConfig,
+        ParallelIterationRunner runner = new ParallelIterationRunner(1, 1, 1, sequential, composerConfig,
                 new AnalyzerConfigMock(), new FeatureModel("test"), new DummyResultCache(), tmpDir);
         Thread runnerThread = new Thread(() -> {
             try {
@@ -106,8 +117,9 @@ class ParallelIterationRunnerTest {
         assertFalse(composerConfig.composers.get(0).thread.isAlive());
     }
 
-    @Test
-    void usesCache(@TempDir Path tmpDir, @TempDir Path cacheDir)
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void usesCache(boolean sequential, @TempDir Path tmpDir, @TempDir Path cacheDir)
             throws Exception {
         List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F1", false));
         ResultCache cache = new SimpleResultCache(cacheDir);
@@ -115,7 +127,7 @@ class ParallelIterationRunnerTest {
 
         Function<AnalyzerConfig<?, ?>, ParallelIterationRunner> runnerCreator = (analyzerConfig) -> {
             try {
-                return new ParallelIterationRunner(1, 1, 1,
+                return new ParallelIterationRunner(1, 1, 1, sequential,
                         new ComposerConfigMock(false, false, false, 1), analyzerConfig,
                         new FeatureModel("test"), cache, tmpDir);
             } catch (RunnerException | InterruptedException e) {
