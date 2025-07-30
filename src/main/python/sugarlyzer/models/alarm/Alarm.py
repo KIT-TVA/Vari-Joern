@@ -162,6 +162,8 @@ def map_source_line(line_number: int,
 
             parentheses = "{}()[]"
 
+            # Find the first closing parenthesis that ends the block in which the line is contained, and which is
+            # annotated with a line mapping comment.
             while curren_line_number < len(lines):
                 current_line: str = lines[curren_line_number]
                 current_line_without_comments: str = re.sub(r"//.*", "", current_line).strip()
