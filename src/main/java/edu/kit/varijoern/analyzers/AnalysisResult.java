@@ -1,27 +1,27 @@
 package edu.kit.varijoern.analyzers;
 
+import edu.kit.varijoern.samplers.Configuration;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Contains information about the weaknesses an analyzer found in a single variant.
  */
 public abstract class AnalysisResult<T extends Finding> {
-    private final @NotNull Map<String, Boolean> enabledFeatures;
+    private final @NotNull Configuration configuration;
 
-    protected AnalysisResult(@NotNull Map<String, Boolean> enabledFeatures) {
-        this.enabledFeatures = Map.copyOf(enabledFeatures);
+    protected AnalysisResult(@NotNull Configuration configuration) {
+        this.configuration = configuration;
     }
 
     /**
-     * Returns a map of feature names to their enabled status at the time of analysis.
+     * Returns the configuration of the variant this result is for.
      *
-     * @return a map of feature names to their enabled status at the time of analysis
+     * @return the configuration of the variant
      */
-    public @NotNull Map<String, Boolean> getEnabledFeatures() {
-        return enabledFeatures;
+    public @NotNull Configuration getConfiguration() {
+        return this.configuration;
     }
 
     /**
@@ -35,7 +35,7 @@ public abstract class AnalysisResult<T extends Finding> {
     public String toString() {
         int numFindings = this.getFindings().size();
         if (numFindings == 1)
-            return String.format("1 finding in variant %s", this.enabledFeatures);
-        return String.format("%d findings in variant %s", numFindings, this.enabledFeatures);
+            return String.format("1 finding in variant %s", this.configuration.enabledFeatures());
+        return String.format("%d findings in variant %s", numFindings, this.configuration.enabledFeatures());
     }
 }

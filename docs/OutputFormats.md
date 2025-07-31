@@ -12,10 +12,11 @@ described in the next section.
 
 ### Product-Based Strategy
 
+- `configurations`: An array of objects, each representing a configuration that was analyzed. Each object contains the
+  feature names as keys and a boolean indicating whether the feature is enabled in the configuration.
 - `individualResults`: An array of objects, each representing the results of the analysis of a single variant.
   Each object has the following fields:
-    - `enabledFeatures`: An object mapping feature names to a boolean indicating whether the feature is enabled in the
-      analyzed combination.
+    - `configuration`: An index into the `configurations` array indicating which configuration was analyzed.
     - `findings`: An array of [Finding objects](#Finding) representing the findings in the analyzed variant.
 - `aggregatedResult`: Analyzing all variants yields a list of findings for each variant. Since a single finding can
   affect multiple variants, the findings are grouped to identify equal findings with each other across variants. This
@@ -23,9 +24,8 @@ described in the next section.
     - `findingAggregations`: An array of objects, each representing the aggregation of a single finding across all
       analyzed variants. Each object has the following fields:
         - `finding`: A [Finding object](#Finding) representing the finding.
-        - `affectedAnalyzedVariants`: An array of objects representing the variants in which the finding was found.
-          Each object is a mapping from feature names to a boolean indicating whether the feature is enabled in the
-          variant.
+        - `affectedAnalyzedVariants`: An array of indices into the `configurations` array representing the variants
+          in which the finding was found.
         - `evidence`: An array of [SourceLocation](#SourceLocation) objects representing the evidence supporting the
           finding.
         - `possibleConditions`: An array of strings representing the determined presence conditions of the finding. Most

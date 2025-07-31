@@ -2,6 +2,7 @@ package edu.kit.varijoern.caching;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.ContextAttributes;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
@@ -11,8 +12,9 @@ import edu.kit.varijoern.analyzers.AnalysisResult;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.featuremodel.featureide.FeatureIDEFMReader;
 import edu.kit.varijoern.output.PathSerializer;
-import edu.kit.varijoern.serialization.JacksonNodeDeserializer;
-import edu.kit.varijoern.serialization.JacksonNodeSerializer;
+import edu.kit.varijoern.samplers.Configuration;
+import edu.kit.varijoern.samplers.SampleTracker;
+import edu.kit.varijoern.serialization.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -43,6 +45,8 @@ public class SimpleResultCache extends ResultCache {
         module.addSerializer(Path.class, new PathSerializer());
         module.addDeserializer(Node.class, new JacksonNodeDeserializer());
         module.addSerializer(Node.class, new JacksonNodeSerializer());
+        module.addSerializer(Configuration.class, new JacksonConfigurationToMapSerializer());
+        module.addDeserializer(Configuration.class, new JacksonConfigurationDeserializer());
         this.objectMapper.registerModule(module);
         Files.createDirectories(cacheDir);
 
@@ -140,7 +144,8 @@ public class SimpleResultCache extends ResultCache {
     }
 
     @Override
-    public synchronized <T> @Nullable T getAnalysisResult(int iteration, int configurationIndex, Class<T> type) {
+    public synchronized <T> @Nullable T getAnalysisResult(int iteration, int configurationIndex,
+                                                          @NotNull SampleTracker sampleTracker, Class<T> type) {
         Path analysisResultPath = this.getIterationDir(iteration)
                 .resolve(String.format(ANALYSIS_RESULT_CACHE_FILE_FORMAT, configurationIndex));
         if (!Files.exists(analysisResultPath)) {
@@ -151,7 +156,9 @@ public class SimpleResultCache extends ResultCache {
         try {
             LOGGER.debug("Reading analysis result from cache for configuration {} in iteration {}",
                     iteration, configurationIndex);
-            return objectMapper.readValue(analysisResultPath.toFile(), type);
+            return objectMapper
+                    .reader(ContextAttributes.getEmpty().withPerCallAttribute("sampleTracker", sampleTracker))
+                    .readValue(analysisResultPath.toFile(), type);
         } catch (IOException e) {
             LOGGER.warn("Failed to read analysis result from cache for configuration {} in iteration {}",
                     iteration, configurationIndex, e);

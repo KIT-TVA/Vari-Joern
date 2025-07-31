@@ -14,6 +14,7 @@ import edu.kit.varijoern.composers.kconfig.subjects.BusyboxStrategy;
 import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategy;
 import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategyFactory;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import edu.kit.varijoern.samplers.Configuration;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -149,12 +150,12 @@ public class KconfigComposer implements Composer {
     }
 
     @Override
-    public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
+    public @NotNull CompositionInformation compose(@NotNull Configuration configuration, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException, InterruptedException {
         this.composerStrategy.beforeComposition(featureModel);
 
-        this.generateConfig(features);
+        this.generateConfig(configuration.enabledFeatures());
 
         this.composerStrategy.prepareDependencyDetection();
 
@@ -186,7 +187,7 @@ public class KconfigComposer implements Composer {
 
         return new CompositionInformation(
                 destination,
-                features,
+                configuration,
                 presenceConditionMapper,
                 sourceMap,
                 List.of(languageInformation)

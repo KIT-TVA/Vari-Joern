@@ -15,9 +15,7 @@ import edu.kit.varijoern.composers.kconfig.subjects.ComposerStrategyFactory;
 import edu.kit.varijoern.composers.kconfig.subjects.FiascoStrategyFactory;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
-import edu.kit.varijoern.samplers.FixedSampler;
-import edu.kit.varijoern.samplers.Sampler;
-import edu.kit.varijoern.samplers.SamplerException;
+import edu.kit.varijoern.samplers.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,7 +30,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
@@ -49,7 +46,10 @@ class JoernAnalyzerTest {
             FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("busybox-sample");
 
-        List<Map<String, Boolean>> configurations = Stream.of(
+        SampleTracker sampleTracker = new SampleTracker();
+
+        List<Configuration> configurations = sampleTracker.trackConfigurations(
+                Stream.of(
                         List.of("USE_GETS", "INCLUDE_IO_FILE", "PERFORM_CHMOD", "USE_CPP_FILE"),
                         List.of("USE_GETS", "INCLUDE_IO_FILE", "PERFORM_CHMOD", "PERFORM_RENAME")
                 )
@@ -62,7 +62,8 @@ class JoernAnalyzerTest {
                         throw new RuntimeException(e);
                     }
                 })
-                .toList();
+                .toList()
+        );
 
         List<ExpectedFinding> expectedFindings = List.of(
                 new ExpectedFinding("call-to-gets",
@@ -100,38 +101,42 @@ class JoernAnalyzerTest {
             FeatureModelReaderException {
         KconfigTestCaseManager testCaseManager = new KconfigTestCaseManager("fiasco-sample");
 
-        List<Map<String, Boolean>> configurations = Stream.of(
-                        List.of("USE_GETS",
-                                "INCLUDE_IO_FILE",
-                                "PERFORM_CHMOD",
-                                "DEFINE_USELESS_FUNCTION",
-                                "AMD64",
-                                "__VISIBILITY__CONFIG_CC",
-                                "__VISIBILITY__CONFIG_CXX",
-                                "__VISIBILITY__CONFIG_LD",
-                                "__VISIBILITY__CONFIG_HOST_CC",
-                                "__VISIBILITY__CONFIG_HOST_CXX"),
-                        List.of("USE_GETS",
-                                "INCLUDE_IO_FILE",
-                                "PERFORM_CHMOD",
-                                "PERFORM_RENAME",
-                                "AMD64",
-                                "__VISIBILITY__CONFIG_CC",
-                                "__VISIBILITY__CONFIG_CXX",
-                                "__VISIBILITY__CONFIG_LD",
-                                "__VISIBILITY__CONFIG_HOST_CC",
-                                "__VISIBILITY__CONFIG_HOST_CXX")
-                )
-                .map(configuration -> {
-                    Sampler sampler = new FixedSampler(List.of(configuration),
-                            testCaseManager.getCorrectFeatureModel());
-                    try {
-                        return sampler.sample(null, tempDirectory.resolve("sampler")).get(0);
-                    } catch (SamplerException | InterruptedException | IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .toList();
+        SampleTracker sampleTracker = new SampleTracker();
+
+        List<Configuration> configurations = sampleTracker.trackConfigurations(
+                Stream.of(
+                                List.of("USE_GETS",
+                                        "INCLUDE_IO_FILE",
+                                        "PERFORM_CHMOD",
+                                        "DEFINE_USELESS_FUNCTION",
+                                        "AMD64",
+                                        "__VISIBILITY__CONFIG_CC",
+                                        "__VISIBILITY__CONFIG_CXX",
+                                        "__VISIBILITY__CONFIG_LD",
+                                        "__VISIBILITY__CONFIG_HOST_CC",
+                                        "__VISIBILITY__CONFIG_HOST_CXX"),
+                                List.of("USE_GETS",
+                                        "INCLUDE_IO_FILE",
+                                        "PERFORM_CHMOD",
+                                        "PERFORM_RENAME",
+                                        "AMD64",
+                                        "__VISIBILITY__CONFIG_CC",
+                                        "__VISIBILITY__CONFIG_CXX",
+                                        "__VISIBILITY__CONFIG_LD",
+                                        "__VISIBILITY__CONFIG_HOST_CC",
+                                        "__VISIBILITY__CONFIG_HOST_CXX")
+                        )
+                        .map(configuration -> {
+                            Sampler sampler = new FixedSampler(List.of(configuration),
+                                    testCaseManager.getCorrectFeatureModel());
+                            try {
+                                return sampler.sample(null, tempDirectory.resolve("sampler")).get(0);
+                            } catch (SamplerException | InterruptedException | IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
+                        .toList()
+        );
 
         List<ExpectedFinding> expectedFindings = List.of(
                 new ExpectedFinding("call-to-gets",
@@ -157,7 +162,7 @@ class JoernAnalyzerTest {
 
     private void analyze(Path tempDirectory, KconfigTestCaseManager testCaseManager,
                          @NotNull ComposerStrategyFactory composerStrategyFactory,
-                         List<ExpectedFinding> expectedFindings, List<Map<String, Boolean>> configurations)
+                         List<ExpectedFinding> expectedFindings, List<Configuration> configurations)
             throws IOException, ComposerException, InterruptedException, AnalyzerFailureException {
         Path workspaceDirectory = tempDirectory.resolve("workspace");
         Files.createDirectory(workspaceDirectory);
@@ -170,7 +175,7 @@ class JoernAnalyzerTest {
                 false);
 
         for (int i = 0; i < configurations.size(); i++) {
-            Map<String, Boolean> configuration = configurations.get(i);
+            Configuration configuration = configurations.get(i);
             JoernAnalysisResult result = this.analyzeVariant(configuration, testCaseManager.getCorrectFeatureModel(),
                     composer, analyzer, tempDirectory.resolve(String.valueOf(i)));
             this.verifyFindings(result.getFindings(), expectedFindings, configuration);
@@ -179,7 +184,7 @@ class JoernAnalyzerTest {
         this.verifyAggregatedFindings(resultAggregator.aggregateResults().findingAggregations(), expectedFindings);
     }
 
-    private JoernAnalysisResult analyzeVariant(Map<String, Boolean> configuration, IFeatureModel featureModel,
+    private JoernAnalysisResult analyzeVariant(Configuration configuration, IFeatureModel featureModel,
                                                Composer composer, JoernAnalyzer analyzer, Path destinationDirectory)
             throws ComposerException, IOException, AnalyzerFailureException, InterruptedException {
         CompositionInformation compositionInformation = composer.compose(configuration, destinationDirectory,
@@ -196,7 +201,7 @@ class JoernAnalyzerTest {
      * @param configuration    the configuration that was used to generate the findings
      */
     private void verifyFindings(List<JoernFinding> findings, List<ExpectedFinding> expectedFindings,
-                                Map<String, Boolean> configuration) {
+                                Configuration configuration) {
         BiPredicate<ExpectedFinding, JoernFinding> findingsEqual = (expectedFinding, finding) -> {
             if (!finding.getName().equals(expectedFinding.name)) {
                 return false;
@@ -256,7 +261,7 @@ class JoernAnalyzerTest {
     }
 
     private <T> void verifyFindingCollection(List<T> findings, List<ExpectedFinding> expectedFindings,
-                                             Map<String, Boolean> configuration,
+                                             Configuration configuration,
                                              BiPredicate<ExpectedFinding, T> findingsEqual) {
         int foundExpectedFindings = 0;
         for (ExpectedFinding expectedFinding : expectedFindings) {
@@ -278,6 +283,6 @@ class JoernAnalyzerTest {
     }
 
     private record ExpectedFinding(String name, Set<SourceLocation> evidence, @Nullable Node presenceCondition,
-                                   List<Map<String, Boolean>> affectedVariants) {
+                                   List<Configuration> affectedVariants) {
     }
 }

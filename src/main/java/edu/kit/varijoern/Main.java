@@ -19,6 +19,7 @@ import edu.kit.varijoern.featuremodel.FeatureModelReader;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderConfigFactory;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.output.OutputData;
+import edu.kit.varijoern.samplers.SampleTracker;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerConfigFactory;
 import edu.kit.varijoern.samplers.SamplerException;
@@ -202,6 +203,7 @@ public class Main {
             return STATUS_INTERRUPTED;
         }
 
+        SampleTracker sampleTracker = new SampleTracker();
         ResultAggregator<?, ?> resultAggregator = config.getAnalyzerConfig().getResultAggregator();
 
         List<AnalysisResult<?>> allAnalysisResults = new ArrayList<>();
@@ -227,7 +229,7 @@ public class Main {
                 LOGGER.info("Analyzing {} variants", sample.size());
                 ParallelIterationRunner.Output runnerOutput;
                 try {
-                    runnerOutput = runner.run(sample);
+                    runnerOutput = runner.run(sampleTracker.trackConfigurations(sample), sampleTracker);
                 } catch (InterruptedException e) {
                     LOGGER.atFatal().withThrowable(e).log("The runner was interrupted");
                     return STATUS_INTERNAL_ERROR;
@@ -247,7 +249,8 @@ public class Main {
 
         try {
             args.getResultOutputArgs().getFormatter().printResults(
-                    new OutputData(allAnalysisResults, resultAggregator.aggregateResults()),
+                    new OutputData(sampleTracker.getConfigurations(), allAnalysisResults,
+                            resultAggregator.aggregateResults()),
                     args.getResultOutputArgs().getDestination().getStream()
             );
         } catch (IOException e) {
