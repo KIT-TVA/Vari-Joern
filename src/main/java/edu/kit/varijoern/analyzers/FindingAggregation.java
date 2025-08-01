@@ -2,10 +2,10 @@ package edu.kit.varijoern.analyzers;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
+import edu.kit.varijoern.samplers.Configuration;
 import org.jetbrains.annotations.NotNull;
 import org.prop4j.Node;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  */
 public class FindingAggregation {
     private final @NotNull Finding finding;
-    private final @NotNull Set<Map<String, Boolean>> affectedAnalyzedVariants;
+    private final @NotNull Set<Configuration> affectedAnalyzedVariants;
     private final @NotNull Set<Node> possibleConditions;
     private final @NotNull Set<SourceLocation> originalEvidenceLocations;
 
@@ -28,7 +28,7 @@ public class FindingAggregation {
      *                                  affected analyzed variants
      * @param originalEvidenceLocations the original source locations of the evidence that caused the finding
      */
-    public FindingAggregation(@NotNull Finding finding, @NotNull Set<Map<String, Boolean>> affectedAnalyzedVariants,
+    public FindingAggregation(@NotNull Finding finding, @NotNull Set<Configuration> affectedAnalyzedVariants,
                               @NotNull Set<Node> possibleConditions,
                               @NotNull Set<SourceLocation> originalEvidenceLocations) {
         this.finding = finding;
@@ -51,7 +51,7 @@ public class FindingAggregation {
      *
      * @return the affected analyzed variants
      */
-    public @NotNull Set<Map<String, Boolean>> getAffectedAnalyzedVariants() {
+    public @NotNull Set<Configuration> getAffectedAnalyzedVariants() {
         return affectedAnalyzedVariants;
     }
 

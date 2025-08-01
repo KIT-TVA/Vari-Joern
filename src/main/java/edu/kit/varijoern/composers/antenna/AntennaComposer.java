@@ -8,6 +8,7 @@ import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
 import edu.kit.varijoern.composers.GenericLanguageInformation;
 import edu.kit.varijoern.composers.sourcemap.IdentitySourceMap;
+import edu.kit.varijoern.samplers.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -44,11 +45,11 @@ public class AntennaComposer implements Composer {
     }
 
     @Override
-    public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features, @NotNull Path destination,
+    public @NotNull CompositionInformation compose(@NotNull Configuration configuration, @NotNull Path destination,
                                                    @NotNull IFeatureModel featureModel)
             throws IOException, ComposerException {
         LOGGER.info("Running Antenna composer");
-        List<String> enabledFeatures = features.entrySet().stream()
+        List<String> enabledFeatures = configuration.enabledFeatures().entrySet().stream()
                 .filter(Map.Entry::getValue)
                 .map(Map.Entry::getKey)
                 .toList();
@@ -95,7 +96,7 @@ public class AntennaComposer implements Composer {
 
         return new CompositionInformation(
                 destination,
-                features,
+                configuration,
                 presenceConditionMapper,
                 new IdentitySourceMap(),
                 List.of(new GenericLanguageInformation())

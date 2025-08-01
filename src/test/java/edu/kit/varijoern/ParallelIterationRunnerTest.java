@@ -17,6 +17,8 @@ import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import edu.kit.varijoern.samplers.Configuration;
+import edu.kit.varijoern.samplers.SampleTracker;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,49 +40,58 @@ class ParallelIterationRunnerTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void pipelineWorks(boolean sequential, @TempDir Path tmpDir) throws RunnerException, InterruptedException {
-        List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
+        SampleTracker sampleTracker = new SampleTracker();
+        List<Configuration> sample = sampleTracker.trackConfigurations(
+                List.of(Map.of("F1", true), Map.of("F2", true))
+        );
         ParallelIterationRunner runner = new ParallelIterationRunner(2, 1, 1, sequential,
                 new ComposerConfigMock(false, false, false, -1), new AnalyzerConfigMock(),
                 new FeatureModel("test"), new DummyResultCache(), tmpDir);
-        ParallelIterationRunner.Output result = runner.run(sample);
+        ParallelIterationRunner.Output result = runner.run(sample, sampleTracker);
         assertNotNull(result.results());
         assertTrue(result.results().stream()
-                .anyMatch(analysisResult -> analysisResult.getEnabledFeatures().containsKey("F1")));
+                .anyMatch(analysisResult -> analysisResult.getConfiguration().enabledFeatures().containsKey("F1")));
         assertTrue(result.results().stream()
-                .anyMatch(analysisResult -> analysisResult.getEnabledFeatures().containsKey("F2")));
+                .anyMatch(analysisResult -> analysisResult.getConfiguration().enabledFeatures().containsKey("F2")));
         runner.stop();
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void manyConfigurations(boolean sequential, @TempDir Path tmpDir) throws RunnerException, InterruptedException {
-        List<Map<String, Boolean>> sample = IntStream.range(0, 100)
-                .mapToObj(i -> Map.of("F" + i, true))
-                .toList();
+        SampleTracker sampleTracker = new SampleTracker();
+        List<Configuration> sample = sampleTracker.trackConfigurations(
+                IntStream.range(0, 100)
+                        .mapToObj(i -> Map.of("F" + i, true))
+                        .toList()
+        );
         ParallelIterationRunner runner = new ParallelIterationRunner(3, 2, 1, sequential,
                 new ComposerConfigMock(false, false, false, -1), new AnalyzerConfigMock(),
                 new FeatureModel("test"), new DummyResultCache(), tmpDir);
-        ParallelIterationRunner.Output result = runner.run(sample);
+        ParallelIterationRunner.Output result = runner.run(sample, sampleTracker);
         assertNotNull(result.results());
         for (int i = 0; i < 100; i++) {
             int capturedI = i;
             assertTrue(result.results().stream()
-                    .anyMatch(analysisResult -> analysisResult.getEnabledFeatures().containsKey("F" + capturedI)));
+                    .anyMatch(analysisResult -> analysisResult.getConfiguration().enabledFeatures()
+                            .containsKey("F" + capturedI)));
         }
         runner.stop();
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void interruption(boolean sequential, @TempDir Path tmpDir)
-            throws RunnerException, InterruptedException, BrokenBarrierException {
-        List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
+    void interruption(boolean sequential, @TempDir Path tmpDir) throws RunnerException, InterruptedException, BrokenBarrierException {
+        SampleTracker sampleTracker = new SampleTracker();
+        List<Configuration> sample = sampleTracker.trackConfigurations(
+                List.of(Map.of("F1", true), Map.of("F2", true))
+        );
         ComposerConfigMock composerConfig = new ComposerConfigMock(true, false, true, -1);
         ParallelIterationRunner runner = new ParallelIterationRunner(1, 1, 1, sequential, composerConfig,
                 new AnalyzerConfigMock(), new FeatureModel("test"), new DummyResultCache(), tmpDir);
         Thread runnerThread = new Thread(() -> {
             try {
-                runner.run(sample);
+                runner.run(sample, sampleTracker);
             } catch (InterruptedException e) {
                 // expected
             }
@@ -98,13 +109,16 @@ class ParallelIterationRunnerTest {
     @ValueSource(booleans = {true, false})
     void ignoredInterruption(boolean sequential, @TempDir Path tmpDir)
             throws RunnerException, InterruptedException, BrokenBarrierException {
-        List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F2", true));
+        SampleTracker sampleTracker = new SampleTracker();
+        List<Configuration> sample = sampleTracker.trackConfigurations(
+                List.of(Map.of("F1", true), Map.of("F2", true))
+        );
         ComposerConfigMock composerConfig = new ComposerConfigMock(true, true, true, -1);
         ParallelIterationRunner runner = new ParallelIterationRunner(1, 1, 1, sequential, composerConfig,
                 new AnalyzerConfigMock(), new FeatureModel("test"), new DummyResultCache(), tmpDir);
         Thread runnerThread = new Thread(() -> {
             try {
-                runner.run(sample);
+                runner.run(sample, sampleTracker);
             } catch (InterruptedException e) {
                 // expected
             }
@@ -121,9 +135,12 @@ class ParallelIterationRunnerTest {
     @ValueSource(booleans = {true, false})
     void usesCache(boolean sequential, @TempDir Path tmpDir, @TempDir Path cacheDir)
             throws Exception {
-        List<Map<String, Boolean>> sample = List.of(Map.of("F1", true), Map.of("F1", false));
+        SampleTracker sampleTracker = new SampleTracker();
+        @NotNull List<Configuration> sample = sampleTracker.trackConfigurations(
+                List.of(Map.of("F1", true), Map.of("F1", false))
+        );
         ResultCache cache = new SimpleResultCache(cacheDir);
-        cache.cacheSample(sample, 0);
+        cache.cacheSampleConfigurations(sample, 0);
 
         Function<AnalyzerConfig<?, ?>, ParallelIterationRunner> runnerCreator = (analyzerConfig) -> {
             try {
@@ -136,30 +153,33 @@ class ParallelIterationRunnerTest {
         };
 
         ParallelIterationRunner runner = runnerCreator.apply(new AnalyzerConfigMock());
-        ParallelIterationRunner.Output result = runner.run(sample);
+        ParallelIterationRunner.Output result = runner.run(sample, sampleTracker);
         assertEquals(ParallelIterationRunner.Output.error(Main.STATUS_INTERNAL_ERROR), result);
 
-        EmptyAnalysisResult cachedAnalysisResult = cache.getAnalysisResult(0, 0, EmptyAnalysisResult.class);
+        EmptyAnalysisResult cachedAnalysisResult = cache.getAnalysisResult(0, 0, sampleTracker,
+                EmptyAnalysisResult.class);
         assertNotNull(cachedAnalysisResult);
-        assertEquals(sample.get(0), cachedAnalysisResult.getEnabledFeatures());
-        assertNull(cache.getAnalysisResult(0, 1, EmptyAnalysisResult.class));
+        assertEquals(sample.get(0), cachedAnalysisResult.getConfiguration());
+        assertNull(cache.getAnalysisResult(0, 1, sampleTracker, EmptyAnalysisResult.class));
 
         AnalyzerConfigMock analyzerConfig = new AnalyzerConfigMock();
         runner = runnerCreator.apply(analyzerConfig);
-        result = runner.run(sample);
+        result = runner.run(sample, sampleTracker);
         assertNotNull(result.results());
 
         assertEquals(new HashSet<>(sample), result.results().stream()
-                .map(AnalysisResult::getEnabledFeatures)
+                .map(AnalysisResult::getConfiguration)
                 .collect(Collectors.toSet()));
 
         // Verify that the cached results are correct. In particular, result 0 must not have been overwritten.
-        EmptyAnalysisResult cachedAnalysisResult0 = cache.getAnalysisResult(0, 0, EmptyAnalysisResult.class);
+        EmptyAnalysisResult cachedAnalysisResult0 = cache.getAnalysisResult(0, 0, sampleTracker,
+                EmptyAnalysisResult.class);
         assertNotNull(cachedAnalysisResult0);
-        assertEquals(sample.get(0), cachedAnalysisResult0.getEnabledFeatures());
-        EmptyAnalysisResult cachedAnalysisResult1 = cache.getAnalysisResult(0, 1, EmptyAnalysisResult.class);
+        assertEquals(sample.get(0), cachedAnalysisResult0.getConfiguration());
+        EmptyAnalysisResult cachedAnalysisResult1 = cache.getAnalysisResult(0, 1, sampleTracker,
+                EmptyAnalysisResult.class);
         assertNotNull(cachedAnalysisResult1);
-        assertEquals(sample.get(1), cachedAnalysisResult1.getEnabledFeatures());
+        assertEquals(sample.get(1), cachedAnalysisResult1.getConfiguration());
 
         assertEquals(2, ((EmptyAnalysisResultAggregator) analyzerConfig.getResultAggregator()).getResults().size());
     }
@@ -181,7 +201,7 @@ class ParallelIterationRunnerTest {
         }
 
         @Override
-        public @NotNull CompositionInformation compose(@NotNull Map<String, Boolean> features,
+        public @NotNull CompositionInformation compose(@NotNull Configuration configuration,
                                                        @NotNull Path destination,
                                                        @NotNull IFeatureModel featureModel)
                 throws InterruptedException, ComposerException {
@@ -212,7 +232,7 @@ class ParallelIterationRunnerTest {
             }
             return new CompositionInformation(
                     Path.of("/nowhere"),
-                    features,
+                    configuration,
                     (file, lineNumber) -> Optional.empty(),
                     location -> Optional.empty(),
                     List.of()
@@ -258,7 +278,7 @@ class ParallelIterationRunnerTest {
         @Override
         public @NotNull EmptyAnalysisResult analyze(@NotNull CompositionInformation compositionInformation)
                 throws InterruptedException {
-            EmptyAnalysisResult result = new EmptyAnalysisResult(compositionInformation.getEnabledFeatures());
+            EmptyAnalysisResult result = new EmptyAnalysisResult(compositionInformation.getConfiguration());
             this.resultAggregator.addResult(result);
             return result;
         }
@@ -285,8 +305,8 @@ class ParallelIterationRunnerTest {
 
     private static class EmptyAnalysisResult extends AnalysisResult<Finding> {
         @JsonCreator
-        public EmptyAnalysisResult(@JsonProperty("enabledFeatures") Map<String, Boolean> enabledFeatures) {
-            super(enabledFeatures);
+        public EmptyAnalysisResult(@JsonProperty("configuration") Configuration configuration) {
+            super(configuration);
         }
 
         @Override

@@ -2,6 +2,7 @@ package edu.kit.varijoern.caching;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.samplers.SampleTracker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,7 +29,8 @@ public class DummyResultCache extends ResultCache {
     }
 
     @Override
-    public <T> @Nullable T getAnalysisResult(int iteration, int configurationIndex, Class<T> type) {
+    public <T> @Nullable T getAnalysisResult(int iteration, int configurationIndex,
+                                             @NotNull SampleTracker sampleTracker, Class<T> type) {
         return null;
     }
 

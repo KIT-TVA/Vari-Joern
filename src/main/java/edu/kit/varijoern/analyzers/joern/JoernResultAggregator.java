@@ -43,7 +43,7 @@ public class JoernResultAggregator extends ResultAggregator<JoernAnalysisResult,
                     JoernFinding firstFinding = findingPairs.get(0).getValue0();
                     return new FindingAggregation(firstFinding,
                             findingPairs.stream()
-                                    .map(findingPair -> findingPair.getValue1().getEnabledFeatures())
+                                    .map(findingPair -> findingPair.getValue1().getConfiguration())
                                     .collect(Collectors.toSet()),
                             findingPairs.stream()
                                     .map(findingPair -> findingPair.getValue0().getCondition())

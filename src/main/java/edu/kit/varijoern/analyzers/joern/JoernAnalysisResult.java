@@ -3,10 +3,10 @@ package edu.kit.varijoern.analyzers.joern;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.samplers.Configuration;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -18,14 +18,14 @@ public class JoernAnalysisResult extends AnalysisResult<JoernFinding> {
     /**
      * Creates a new {@link JoernAnalysisResult} from a list of findings.
      *
-     * @param findings        the list of findings
-     * @param enabledFeatures a map of feature names to their enabled status at the time of analysis
+     * @param findings      the list of findings
+     * @param configuration the configuration of the variant this result is for
      */
     @JsonCreator
     public JoernAnalysisResult(@NotNull @JsonProperty("findings") List<JoernFinding> findings,
-                               @NotNull @JsonProperty("enabledFeatures") Map<String, Boolean> enabledFeatures) {
+                               @NotNull @JsonProperty("configuration") Configuration configuration) {
         // Check for null because Jackson does not enforce non-nullability
-        super(Objects.requireNonNull(enabledFeatures));
+        super(Objects.requireNonNull(configuration));
         this.findings = Objects.requireNonNull(findings);
     }
 
@@ -45,12 +45,12 @@ public class JoernAnalysisResult extends AnalysisResult<JoernFinding> {
         if (o == null || getClass() != o.getClass()) return false;
         JoernAnalysisResult that = (JoernAnalysisResult) o;
         return Objects.equals(findings, that.findings)
-                && Objects.equals(this.getEnabledFeatures(), that.getEnabledFeatures());
+                && Objects.equals(this.getConfiguration(), that.getConfiguration());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(findings, this.getEnabledFeatures());
+        return Objects.hash(findings, this.getConfiguration());
     }
 
     @Override

@@ -7,6 +7,8 @@ import edu.kit.varijoern.composers.Composer;
 import edu.kit.varijoern.composers.ComposerConfig;
 import edu.kit.varijoern.composers.ComposerException;
 import edu.kit.varijoern.composers.CompositionInformation;
+import edu.kit.varijoern.samplers.Configuration;
+import edu.kit.varijoern.samplers.SampleTracker;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,7 +20,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
 
@@ -127,11 +128,12 @@ public class ParallelIterationRunner {
     /**
      * Runs a single iteration with the given sample.
      *
-     * @param sample the sample to analyze
+     * @param sample        the sample to analyze
+     * @param sampleTracker the {@link SampleTracker} used to track all samples
      * @return the results of the analysis
      * @throws InterruptedException if the runner is interrupted
      */
-    public synchronized Output run(@NotNull List<Map<String, Boolean>> sample)
+    public synchronized Output run(@NotNull List<Configuration> sample, @NotNull SampleTracker sampleTracker)
             throws InterruptedException {
         if (isStopped) {
             throw new IllegalStateException("The runner has been stopped.");
@@ -140,15 +142,15 @@ public class ParallelIterationRunner {
         try {
             int uncachedResults = 0;
             for (int i = 0; i < sample.size(); i++) {
-                Map<String, Boolean> features = sample.get(i);
+                Configuration configuration = sample.get(i);
                 AnalysisResult<?> cachedResult = this.resultAggregator.tryAddResultFromCache(
-                        this.resultCache.getAnalysisResultExtractor(iteration, i));
+                        this.resultCache.getAnalysisResultExtractor(iteration, i, sampleTracker));
                 if (cachedResult != null) {
                     results.add(cachedResult);
                     continue;
                 }
                 uncachedResults++;
-                sampleQueue.put(Message.of(new ComposerInvocation(features,
+                sampleQueue.put(Message.of(new ComposerInvocation(configuration,
                         this.tmpDir.resolve(Path.of(iteration + "-" + i))
                 ), i));
 
@@ -294,11 +296,11 @@ public class ParallelIterationRunner {
         @Override
         public Message<CompositionInformation> process(ComposerInvocation arguments, int configurationIndex)
                 throws InterruptedException {
-            LOGGER.info("Composing variant with features {}", arguments.features);
+            LOGGER.info("Composing variant with configuration {}", arguments.configuration);
             try {
                 Files.createDirectories(arguments.destination());
                 CompositionInformation compositionInformation
-                        = this.composer.compose(arguments.features(), arguments.destination(), featureModel);
+                        = this.composer.compose(arguments.configuration(), arguments.destination(), featureModel);
                 return Message.of(compositionInformation, configurationIndex);
             } catch (IOException e) {
                 LOGGER.atError().withThrowable(e).log("An IO error occurred:");
@@ -321,7 +323,7 @@ public class ParallelIterationRunner {
         @Override
         public Message<AnalysisResult<?>> process(CompositionInformation compositionInformation, int configurationIndex)
                 throws InterruptedException {
-            LOGGER.info("Analyzing variant with features {}", compositionInformation.getEnabledFeatures());
+            LOGGER.info("Analyzing variant with configuration {}", compositionInformation.getConfiguration());
 
             try {
                 AnalysisResult<?> result = this.analyzer.analyze(compositionInformation);
@@ -347,7 +349,7 @@ public class ParallelIterationRunner {
         }
     }
 
-    private record ComposerInvocation(@NotNull Map<String, Boolean> features, @NotNull Path destination) {
+    private record ComposerInvocation(@NotNull Configuration configuration, @NotNull Path destination) {
     }
 
     /**

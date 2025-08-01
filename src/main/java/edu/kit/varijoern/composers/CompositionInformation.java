@@ -2,18 +2,18 @@ package edu.kit.varijoern.composers;
 
 import edu.kit.varijoern.composers.conditionmapping.PresenceConditionMapper;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
+import edu.kit.varijoern.samplers.Configuration;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Contains information about a composer pass, such as the location of the resulting code.
  */
 public class CompositionInformation {
     private final @NotNull Path location;
-    private final @NotNull Map<String, Boolean> enabledFeatures;
+    private final @NotNull Configuration configuration;
     private final @NotNull PresenceConditionMapper presenceConditionMapper;
     private final @NotNull SourceMap sourceMap;
     private final @NotNull List<LanguageInformation> languageInformation;
@@ -23,17 +23,17 @@ public class CompositionInformation {
      *
      * @param location                the location of the composed code. Must be an absolute path.
      *                                See {@link CompositionInformation#getLocation()}.
-     * @param enabledFeatures         a map of feature names to their enabled status at the time of composition
+     * @param configuration           the configuration of the variant the composer should compose
      * @param presenceConditionMapper a {@link PresenceConditionMapper} for this composition result
      * @param sourceMap               a {@link SourceMap} for this composition result
      * @param languageInformation     relevant details about how the languages in the composition should be handled
      */
-    public CompositionInformation(@NotNull Path location, @NotNull Map<String, Boolean> enabledFeatures,
+    public CompositionInformation(@NotNull Path location, @NotNull Configuration configuration,
                                   @NotNull PresenceConditionMapper presenceConditionMapper,
                                   @NotNull SourceMap sourceMap,
                                   @NotNull List<LanguageInformation> languageInformation) {
         this.location = location;
-        this.enabledFeatures = enabledFeatures;
+        this.configuration = configuration;
         this.presenceConditionMapper = presenceConditionMapper;
         this.sourceMap = sourceMap;
         this.languageInformation = languageInformation;
@@ -50,12 +50,12 @@ public class CompositionInformation {
     }
 
     /**
-     * Returns a map of feature names to their enabled status at the time of composition.
+     * Returns the configuration of the variant the composer should compose.
      *
-     * @return a map of feature names to their enabled status at the time of composition
+     * @return the configuration of the variant the composer should compose
      */
-    public @NotNull Map<String, Boolean> getEnabledFeatures() {
-        return this.enabledFeatures;
+    public @NotNull Configuration getConfiguration() {
+        return this.configuration;
     }
 
     /**
