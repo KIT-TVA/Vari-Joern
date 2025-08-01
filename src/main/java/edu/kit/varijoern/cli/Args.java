@@ -36,6 +36,11 @@ public class Args {
             validateWith = PositiveIntegerValidator.class)
     private int compositionQueueCapacity = 1;
 
+    @Parameter(names = "--sequential",
+            description = "Run the analysis sequentially (product-based). "
+                    + "No composer will run in parallel to an analyzer.")
+    private boolean sequential = false;
+
     // Parameters specific to the family-based strategy.
     @Parameter(names = "--sugarlyzer-workers", description = "The number of concurrent workers to use for desugaring "
             + "/analysis within Sugarlyzer (family-based)", validateWith = PositiveIntegerValidator.class)
@@ -93,6 +98,15 @@ public class Args {
      */
     public int getNumAnalyzers() {
         return numAnalyzers;
+    }
+
+    /**
+     * Returns whether the analysis should be run sequentially.
+     *
+     * @return true if the analysis should be run sequentially
+     */
+    public boolean isSequential() {
+        return sequential;
     }
 
     /**
