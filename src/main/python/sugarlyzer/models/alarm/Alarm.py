@@ -10,10 +10,111 @@ from z3.z3 import ModelRef
 
 logger = logging.getLogger(__name__)
 
+class Lines:
+    approximated: bool = False
+
+    def __init__(self, files: dict[Path, list[IntegerRange]]) -> None:
+        """
+        Create a new LineMapping instance.
+
+        :param files: A dictionary mapping original source files to a list of IntegerRanges, where each IntegerRange
+        describes a line range in the original source file that corresponds to the line in the desugared source file.
+        """
+        self.files: dict[Path, list[IntegerRange]] = files
+
+        # Ensure monotonicity of line ranges. We expect that between two line ranges, there is at least one line that is
+        # not covered by any line range.
+        for file, ranges in self.files.items():
+            for i in range(len(ranges) - 1):
+                if ranges[i].end_line >= ranges[i + 1].start_line:
+                    raise ValueError(f"Line ranges for file {file} are not monotonic: {ranges[i]} and {ranges[i + 1]}.")
+
+    def is_valid(self) -> bool:
+        """
+        Determine whether the LineMapping instance is valid (i.e., all files are known and all line ranges are valid).
+        :return: True if the LineMapping instance is valid and False otherwise.
+        """
+        if "???" in self.files:
+            return False
+
+        for ranges in self.files.values():
+            if any(not r.is_valid_line_range() for r in ranges):
+                return False
+
+        return True
+
+    def is_in(self, other: 'Lines') -> bool:
+        """
+        Determine whether this LineMapping instance is contained within another LineMapping instance.
+        :param other: Another LineMapping instance.
+        :return: True if this LineMapping instance is contained within the other and False otherwise.
+        """
+        for file, ranges in self.files.items():
+            if file not in other.files:
+                return False
+            for r in ranges:
+                if not any(other_r.includes(r) for other_r in other.files[file]):
+                    return False
+        return True
+
+    def same_lines(self, other: 'Lines') -> bool:
+        """
+        Determine whether this LineMapping instance refers to the same lines as another LineMapping instance.
+        :param other: Another LineMapping instance.
+        :return: True if this LineMapping instance refers to the same lines as the other and False otherwise.
+        """
+        if len(self.files) != len(other.files):
+            return False
+
+        for file, ranges in self.files.items():
+            if file not in other.files:
+                return False
+            other_ranges = other.files[file]
+            if len(ranges) != len(other_ranges):
+                return False
+
+            # This is simplified by the assumption that the ranges are sorted and non-overlapping.
+            for range_self, range_other in zip(ranges, other_ranges):
+                if not IntegerRange.same_range(range_self, range_other):
+                    return False
+        return True
+
+    def __str__(self) -> str:
+        """
+        Create a string representation of the LineMapping instance.
+        :return: A string representation of the LineMapping instance.
+        """
+        return ";".join(f"{file}:{','.join(str(r) for r in ranges)}" for file, ranges in self.files.items()) + \
+                (" (approximated)" if self.approximated else "")
+
+def try_parse_comment(line: str) -> Lines | None:
+    """
+    Try to parse a comment in the form of "// L /path/to/file1:5-10,14;/path/to/file2:20-25" and return a
+    LineMapping instance if successful.
+    :param line: The line containing the comment to parse.
+    :return: A LineMapping instance if the comment was successfully parsed, None otherwise.
+    """
+    line_comment_pattern: str = r"//\s?L\s+((?:[^:]+:(?:\d+(?:-\d+)?,?)+;?)+)"
+    if match := re.search(line_comment_pattern, line):
+        files: dict[Path, list[IntegerRange]] = {}
+        for file_range in match.group(1).split(';'):
+            file_path, ranges = file_range.split(':')
+            file_path = Path(file_path.strip())
+            if file_path not in files:
+                files[file_path] = []
+            for r in ranges.split(','):
+                if '-' in r:
+                    start, end = map(int, r.split('-'))
+                    files[file_path].append(IntegerRange(start, end))
+                else:
+                    line_number = int(r)
+                    files[file_path].append(IntegerRange(line_number, line_number))
+        return Lines(files)
+    return None
 
 def map_source_line(line_number: int,
                     desugared_file: Path,
-                    function_line_range: tuple[str, IntegerRange]) -> IntegerRange:
+                    function_line_range: tuple[str, Lines]) -> Lines:
     """
     Map a line within a desugared source file back to its original range within the unpreprocessed source code.
 
@@ -26,16 +127,7 @@ def map_source_line(line_number: int,
     """
     logger.info(f"Trying to open file {desugared_file}")
     with open(desugared_file, 'r') as infile:
-        line_range_pattern: str = r"// L(.*):L(.*)$"  # Example: "int  (__cmds_8183)[] ;// L41:L42"
-        single_line_pattern: str = r"// L(.*)$"  # Example: "int  __i_8187 ;// L49"
         array_access_fixed_index_pattern: str = r"\s*__\S+_\d+\[\d+\] = .+$"  # Example: "__cmds_8183[0] = 128"
-
-        def check_for_line_number_comment(line: str) -> IntegerRange | None:
-            if match := re.search(line_range_pattern, line):
-                return IntegerRange(int(match.group(1)), int(match.group(2)))
-            if match := re.search(single_line_pattern, line):
-                return IntegerRange(int(match.group(1)), int(match.group(1)))
-            return None
 
         lines: List[str] = list(map(lambda x: x.strip('\n'), infile.readlines()))
         try:
@@ -44,7 +136,7 @@ def map_source_line(line_number: int,
             logger.exception(f"Trying to find {line_number} in file {desugared_file} failed: {ie}.")
             raise
 
-        if (original_line_range := check_for_line_number_comment(the_line)) is not None:
+        if (original_line_range := try_parse_comment(the_line)) is not None:
             return original_line_range
 
         if re.search(array_access_fixed_index_pattern, the_line) or not (function_line_range[0] == "GLOBAL"):
@@ -58,21 +150,48 @@ def map_source_line(line_number: int,
             # __abc_1159[0] = 5677;
             # __abc_1159[1] = 535655;
             # __abc_1159[2] = 12345;
-            # } } ;// L21
-            curren_line_number: int = line_number
-            open_parentheses: int = 0
+            # } } ;// L /path/to/file.c:21
+            if not function_line_range[1].is_valid() or len(function_line_range[1].files) != 1:
+                raise ValueError(f"Function line range {function_line_range} is not valid or does not contain exactly "
+                                 "one file. Cannot approximate line number "
+                                 f"for {desugared_file}:{line_number} ({the_line}).")
+            function_line_range_end = next(iter(function_line_range[1].files.values()))[-1].end_line
 
+            curren_line_number: int = line_number
+            open_parentheses: list[str] = []
+
+            parentheses = "{}()[]"
+
+            # Find the first closing parenthesis that ends the block in which the line is contained, and which is
+            # annotated with a line mapping comment.
             while curren_line_number < len(lines):
                 current_line: str = lines[curren_line_number]
-                if "{" in current_line:
-                    open_parentheses += current_line.count("{")
-                if "}" in current_line and open_parentheses > 0:
-                    open_parentheses -= min(current_line.count("}"), open_parentheses)
+                current_line_without_comments: str = re.sub(r"//.*", "", current_line).strip()
+                if "\"" in current_line_without_comments or "'" in current_line_without_comments:
+                    raise ValueError("Cannot approximate line number for "
+                                     f"{desugared_file}:{line_number} ({the_line}) because it contains a string literal.")
 
-                if open_parentheses <= 0:
-                    original_line_range: IntegerRange = check_for_line_number_comment(current_line)
-                    if original_line_range is not None and (
-                            original_line_range.start_line <= function_line_range[1].end_line):
+                if "/*" in current_line_without_comments or "*/" in current_line_without_comments:
+                    raise ValueError("Cannot approximate line number for "
+                                     f"{desugared_file}:{line_number} ({the_line}) because it contains a block comment.")
+
+                for c in current_line_without_comments:
+                    parenthesis_idx = parentheses.find(c)
+                    if parenthesis_idx == -1:
+                        continue
+                    if parenthesis_idx % 2 == 0:  # Opening parenthesis
+                        open_parentheses.append(c)
+                    elif len(open_parentheses) > 0:  # Closing parenthesis
+                        if open_parentheses[-1] == parentheses[parenthesis_idx - 1]:
+                            open_parentheses.pop()
+                        else:
+                            raise ValueError("Cannot approximate line number for "
+                                             f"{desugared_file}:{line_number} ({the_line}) because it contains"
+                                             f" mismatched parentheses.")
+
+                if len(open_parentheses) == 0:
+                    original_line_range: Lines = try_parse_comment(current_line)
+                    if original_line_range is not None:
                         original_line_range.approximated = True
                         return original_line_range
 
@@ -111,8 +230,8 @@ class Alarm:
         self.message: str = message
         self.id: int = next(Alarm.__id_generator)
 
-        self.__original_line_range: IntegerRange | None = None
-        self.__function_line_range: tuple[str, IntegerRange] | None = None
+        self.__original_lines: Lines | None = None
+        self.__function_lines: tuple[str, Lines] | None = None
         self.__sanitized_message: str | None = None
 
         self.presence_condition: str | None = None
@@ -143,7 +262,7 @@ class Alarm:
         return self.__sanitized_message
 
     @property
-    def original_line_range(self) -> IntegerRange:
+    def original_lines(self) -> Lines:
         """
         Determine the line range in the unpreprocessed code to which the Alarm instance refers to.
 
@@ -156,24 +275,24 @@ class Alarm:
         # A more robust solution to distinguish conventional from desugared source files would involve incorporating a
         # specially formatted comment into the code during desugaring.
         if 'desugared' not in self.input_file.name:
-            return IntegerRange(self.line_in_input_file, self.line_in_input_file)
+            return Lines({Path(self.input_file.name): [IntegerRange(self.line_in_input_file, self.line_in_input_file)]})
 
-        if self.__original_line_range is None:
-            self.__original_line_range = map_source_line(line_number=self.line_in_input_file,
-                                                         desugared_file=self.input_file,
-                                                         function_line_range=self.function_line_range)
-            if (self.__original_line_range is not None
-                    and not self.function_line_range[0] == "GLOBAL"
-                    and not self.__original_line_range.is_in(self.function_line_range[1])):
+        if self.__original_lines is None:
+            self.__original_lines = map_source_line(line_number=self.line_in_input_file,
+                                                    desugared_file=self.input_file,
+                                                    function_line_range=self.function_lines)
+            if (self.__original_lines is not None
+                    and not self.function_lines[0] == "GLOBAL"
+                    and not self.__original_lines.is_in(self.function_lines[1])):
                 logger.critical(
                     f"Sanity check failed. Warning ({self.input_file}:{self.line_in_input_file} {self.message}) "
-                    f"original line range {self.original_line_range} and "
-                    f"function line range {self.__function_line_range}, and the former is not included in the latter, "
+                    f"original line range {self.original_lines} and "
+                    f"function line range {self.__function_lines[1]}, and the former is not included in the latter, "
                     f"which is not a global scope. Please double check that our line mapping is correct.")
-        return self.__original_line_range
+        return self.__original_lines
 
     @property
-    def function_line_range(self) -> Tuple[str, IntegerRange]:
+    def function_lines(self) -> Tuple[str, Lines]:
         """
         Determine the line range of the surrounding function in the unpreprocessed source code.
 
@@ -186,7 +305,7 @@ class Alarm:
         if self.input_file is None:
             raise ValueError
 
-        if self.__function_line_range is None:
+        if self.__function_lines is None:
             with open(self.input_file) as f:
                 lines = f.readlines()
 
@@ -197,16 +316,18 @@ class Alarm:
             for l in lines_to_reverse_iterate_over:
                 l = l.strip()
                 # Only consider the last 1000 characters since static renamings can be multiple million characters long.
-                if re.search(r"//\s?M:L(\d*):L(\d*)$", l[-1000:]):
+                if re.search(r"//\s?M:L\s+[^:]+:(\d*)-(\d*)$", l[-1000:]):
                     found = True
                     # Function defs are not overly long. Can therefore now match on the whole string.
-                    mat = re.search(r"(.*)//\s?M:L(\d*):L(\d*)$", l)
-                    self.__function_line_range = (mat.group(1), IntegerRange(int(mat.group(2)), int(mat.group(3))))
+                    mat = re.search(r"(.*)//\s?M:L\s+([^:]+):(\d*)-(\d*)$", l)
+                    self.__function_lines = (mat.group(1), Lines({
+                            Path(mat.group(2)): [IntegerRange(int(mat.group(3)), int(mat.group(4)))]
+                    }))
                     break
             if not found:
-                self.__function_line_range = ("GLOBAL", IntegerRange(1, len(lines)))
+                self.__function_lines = ("GLOBAL", Lines({Path("???"): [IntegerRange(1, len(lines))]}))
 
-        return self.__function_line_range
+        return self.__function_lines
 
     @property
     def all_relevant_lines(self) -> Iterable[int]:
@@ -252,8 +373,8 @@ class Alarm:
             "input_line": lambda: self.line_in_input_file,
             "other_input_lines": lambda: self.other_lines_in_input_file,
             "original_file": lambda: str(self.unpreprocessed_source_file),
-            "original_line": lambda: str(self.original_line_range),
-            "function_line_range": lambda: f"{self.function_line_range[0]}:{str(self.function_line_range[1])}",
+            "original_line": lambda: str(self.original_lines),
+            "function_line_range": lambda: f"{self.function_lines[0]}:{str(self.function_lines[1])}",
             "message": lambda: self.message,
             "sanitized_message": lambda: self.sanitized_message,
             "presence_condition": lambda: self.presence_condition,
