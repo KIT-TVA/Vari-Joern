@@ -27,7 +27,7 @@ from python.sugarlyzer import SugarCRunner
 from python.sugarlyzer.SugarCRunner import process_alarms
 from python.sugarlyzer.analyses.AbstractTool import AbstractTool
 from python.sugarlyzer.analyses.AnalysisToolFactory import AnalysisToolFactory
-from python.sugarlyzer.models.alarm.Alarm import Alarm
+from python.sugarlyzer.models.alarm.Alarm import Alarm, Lines
 from python.sugarlyzer.models.program.ProgramSpecification import ProgramSpecification
 from python.sugarlyzer.models.program.ProgramSpecificationFactory import ProgramSpecificationFactory
 
@@ -208,7 +208,7 @@ class Tester:
             # introduced during desugaring that is not found in the unpreprocessed source file.
             def line_mapping_exists(alarm: Alarm) -> bool:
                 try:
-                    _ = alarm.original_line_range
+                    _ = alarm.original_lines
                     return True
                 except ValueError as ve:
                     logger.debug(f"Could not establish a line mapping for an alarm of type {alarm.message} in "
@@ -220,13 +220,17 @@ class Tester:
             alarms = [alarm for alarm in alarms if line_mapping_exists(alarm)]
             logger.info(f"{len(alarms)} alarms remain after pruning without a line mapping.")
 
+            logger.info("Pruning alarms that do not originate from their original source files...")
+            alarms = [alarm for alarm in alarms if alarm.unpreprocessed_source_file.absolute() in alarm.original_lines.files]
+            logger.info(f"{len(alarms)} alarms remain after pruning alarms that do not originate from their original source files.")
+
             # Internal function that checks whether two alarms refer to the same issue in the unpreprocessed
             # source code.
             def alarm_match(a: Alarm, b: Alarm) -> bool:
                 return (a.input_file == b.input_file
                         and a.feasible == b.feasible
                         and a.sanitized_message == b.sanitized_message
-                        and IntegerRange.same_range(a.original_line_range, b.original_line_range))
+                        and a.original_lines.same_lines(b.original_lines))
 
             # Collect alarms into "buckets" based on equivalence.
             # Then, for each bucket, we will return one alarm, combining all the
@@ -252,18 +256,13 @@ class Tester:
 
             # Aggregate alarms and join their presence conditions via disjunctions.
             logger.info("Now aggregating alarms within the buckets...")
-            alarms = []
+            alarms: list[Alarm] | Iterable[Alarm] = []
             for bucket in (b for b in buckets if len(b) > 0):
                 alarms.append(bucket[0])
                 alarms[-1].presence_condition = f"Or({','.join(str(m.presence_condition) for m in bucket)})"
                 alarms[-1].other_lines_in_input_file = [alarm.line_in_input_file for alarm in bucket[1:]]
             logger.debug("Done.")
             logger.info(f"{len(alarms)} alarms remain after aggregation.")
-
-            # Perform a sanity check on the remaining alarms.
-            logger.info(f"Sanity checking the {len(alarms)} alarms...")
-            alarms = [alarm for alarm in alarms if alarm.is_alarm_valid(self.program.source_file_encoding)]
-            logger.info(f"{len(alarms)} remain after sanity checking.")
 
             if self.validate:
                 logger.info("Now validating....")
@@ -279,8 +278,8 @@ class Tester:
 
         # Sort alarms w.r.t full file name and original line range to ease comparison of reports between executions.
         alarms.sort(key=lambda
-            alarm_param: f"{alarm_param.input_file}::{'A' if not alarm_param.original_line_range.approximated else 'B'}"
-                         f"::{str(alarm_param.original_line_range)}::{alarm_param.message}")
+            alarm_param: f"{alarm_param.input_file}::{'A' if not alarm_param.original_lines.approximated else 'B'}"
+                         f"::{str(alarm_param.original_lines)}::{alarm_param.message}")
 
         alarm_id: int = 0
         for alarm in alarms:
@@ -348,7 +347,7 @@ class Tester:
             a.desugaring_time = desugaring_time
         return processed_alarms
 
-    def verify_alarm(self, alarm):
+    def verify_alarm(self, alarm: Alarm):
         alarm = copy.deepcopy(alarm)
         alarm.verified = "UNVERIFIED"
         if not alarm.feasible:
@@ -408,20 +407,23 @@ class Tester:
                 f"Got the following alarms {[json.dumps(b.as_dict()) for b in verify]} when trying to verify alarm {json.dumps(alarm.as_dict())}")
             ntf.close()
             for v in verify:
+                lines_to_verify = Lines({
+                    v.unpreprocessed_source_file: [IntegerRange(v.line_in_input_file, v.line_in_input_file)]
+                })
                 logger.debug(f"Comparing alarms {alarm.as_dict()} and {v.as_dict()}")
                 if alarm.sanitized_message == v.sanitized_message and \
                         alarm.verified not in ["FUNCTION_LEVEL", "FULL"]:
                     alarm.verified = "MESSAGE_ONLY"
                 try:
                     if alarm.sanitized_message == v.sanitized_message and \
-                            alarm.function_line_range[1].includes(v.line_in_input_file) and \
+                            lines_to_verify.is_in(alarm.function_lines[1]) and \
                             alarm.verified != "FULL":
                         alarm.verified = "FUNCTION_LEVEL"
                 except ValueError as ve:
                     pass
                 try:
                     if alarm.sanitized_message == v.sanitized_message and \
-                            alarm.original_line_range.includes(v.line_in_input_file):
+                            lines_to_verify.is_in(alarm.original_lines):
                         alarm.verified = "FULL"
                         break  # no need to continue
                 except ValueError as ve:

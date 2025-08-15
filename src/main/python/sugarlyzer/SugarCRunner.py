@@ -499,12 +499,16 @@ def check_non_flow(alarm: Alarm, desugared_output: str) -> List[Dict[str, str | 
     :param desugared_output:
     :return:
     """
+    # This method hasn't been updated for alarms containing multiple line ranges in different files.
+    # It looks like it was already broken before that, and it is not used anywhere in the codebase.
+    raise NotImplementedError("This method is not correctly implemented and should not be used.")
+
     logger.debug("Inside check_non_flow")
     result = []
     with open(desugared_output, 'r') as ff:
         lines: List[str] = ff.readlines()
         additional_scopes = 0
-        line_to_read: int = alarm.original_line_range.start_line
+        line_to_read: int = alarm.original_lines.start_line
         while line_to_read >= 0:
             additional_scopes += lines[line_to_read].count('}')
             if additional_scopes == 0:
