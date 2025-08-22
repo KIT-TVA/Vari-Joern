@@ -76,7 +76,7 @@ class Tester:
                                                                      self.program.name),
                                                                  maximum_heap_size=self.maximum_heap_per_job)
 
-        self.output_file_path = args.output_path if args.output_path is not None else Path.home() / Path(
+        self.output_file_path: Path = Path(args.output_path) if args.output_path is not None else Path.home() / Path(
             f"sugarlyzer_results_{self.tool.name}_{self.program.name}.json")
         self.output_file_path.parent.mkdir(exist_ok=True, parents=True)
 
