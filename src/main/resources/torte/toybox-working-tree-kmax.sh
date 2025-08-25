@@ -47,6 +47,9 @@ kconfig-post-checkout-hook-toybox(system, revision) {
 }
 
 experiment-stages() {
+    # Patch the broken Dockerfile until we upgrade torte
+    grep -q "bd3e73239c83ac04e4ea4e3ce12c872475490658" torte/src/docker/kclause/Dockerfile || patch torte/src/docker/kclause/Dockerfile kclause-Dockerfile.patch
+
     push "$INPUT_DIRECTORY"/toybox
     sed -Ei 's/source *([^# ]+)/source "\1"/' Config.in
     if [ ! -d .git ]; then

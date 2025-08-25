@@ -16,6 +16,9 @@ experiment-subjects() {
 }
 
 experiment-stages() {
+    # Patch the broken Dockerfile until we upgrade torte
+    grep -q "python3-regex" torte/src/docker/kclause/Dockerfile || patch torte/docker/kmax/Dockerfile kclause-Dockerfile-old.patch
+
     push "$INPUT_DIRECTORY"/busybox
     if [ ! -d .git ]; then
         git init

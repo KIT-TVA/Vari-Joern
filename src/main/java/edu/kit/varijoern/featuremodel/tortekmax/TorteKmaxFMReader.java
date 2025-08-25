@@ -44,6 +44,10 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             "axtls", "axtls-working-tree-kmax.sh",
             "toybox", "toybox-working-tree-kmax.sh"
     );
+    private static final List<String> EXTRA_FILES = List.of(
+            "kclause-Dockerfile.patch",
+            "kclause-Dockerfile-old.patch"
+    );
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
 
@@ -70,9 +74,10 @@ public class TorteKmaxFMReader implements FeatureModelReader {
     public @NotNull IFeatureModel read(@NotNull Path tmpPath)
             throws IOException, FeatureModelReaderException, InterruptedException {
         LOGGER.info("Reading feature model from Kconfig files in {}", this.sourcePath);
-        String readerScript = ResourcesUtil.getResourceAsString("torte/" + getExperimentScriptName());
-        Path readerScriptPath = tmpPath.resolve(getExperimentScriptName());
-        Files.writeString(readerScriptPath, readerScript, StandardCharsets.UTF_8);
+        this.extractFile(getExperimentScriptName(), tmpPath);
+        for (String extraFile : EXTRA_FILES) {
+            this.extractFile(extraFile, tmpPath);
+        }
 
         Path inputPath = tmpPath.resolve("input");
         Path sourcePath = inputPath.resolve(this.system);
@@ -96,6 +101,12 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             // The source code probably takes a large amount of disk space.
             FileUtils.deleteDirectory(inputPath.toFile());
         }
+    }
+
+    private void extractFile(@NotNull String fileName, @NotNull Path tmpPath) throws IOException {
+        String content = ResourcesUtil.getResourceAsString("torte/" + fileName);
+        Path targetPath = tmpPath.resolve(fileName);
+        Files.writeString(targetPath, content, StandardCharsets.UTF_8);
     }
 
     private void runReader(@NotNull Path tmpPath)
