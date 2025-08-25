@@ -15,7 +15,7 @@ experiment-subjects() {
 
 experiment-stages() {
     # Patch the broken Dockerfile until we upgrade torte
-    grep -q "bd3e73239c83ac04e4ea4e3ce12c872475490658" torte/src/docker/kclause/Dockerfile || patch torte/docker/kmax/Dockerfile kclause-Dockerfile-old.patch
+    grep -q "python3-regex" torte/src/docker/kclause/Dockerfile || patch torte/docker/kmax/Dockerfile kclause-Dockerfile-old.patch
 
     push "$INPUT_DIRECTORY"/linux
     if [ ! -d .git ]; then
