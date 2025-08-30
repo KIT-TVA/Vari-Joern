@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -110,3 +111,42 @@ class ToyboxSpecification(ProgramSpecification):
                         includes_per_file_pattern.append(make_entry)
 
         return includes_per_file_pattern
+
+    def prepare_desugaring(self):
+        """
+        Generates generated/globals.h for all toys instead of only those which are enabled in defconfig,
+        which is required for desugaring.
+        """
+
+        # The egrep sed calls in this function were copied from scripts/make.sh in the Toybox repository.
+
+        global_path = self.project_root / Path("generated/globals.h")
+        os.rename(global_path, global_path.with_suffix(".h.sugarlyzer.orig"))
+        toyfiles = subprocess.run('egrep -l "^USE_(.*)[(]...TOY[(]" toys/*/*.c',
+                                  cwd=self.project_root,
+                                  shell=True,
+                                  stdout=subprocess.PIPE
+                                  ).stdout.decode().splitlines()
+        structs = subprocess.run(
+            f"sed -ne 's/^#define[ \\t]*FOR_\\([^ \\t]*\\).*/\\1/;T s1;h;:s1' \
+             -e '/^GLOBALS(/,/^)/{{s/^GLOBALS(//;T s2;g;s/.*/struct &_data {{/;:s2;s/^)/}};\\n/;p}}' \
+             {' '.join(toyfiles)}",
+            cwd=self.project_root,
+            shell=True,
+            stdout=subprocess.PIPE
+        ).stdout.decode()
+
+        global_content = structs + "\nextern union global_union {\n"
+
+        union_content = subprocess.run(
+            f"sed -n 's/^struct \\(.*\\)_data .*/\\1/;T;s/.*/\\tstruct &_data &;/p'",
+            cwd=self.project_root,
+            shell=True,
+            input=structs.encode(),
+            stdout=subprocess.PIPE).stdout.decode()
+
+        global_content += union_content
+        global_content += "} this;\n"
+
+        with open(global_path, "w") as global_file:
+            global_file.write(global_content)
