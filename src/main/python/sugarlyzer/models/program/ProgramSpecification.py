@@ -112,6 +112,8 @@ class ProgramSpecification(ABC):
         # files are only generated during the build.
         self.create_config_header_and_mapping()
 
+        self.prepare_desugaring()
+
     # TODO Consider removing (Sugarlyzer debt).
     @property
     def oldconfig_location(self):
@@ -358,6 +360,12 @@ class ProgramSpecification(ABC):
         for transformed, original in transformed_to_original_kconfig_files.items():
             os.unlink(transformed)
             os.rename(src=original, dst=transformed)
+
+    def prepare_desugaring(self):
+        """
+        Perform subject-specific preparation steps required before desugaring can be run.
+        """
+        pass
 
     def transform_kconfig_into_kextract_format(self) -> dict[str, str]:
         """
