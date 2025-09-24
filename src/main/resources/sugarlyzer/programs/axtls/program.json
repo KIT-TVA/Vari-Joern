@@ -2,12 +2,12 @@
   "remove_errors": false,
   "config_prefix": "KGENMACRO_",
 
-  "source_dirs": ["axtls-code"],
+  "source_dirs": ["."],
   "make_target": "linuxconf",
-  "makefile_dir_path": "axtls-code/",
-  "kconfig_root_path": "axtls-code/",
-  "kconfig_root_file_path": "axtls-code/config/Config.in",
-  "config_header_path": "axtls-code/config/config.h",
+  "makefile_dir_path": ".",
+  "kconfig_root_path": ".",
+  "kconfig_root_file_path": "config/Config.in",
+  "config_header_path": "config/config.h",
 
   "included_files_and_directories": [
     {
@@ -21,18 +21,18 @@
       "file_pattern": "axtlswrap\\.c$",
       "included_files": [],
       "included_directories": [
-        "axtls-code/config",
-        "axtls-code/crypto",
-        "axtls-code/ssl"
+        "config",
+        "crypto",
+        "ssl"
       ]
     },
     {
       "file_pattern": "ssltest\\.c$",
       "included_files": [],
       "included_directories": [
-        "axtls-code/config",
-        "axtls-code/crypto",
-        "axtls-code/ssl"
+        "config",
+        "crypto",
+        "ssl"
       ]
     },
     {
