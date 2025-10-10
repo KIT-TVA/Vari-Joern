@@ -2,14 +2,9 @@
 # The following line uses curl to reproducibly install and run the specified revision of torte.
 # Alternatively, torte can be installed manually (see https://github.com/ekuiter/torte).
 # In that case, make sure to check out the correct revision manually and run ./torte.sh <this-file>.
-TORTE_REVISION=79a4df3; [[ $TOOL != torte ]] && builtin source <(curl -fsSL https://raw.githubusercontent.com/ekuiter/torte/$TORTE_REVISION/torte.sh) "$@"
+TORTE_REVISION=v1.0.0; [[ $TOOL != torte ]] && builtin source <(curl -fsSL https://raw.githubusercontent.com/ekuiter/torte/$TORTE_REVISION/torte.sh) "$@"
 
-export INPUT_DIRECTORY=$TORTE_INPUT_DIRECTORY
-export OUTPUT_DIRECTORY=$TORTE_OUTPUT_DIRECTORY
-
-# This experiment extracts and transforms a single feature model from a recent revision of the Linux kernel.
-
-experiment-subjects() {
+experiment-systems() {
     # Inject our own variant of add-system. We don't want to clone the Linux kernel with all its history.
     # This is taken from https://github.com/ekuiter/torte/blob/79a4df311c6ccb4eec3c2b20572ecde488fbd638/scripts/utilities.sh
     add-system(system, url) {
@@ -19,28 +14,25 @@ experiment-subjects() {
         log "git-clone: $system"
         if [[ ! -d "$(input-directory)/$system" ]]; then
             log "" "$(echo-progress clone)"
-            # torte uses the kconfig implementation from v5.0
-            # (see https://github.com/ekuiter/torte/blob/79a4df311c6ccb4eec3c2b20572ecde488fbd638/scripts/subjects/fiasco.sh)
-            git clone "$url" "$(input-directory)/$system" --branch v5.0 --depth 1
+            # torte uses the kconfig implementation from v6.7
+            # (see https://github.com/ekuiter/torte/blob/v1.0.0/src/systems/fiasco.sh)
+            git clone "$url" "$(input-directory)/$system" --branch v6.7 --depth 1
             log "" "$(echo-done)"
         else
             log "" "$(echo-skip)"
         fi
     }
-    add-linux-kconfig-binding --revision v5.0
+    add-linux-kconfig-binding --revision v6.7
     add-revision --system fiasco --revision vari-joern-auto-tag
     add-kconfig-model \
         --system fiasco \
         --revision vari-joern-auto-tag \
         --kconfig-file src/Kconfig \
-        --kconfig-binding-file "$(linux-kconfig-binding-file v5.0)"
+        --kconfig-binding-file "$(linux-kconfig-binding-file v6.7)"
 }
 
 experiment-stages() {
-    # Patch the broken Dockerfile until we upgrade torte
-    grep -q "python3-regex" torte/docker/kmax/Dockerfile || patch torte/docker/kmax/Dockerfile kclause-Dockerfile-old.patch
-
-    push "$INPUT_DIRECTORY"/fiasco
+    push "$TORTE_INPUT_DIRECTORY"/fiasco
     if [ ! -d .git ]; then
         git init
     fi
@@ -51,8 +43,22 @@ experiment-stages() {
     git tag -f vari-joern-auto-tag
     pop
 
-    extract-kconfig-models-with kmax
+    mkdir -p "$(stage-path clone-systems)"
+    mv -T "$TORTE_INPUT_DIRECTORY/fiasco" "$(stage-path clone-systems fiasco)"
+    touch "$(stage-done-file clone-systems)"
+
+    read-fiasco-configs
+
+    extract-kconfig-models-with --extractor kclause
 
     # transform
-    transform-models-with-featjar --transformer model_to_xml_featureide --output-extension xml --jobs 2
+    transform-model-with-featjar \
+      --transformer model-to-xml-with-featureide \
+      --input extract-kconfig-models-with-kclause \
+      --output-extension xml \
+      --jobs 2
+
+    # Copy to output directory
+    cp -r "$(stage-path model-to-xml-with-featureide fiasco)" "$TORTE_OUTPUT_DIRECTORY"
+    cp -r "$(stage-path extract-kconfig-models-with-kclause fiasco)" "$TORTE_OUTPUT_DIRECTORY/kconfig"
 }

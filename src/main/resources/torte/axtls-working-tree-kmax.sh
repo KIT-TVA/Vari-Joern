@@ -2,24 +2,16 @@
 # The following line uses curl to reproducibly install and run the specified revision of torte.
 # Alternatively, torte can be installed manually (see https://github.com/ekuiter/torte).
 # In that case, make sure to check out the correct revision manually and run ./torte.sh <this-file>.
-TORTE_REVISION=79a4df3; [[ $TOOL != torte ]] && builtin source <(curl -fsSL https://raw.githubusercontent.com/ekuiter/torte/$TORTE_REVISION/torte.sh) "$@"
+TORTE_REVISION=v1.0.0; [[ $TOOL != torte ]] && builtin source <(curl -fsSL https://raw.githubusercontent.com/ekuiter/torte/$TORTE_REVISION/torte.sh) "$@"
 
-export INPUT_DIRECTORY=$TORTE_INPUT_DIRECTORY
-export OUTPUT_DIRECTORY=$TORTE_OUTPUT_DIRECTORY
-
-# This experiment extracts and transforms a single feature model from a recent revision of the Linux kernel.
-
-experiment-subjects() {
+experiment-systems() {
     add-revision --system axtls --revision vari-joern-auto-tag
     add-kconfig --system axtls --revision vari-joern-auto-tag --kconfig-file config/Config.in \
         --kconfig-binding-files config/scripts/config/*.o
 }
 
 experiment-stages() {
-    # Patch the broken Dockerfile until we upgrade torte
-    grep -q "python3-regex" torte/docker/kmax/Dockerfile || patch torte/docker/kmax/Dockerfile kclause-Dockerfile-old.patch
-
-    push "$INPUT_DIRECTORY"/axtls
+    push "$TORTE_INPUT_DIRECTORY"/axtls
     if [ ! -d .git ]; then
         git init
     fi
@@ -30,8 +22,22 @@ experiment-stages() {
     git tag -f vari-joern-auto-tag
     pop
 
-    extract-kconfig-models-with kmax
+    mkdir -p "$(stage-path clone-systems)"
+    mv -T "$TORTE_INPUT_DIRECTORY/axtls" "$(stage-path clone-systems axtls)"
+    touch "$(stage-done-file clone-systems)"
+
+    read-axtls-configs
+
+    extract-kconfig-models-with --extractor kclause
 
     # transform
-    transform-models-with-featjar --transformer model_to_xml_featureide --output-extension xml --jobs 2
+    transform-model-with-featjar \
+      --transformer model-to-xml-with-featureide \
+      --input extract-kconfig-models-with-kclause \
+      --output-extension xml \
+      --jobs 2
+
+    # Copy to output directory
+    cp -r "$(stage-path model-to-xml-with-featureide axtls)" "$TORTE_OUTPUT_DIRECTORY"
+    cp -r "$(stage-path extract-kconfig-models-with-kclause axtls)" "$TORTE_OUTPUT_DIRECTORY/kconfig"
 }
