@@ -130,7 +130,6 @@ class Tester:
 
         shutil.copytree(ps.project_root, code_dest)
         ps_copy = copy.deepcopy(ps)
-        ps_copy.search_context = code_dest.parent
         Tester.configure_code(ps_copy, config)
         return ps_copy
 
