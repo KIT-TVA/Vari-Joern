@@ -38,7 +38,6 @@ class Tester:
     def __init__(self, args: argparse.Namespace):
         self.logfiles_disabled: bool = args.logfiles_disabled
 
-        self.baselines = args.baselines
         self.no_recommended_space = True
         self.jobs: int = max(args.jobs if args.jobs is not None else os.cpu_count() or 1, 1)
         self.maximum_heap_per_job = args.max_heap_per_job
@@ -138,141 +137,138 @@ class Tester:
     def execute(self):
         logger.info(f"PYTHONPATH is {os.environ.get('PYTHONPATH')}")
         logger.info(f"Current environment is {os.environ}")
-        if not self.baselines:
-            ###################################
-            # Run SugarC.
-            ###################################
-            logger.info(f"Desugaring the source code in {self.program.source_dirs} with {self.jobs} job(s)...")
-            start_time_desugaring: float = time.monotonic()
-            source_files = list(self.program.get_source_files())
-            desugared_files: List[Tuple] = []
+        ###################################
+        # Run SugarC.
+        ###################################
+        logger.info(f"Desugaring the source code in {self.program.source_dirs} with {self.jobs} job(s)...")
+        start_time_desugaring: float = time.monotonic()
+        source_files = list(self.program.get_source_files())
+        desugared_files: List[Tuple] = []
 
-            with ProcessPoolExecutor(max_workers=self.jobs) as executor:
-                # Submit tasks.
-                desugar_tasks = [executor.submit(self.desugar, file) for file in source_files]
+        with ProcessPoolExecutor(max_workers=self.jobs) as executor:
+            # Submit tasks.
+            desugar_tasks = [executor.submit(self.desugar, file) for file in source_files]
 
-                # Collect results.
-                for desugar_task in tqdm(desugar_tasks, total=len(source_files), miniters=1):
-                    try:
-                        desugared_file = desugar_task.result()
-                        desugared_files.append(desugared_file)
-                    except Exception as e:
-                        logger.exception(f"Error during desugaring: {e}")
-
-            logger.info(f"Finished desugaring the source code.")
-            logger.info(f"Time elapsed during desugaring: {time.monotonic() - start_time_desugaring}s")
-            logger.info(f"From a total of {len(source_files)} source files, collected {len(desugared_files)} "
-                        f"desugared .c files.")
-
-            # Prune desugared files that are empty.
-            desugared_files = [desugaring_result for desugaring_result in desugared_files
-                               if os.path.getsize(desugaring_result[0]) > 0]
-
-            logger.info(f"After pruning empty files, {len(desugared_files)} desugared files remain for analysis.")
-
-            ###################################
-            # Run analysis tool.
-            ###################################
-            alarms = []
-            logger.info(f"Running analysis with tool {self.tool.name}...")
-            start_time_analysis: float = time.monotonic()
-
-            with ProcessPoolExecutor(max_workers=self.jobs) as executor:
-                # Submit tasks.
-                analysis_tasks = [executor.submit(self.analyze_read_and_process, *(d, o, dt))
-                                  for d, _, o, dt in desugared_files]
-
-                # Collect results.
-                for analysis_task in tqdm(analysis_tasks, total=len(desugared_files), miniters=1):
-                    try:
-                        results = analysis_task.result()
-                        alarms.extend(results)
-                    except Exception as e:
-                        logger.exception(f"Error during analysis: {e}")
-
-            logger.info(f"Analysis with tool {self.tool.name} finished.")
-            logger.info(f"Elapsed time during analysis: {time.monotonic() - start_time_analysis}s")
-            logger.info(f"Got {len(alarms)} unique alarms from the analysis tool.")
-
-            ###################################
-            # Post processing of alarms.
-            ###################################
-            start_time_post_processing: float = time.monotonic()
-
-            # Prune infeasible alarms.
-            logger.info("Pruning alarms whose presence condition is not SAT...")
-            alarms = [alarm for alarm in alarms if alarm.feasible]
-            logger.info(f"{len(alarms)} alarms remain after pruning alarms whose presence condition is not SAT.")
-
-            # Prune warnings whose original line range could not be established as these most likely relate to code
-            # introduced during desugaring that is not found in the unpreprocessed source file.
-            def line_mapping_exists(alarm: Alarm) -> bool:
+            # Collect results.
+            for desugar_task in tqdm(desugar_tasks, total=len(source_files), miniters=1):
                 try:
-                    _ = alarm.original_lines
-                    return True
-                except ValueError as ve:
-                    logger.debug(f"Could not establish a line mapping for an alarm of type {alarm.message} in "
-                                 f"{alarm.input_file}:{alarm.line_in_input_file}")
-                    logger.debug(ve)
-                return False
+                    desugared_file = desugar_task.result()
+                    desugared_files.append(desugared_file)
+                except Exception as e:
+                    logger.exception(f"Error during desugaring: {e}")
 
-            logger.info("Pruning alarms whose line mapping to the unpreprocessed source code could not be established...")
-            alarms = [alarm for alarm in alarms if line_mapping_exists(alarm)]
-            logger.info(f"{len(alarms)} alarms remain after pruning without a line mapping.")
+        logger.info(f"Finished desugaring the source code.")
+        logger.info(f"Time elapsed during desugaring: {time.monotonic() - start_time_desugaring}s")
+        logger.info(f"From a total of {len(source_files)} source files, collected {len(desugared_files)} "
+                    f"desugared .c files.")
 
-            logger.info("Pruning alarms that do not originate from their original source files...")
-            alarms = [alarm for alarm in alarms if alarm.unpreprocessed_source_file.absolute() in alarm.original_lines.files]
-            logger.info(f"{len(alarms)} alarms remain after pruning alarms that do not originate from their original source files.")
+        # Prune desugared files that are empty.
+        desugared_files = [desugaring_result for desugaring_result in desugared_files
+                           if os.path.getsize(desugaring_result[0]) > 0]
 
-            # Internal function that checks whether two alarms refer to the same issue in the unpreprocessed
-            # source code.
-            def alarm_match(a: Alarm, b: Alarm) -> bool:
-                return (a.input_file == b.input_file
-                        and a.feasible == b.feasible
-                        and a.sanitized_message == b.sanitized_message
-                        and a.original_lines.same_lines(b.original_lines))
+        logger.info(f"After pruning empty files, {len(desugared_files)} desugared files remain for analysis.")
 
-            # Collect alarms into "buckets" based on equivalence.
-            # Then, for each bucket, we will return one alarm, combining all the
-            # models into a list.
-            logger.info(f"Sorting the {len(alarms)} alarms into buckets to eliminate duplicates...")
-            buckets: list[list[Alarm]] = [[]]
-            bucket_matches = 0
-            for ba in alarms:
-                for bucket in buckets:
-                    # Bucket hit.
-                    if len(bucket) > 0 and alarm_match(bucket[0], ba):
-                        bucket.append(ba)
-                        bucket_matches += 1
-                        break
-                else:
-                    # If we get here, then there wasn't a bucket that this could fit into,
-                    # So it gets its own bucket and we add a new one to the end of the list.
-                    buckets[-1].append(ba)
-                    buckets.append([])
+        ###################################
+        # Run analysis tool.
+        ###################################
+        alarms = []
+        logger.info(f"Running analysis with tool {self.tool.name}...")
+        start_time_analysis: float = time.monotonic()
 
-            logger.info(f"Sorted the {len(alarms)} alarms into {len(buckets) - 1} buckets "
-                        f"({bucket_matches} matches on existing buckets).")
+        with ProcessPoolExecutor(max_workers=self.jobs) as executor:
+            # Submit tasks.
+            analysis_tasks = [executor.submit(self.analyze_read_and_process, *(d, o, dt))
+                              for d, _, o, dt in desugared_files]
 
-            # Aggregate alarms and join their presence conditions via disjunctions.
-            logger.info("Now aggregating alarms within the buckets...")
-            alarms: list[Alarm] | Iterable[Alarm] = []
-            for bucket in (b for b in buckets if len(b) > 0):
-                alarms.append(bucket[0])
-                alarms[-1].presence_condition = f"Or({','.join(str(m.presence_condition) for m in bucket)})"
-                alarms[-1].other_lines_in_input_file = [alarm.line_in_input_file for alarm in bucket[1:]]
-            logger.debug("Done.")
-            logger.info(f"{len(alarms)} alarms remain after aggregation.")
+            # Collect results.
+            for analysis_task in tqdm(analysis_tasks, total=len(desugared_files), miniters=1):
+                try:
+                    results = analysis_task.result()
+                    alarms.extend(results)
+                except Exception as e:
+                    logger.exception(f"Error during analysis: {e}")
 
-            if self.validate:
-                logger.info("Now validating....")
-                with ProcessPool(self.jobs) as p:
-                    alarms = list(tqdm(p.imap(self.verify_alarm, alarms)))
+        logger.info(f"Analysis with tool {self.tool.name} finished.")
+        logger.info(f"Elapsed time during analysis: {time.monotonic() - start_time_analysis}s")
+        logger.info(f"Got {len(alarms)} unique alarms from the analysis tool.")
 
-            logger.info(f"Time elapsed during post-processing of alarms: "
-                        f"{time.monotonic() - start_time_post_processing}s")
-        else:
-            alarms = self.run_baseline_experiments()
+        ###################################
+        # Post processing of alarms.
+        ###################################
+        start_time_post_processing: float = time.monotonic()
+
+        # Prune infeasible alarms.
+        logger.info("Pruning alarms whose presence condition is not SAT...")
+        alarms = [alarm for alarm in alarms if alarm.feasible]
+        logger.info(f"{len(alarms)} alarms remain after pruning alarms whose presence condition is not SAT.")
+
+        # Prune warnings whose original line range could not be established as these most likely relate to code
+        # introduced during desugaring that is not found in the unpreprocessed source file.
+        def line_mapping_exists(alarm: Alarm) -> bool:
+            try:
+                _ = alarm.original_lines
+                return True
+            except ValueError as ve:
+                logger.debug(f"Could not establish a line mapping for an alarm of type {alarm.message} in "
+                             f"{alarm.input_file}:{alarm.line_in_input_file}")
+                logger.debug(ve)
+            return False
+
+        logger.info("Pruning alarms whose line mapping to the unpreprocessed source code could not be established...")
+        alarms = [alarm for alarm in alarms if line_mapping_exists(alarm)]
+        logger.info(f"{len(alarms)} alarms remain after pruning without a line mapping.")
+
+        logger.info("Pruning alarms that do not originate from their original source files...")
+        alarms = [alarm for alarm in alarms if alarm.unpreprocessed_source_file.absolute() in alarm.original_lines.files]
+        logger.info(f"{len(alarms)} alarms remain after pruning alarms that do not originate from their original source files.")
+
+        # Internal function that checks whether two alarms refer to the same issue in the unpreprocessed
+        # source code.
+        def alarm_match(a: Alarm, b: Alarm) -> bool:
+            return (a.input_file == b.input_file
+                    and a.feasible == b.feasible
+                    and a.sanitized_message == b.sanitized_message
+                    and a.original_lines.same_lines(b.original_lines))
+
+        # Collect alarms into "buckets" based on equivalence.
+        # Then, for each bucket, we will return one alarm, combining all the
+        # models into a list.
+        logger.info(f"Sorting the {len(alarms)} alarms into buckets to eliminate duplicates...")
+        buckets: list[list[Alarm]] = [[]]
+        bucket_matches = 0
+        for ba in alarms:
+            for bucket in buckets:
+                # Bucket hit.
+                if len(bucket) > 0 and alarm_match(bucket[0], ba):
+                    bucket.append(ba)
+                    bucket_matches += 1
+                    break
+            else:
+                # If we get here, then there wasn't a bucket that this could fit into,
+                # So it gets its own bucket and we add a new one to the end of the list.
+                buckets[-1].append(ba)
+                buckets.append([])
+
+        logger.info(f"Sorted the {len(alarms)} alarms into {len(buckets) - 1} buckets "
+                    f"({bucket_matches} matches on existing buckets).")
+
+        # Aggregate alarms and join their presence conditions via disjunctions.
+        logger.info("Now aggregating alarms within the buckets...")
+        alarms: list[Alarm] | Iterable[Alarm] = []
+        for bucket in (b for b in buckets if len(b) > 0):
+            alarms.append(bucket[0])
+            alarms[-1].presence_condition = f"Or({','.join(str(m.presence_condition) for m in bucket)})"
+            alarms[-1].other_lines_in_input_file = [alarm.line_in_input_file for alarm in bucket[1:]]
+        logger.debug("Done.")
+        logger.info(f"{len(alarms)} alarms remain after aggregation.")
+
+        if self.validate:
+            logger.info("Now validating....")
+            with ProcessPool(self.jobs) as p:
+                alarms = list(tqdm(p.imap(self.verify_alarm, alarms)))
+
+        logger.info(f"Time elapsed during post-processing of alarms: "
+                    f"{time.monotonic() - start_time_post_processing}s")
 
         logger.info(f"Writing alarms to file \"{self.output_file_path}\"")
 
@@ -528,9 +524,6 @@ def get_arguments() -> argparse.Namespace:
     p.add_argument("--relative-paths", action="store_true",
                    help="Use relative paths to the subject system's root directory in the report file.")
 
-    p.add_argument("--baselines", action="store_true",
-                   help="""Run the baseline experiments. In these, we configure each 
-                   file with every possible configuration, and then run the experiments.""")
     p.add_argument("--no-recommended-space", help="""Do not generate a recommended space.""", action='store_true')
     p.add_argument("--validate",
                    help="""Try running desugared alarms with Z3's configuration to see if they are retained.""",
