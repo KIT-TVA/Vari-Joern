@@ -149,14 +149,12 @@ public class Main {
     }
 
     private static int runProductBased(@NotNull Config config, @NotNull Args args) {
-        Path tmpDir;
         Path featureModelReaderTmpDirectory;
         Path samplerTmpDirectory;
         try {
-            tmpDir = Files.createTempDirectory("vari-joern");
-            featureModelReaderTmpDirectory = tmpDir.resolve("feature-model-reader");
+            featureModelReaderTmpDirectory = Main.tmpDir.resolve("feature-model-reader");
             Files.createDirectories(featureModelReaderTmpDirectory);
-            samplerTmpDirectory = tmpDir.resolve("sampler");
+            samplerTmpDirectory = Main.tmpDir.resolve("sampler");
             Files.createDirectories(samplerTmpDirectory);
         } catch (IOException e) {
             LOGGER.atFatal().withThrowable(e).log("Failed to create temporary directory");
@@ -195,7 +193,7 @@ public class Main {
         try {
             runner = new ParallelIterationRunner(args.getNumComposers(), args.getNumAnalyzers(),
                     args.getCompositionQueueCapacity(), args.isSequential(), config.getComposerConfig(),
-                    config.getAnalyzerConfig(), featureModel, resultCache, tmpDir);
+                    config.getAnalyzerConfig(), featureModel, resultCache, Main.tmpDir);
         } catch (RunnerException e) {
             LOGGER.atFatal().withThrowable(e).log("Failed to create runner");
             return STATUS_INTERNAL_ERROR;
