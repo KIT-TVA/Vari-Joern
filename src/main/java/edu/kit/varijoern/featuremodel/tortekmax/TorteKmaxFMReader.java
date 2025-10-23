@@ -44,10 +44,6 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             "axtls", "axtls-working-tree-kmax.sh",
             "toybox", "toybox-working-tree-kmax.sh"
     );
-    private static final List<String> EXTRA_FILES = List.of(
-            "kclause-Dockerfile.patch",
-            "kclause-Dockerfile-old.patch"
-    );
     private static final Logger LOGGER = LogManager.getLogger();
     private static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.INFO).buildOutputStream();
 
@@ -75,9 +71,6 @@ public class TorteKmaxFMReader implements FeatureModelReader {
             throws IOException, FeatureModelReaderException, InterruptedException {
         LOGGER.info("Reading feature model from Kconfig files in {}", this.sourcePath);
         this.extractFile(getExperimentScriptName(), tmpPath);
-        for (String extraFile : EXTRA_FILES) {
-            this.extractFile(extraFile, tmpPath);
-        }
 
         Path inputPath = tmpPath.resolve("input");
         Path sourcePath = inputPath.resolve(this.system);
@@ -137,7 +130,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
 
     private @NotNull Path findGeneratedFeatureModel(@NotNull Path tmpPath)
             throws IOException, FeatureModelReaderException {
-        try (Stream<Path> files = Files.walk(tmpPath.resolve("output/model_to_xml_featureide/" + this.system))) {
+        try (Stream<Path> files = Files.walk(tmpPath.resolve("output"))) {
             List<Path> featureModelPaths = files.filter(Files::isRegularFile)
                     .filter(path -> path.getFileName().toString().endsWith(".xml"))
                     .toList();
@@ -160,7 +153,7 @@ public class TorteKmaxFMReader implements FeatureModelReader {
      */
     private void postprocessFeatureModel(@NotNull IFeatureModel featureModel, @NotNull Path tmpPath)
             throws FeatureModelReaderException {
-        try (Stream<Path> files = Files.walk(tmpPath.resolve("output/kconfig/" + this.system))) {
+        try (Stream<Path> files = Files.walk(tmpPath.resolve("output/kconfig"))) {
             List<Path> kextractorFiles = files.filter(Files::isRegularFile)
                     .filter(path -> path.getFileName().toString().endsWith(".kextractor"))
                     .toList();
