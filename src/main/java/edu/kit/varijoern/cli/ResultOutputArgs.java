@@ -1,8 +1,8 @@
 package edu.kit.varijoern.cli;
 
 import com.beust.jcommander.Parameter;
+import edu.kit.varijoern.output.JSONOutputFormatter;
 import edu.kit.varijoern.output.OutputFormatter;
-import edu.kit.varijoern.output.TextOutputFormatter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,9 +14,9 @@ public class ResultOutputArgs {
             converter = OutputDestinationConverter.class)
     private @NotNull OutputDestination destination = new OutputDestination();
 
-    @Parameter(names = {"-f", "--format"}, description = "Output format, allowed values: text (default), json",
+    @Parameter(names = {"-f", "--format"}, description = "Output format, allowed values: json (default)",
             converter = OutputFormatterConverter.class)
-    private @NotNull OutputFormatter formatter = new TextOutputFormatter();
+    private @NotNull OutputFormatter formatter = new JSONOutputFormatter();
 
     /**
      * Returns the destination for the output.

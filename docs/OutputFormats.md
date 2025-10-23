@@ -1,12 +1,6 @@
 # Output formats
 
-Depending on the analysis strategy, Vari-Joern supports multiple output formats: 
-
-- **Product-Based Strategy**: `text` and `json`
-- **Family-Based Strategy**: `json`
-
-`text` is a human-readable format which is not further specified. `json` generates a JSON file with the structure 
-described in the next section.
+Vari-Joern currently only supports a JSON-based output format. Its structure is specified below.
 
 ## JSON output format
 
