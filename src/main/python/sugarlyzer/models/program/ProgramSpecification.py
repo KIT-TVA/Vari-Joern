@@ -97,7 +97,6 @@ class ProgramSpecification(ABC):
 
         self.inc_dirs_and_files = [] if included_files_and_directories is None else included_files_and_directories
 
-        self.no_std_libs = True  # TODO Consider removing (Sugarlyzer debt).
         self.__oldconfig_location = "config/.config"  # TODO Consider removing (Sugarlyzer debt).
 
         # Collect includes and macros from system and make.
