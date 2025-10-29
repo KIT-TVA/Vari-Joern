@@ -41,7 +41,6 @@ class Tester:
         self.no_recommended_space = True
         self.jobs: int = max(args.jobs if args.jobs is not None else os.cpu_count() or 1, 1)
         self.maximum_heap_per_job = args.max_heap_per_job
-        self.validate = args.validate if args.validate is not None else False
         self.verbosity = args.verbosity
         self.keep_intermediary_files: bool = args.keep_intermediary_files if args.keep_intermediary_files is not None else False
         self.relative_paths: bool = args.relative_paths if args.relative_paths is not None else False
@@ -105,33 +104,6 @@ class Tester:
                                                         included_files=inc_files,
                                                         included_dirs=inc_dirs)
         return alarms
-
-    @staticmethod
-    def configure_code(program: ProgramSpecification, config: Path):
-        logger.info(f"Running configuration {config.name}")
-        # Copy config to .config
-        cwd = os.curdir
-        os.chdir(program.makefile_dir_path)
-        logger.debug(f"Copying {config.name} to {program.oldconfig_location}")
-        shutil.copyfile(config, program.oldconfig_location)
-        os.system('yes "" | make oldconfig')
-        logger.debug("make finished.")
-        os.chdir(cwd)
-        # if cp.returncode != 0:
-        #    logger.warning(f"Running command {' '.join(make_cmd)} resulted in a non-zero error code.\n"
-        #                   f"Output was:\n" + cp.stdout)
-
-    @staticmethod
-    def clone_program_and_configure(ps: ProgramSpecification, config: Path) -> ProgramSpecification:
-        """Clones a program spec to a new directory, and returns a program spec with updated search context."""
-        code_dest = Path("/targets") / Path(config.name) / Path(ps.project_root.name)
-        code_dest.parent.mkdir(parents=True)
-        logger.debug(f"Cloning {ps.project_root} to {code_dest}")
-
-        shutil.copytree(ps.project_root, code_dest)
-        ps_copy = copy.deepcopy(ps)
-        Tester.configure_code(ps_copy, config)
-        return ps_copy
 
     def execute(self):
         logger.info(f"PYTHONPATH is {os.environ.get('PYTHONPATH')}")
@@ -261,11 +233,6 @@ class Tester:
         logger.debug("Done.")
         logger.info(f"{len(alarms)} alarms remain after aggregation.")
 
-        if self.validate:
-            logger.info("Now validating....")
-            with ProcessPool(self.jobs) as p:
-                alarms = list(tqdm(p.imap(self.verify_alarm, alarms)))
-
         logger.info(f"Time elapsed during post-processing of alarms: "
                     f"{time.monotonic() - start_time_post_processing}s")
 
@@ -341,92 +308,6 @@ class Tester:
         for a in processed_alarms:
             a.desugaring_time = desugaring_time
         return processed_alarms
-
-    def verify_alarm(self, alarm: Alarm):
-        alarm = copy.deepcopy(alarm)
-        alarm.verified = "UNVERIFIED"
-        if not alarm.feasible:
-            logger.debug(f'infeasible alarm left unverified')
-            return alarm
-        logger.debug(f"Constructing model {alarm.model}")
-        if alarm.model is not None:
-            config_string = ""
-            for k, v in alarm.model.items():
-                mappedKey = k
-                mappedValue = v
-                if self.kgen_map.exists():
-                    with open(self.kgen_map) as mapping:
-                        map = json.load(mapping)
-                    kdef = k
-                    if v.lower() == 'false':
-                        kdef = '!' + kdef
-                    if kdef in map.keys():
-                        toParse = map[kdef]
-                        if toParse.startswith('DEF'):
-                            mappedKey = toParse
-                            mappedValue = 'True'
-                        elif toParse.startswith('!DEF'):
-                            mappedKey = toParse[1:]
-                            mappedValue = 'False'
-                        else:
-                            mappedKey = toParse.split(' == ')[0]
-                            mappedValue = toParse.split(' == ')[1]
-                if mappedKey.startswith('DEF_'):
-                    match mappedValue.lower():
-                        case 'true':
-                            config_string += f"{mappedKey[4:]}=y\n"
-                        case 'false':
-                            config_string += f"{mappedKey[4:]}=n\n"
-                elif k.startswith('USE_'):
-                    config_string += f"{mappedKey[4:]}={mappedValue}\n"
-                else:
-                    logger.critical(f"Ignored constraint {str(mappedKey)}={str(mappedValue)}")
-            if config_string == "":
-                return alarm
-            loggable_config_string = config_string.replace("\n", ", ")
-            logger.debug(f"Configuration is {loggable_config_string}")
-            ntf = tempfile.NamedTemporaryFile(delete=False, mode="w")
-            ntf.write(config_string)
-            ps: ProgramSpecification = self.clone_program_and_configure(self.program, Path(ntf.name))
-
-            updated_file = str(alarm.input_file.absolute()).replace('/targets',
-                                                                    f'/targets/{Path(ntf.name).name}').replace(
-                '.desugared', '')
-            updated_file = Path(updated_file)
-            logger.debug(f"Mapped file {alarm.input_file} to {updated_file}")
-            verify = self.analyze_file_and_associate_configuration(desugared_source_file=updated_file,
-                                                                   unpreprocessed_source_file=alarm.unpreprocessed_source_file,
-                                                                   config=Path(ntf.name),
-                                                                   program_specification=ps)
-            logger.debug(
-                f"Got the following alarms {[json.dumps(b.as_dict()) for b in verify]} when trying to verify alarm {json.dumps(alarm.as_dict())}")
-            ntf.close()
-            for v in verify:
-                lines_to_verify = Lines({
-                    v.unpreprocessed_source_file: [IntegerRange(v.line_in_input_file, v.line_in_input_file)]
-                })
-                logger.debug(f"Comparing alarms {alarm.as_dict()} and {v.as_dict()}")
-                if alarm.sanitized_message == v.sanitized_message and \
-                        alarm.verified not in ["FUNCTION_LEVEL", "FULL"]:
-                    alarm.verified = "MESSAGE_ONLY"
-                try:
-                    if alarm.sanitized_message == v.sanitized_message and \
-                            lines_to_verify.is_in(alarm.function_lines[1]) and \
-                            alarm.verified != "FULL":
-                        alarm.verified = "FUNCTION_LEVEL"
-                except ValueError as ve:
-                    pass
-                try:
-                    if alarm.sanitized_message == v.sanitized_message and \
-                            lines_to_verify.is_in(alarm.original_lines):
-                        alarm.verified = "FULL"
-                        break  # no need to continue
-                except ValueError as ve:
-                    pass
-            logger.debug(f"Alarm with validation updated: {alarm.as_dict()}")
-            return alarm
-        else:
-            return alarm
 
     def analyze_file_and_associate_configuration(self,
                                                  desugared_source_file: Path,

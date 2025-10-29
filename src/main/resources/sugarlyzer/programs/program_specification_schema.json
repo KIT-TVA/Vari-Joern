@@ -60,10 +60,6 @@
     "sample_dir": {
       "description": "A directory containing configuration samples.",
       "type": "string"
-    },
-    "oldconfig_location": {
-      "description": "The file to copy configs to in baseline testing. By default, is project_root/config/.config",
-      "type": "string"
     }
   }
 }

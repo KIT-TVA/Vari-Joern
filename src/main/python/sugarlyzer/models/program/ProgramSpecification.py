@@ -97,8 +97,6 @@ class ProgramSpecification(ABC):
 
         self.inc_dirs_and_files = [] if included_files_and_directories is None else included_files_and_directories
 
-        self.__oldconfig_location = "config/.config"  # TODO Consider removing (Sugarlyzer debt).
-
         # Collect includes and macros from system and make.
         self.__make_includes: list[dict] = self.collect_make_includes()
         self.__system_includes: list[Path] = self.__collect_system_includes()
@@ -111,11 +109,6 @@ class ProgramSpecification(ABC):
         self.create_config_header_and_mapping()
 
         self.prepare_desugaring()
-
-    # TODO Consider removing (Sugarlyzer debt).
-    @property
-    def oldconfig_location(self):
-        return self.try_resolve_path(self.__oldconfig_location, self.makefile_dir_path)
 
     def get_source_files(self) -> Iterable[Path]:
         """
