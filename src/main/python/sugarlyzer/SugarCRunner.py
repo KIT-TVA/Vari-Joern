@@ -487,41 +487,6 @@ def calculate_asserts(alarm: Alarm, desugared_file: Path):
     return result
 
 
-def check_non_flow(alarm: Alarm, desugared_output: str) -> List[Dict[str, str | bool]]:
-    """
-    Logic is as follows, we take advantage of the fact that we always use braces
-    We start at our line number and reverse search up. Whenever we find a }
-    we skip lines until we match {. This way we can only explore up a scope level
-    If we find a __static_condition_renaming, we are in logically true,
-    global scope, or in a function without an explicit condition in the body
-
-    :param alarm:
-    :param desugared_output:
-    :return:
-    """
-    # This method hasn't been updated for alarms containing multiple line ranges in different files.
-    # It looks like it was already broken before that, and it is not used anywhere in the codebase.
-    raise NotImplementedError("This method is not correctly implemented and should not be used.")
-
-    logger.debug("Inside check_non_flow")
-    result = []
-    with open(desugared_output, 'r') as ff:
-        lines: List[str] = ff.readlines()
-        additional_scopes = 0
-        line_to_read: int = alarm.original_lines.start_line
-        while line_to_read >= 0:
-            additional_scopes += lines[line_to_read].count('}')
-            if additional_scopes == 0:
-                m = re.match(r"if \((__static_condition_default_\d+)\(\)\).*", lines[line_to_read])
-                if m:
-                    result.append({'var': str(m.group(1)), 'val': True})
-            additional_scopes -= lines[line_to_read].count('{')
-            if additional_scopes < 0:
-                additional_scopes = 0
-            line_to_read -= 1
-    return result
-
-
 def get_bad_constraints(desugared_file: Path) -> List[str]:
     """
     Given a desugared file, find conditions that will always result in an error. These conditions

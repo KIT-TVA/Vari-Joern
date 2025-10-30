@@ -97,10 +97,6 @@ class ProgramSpecification(ABC):
 
         self.inc_dirs_and_files = [] if included_files_and_directories is None else included_files_and_directories
 
-        self.no_std_libs = True  # TODO Consider removing (Sugarlyzer debt).
-        self.__oldconfig_location = "config/.config"  # TODO Consider removing (Sugarlyzer debt).
-        self.__search_context = None
-
         # Collect includes and macros from system and make.
         self.__make_includes: list[dict] = self.collect_make_includes()
         self.__system_includes: list[Path] = self.__collect_system_includes()
@@ -113,25 +109,6 @@ class ProgramSpecification(ABC):
         self.create_config_header_and_mapping()
 
         self.prepare_desugaring()
-
-    # TODO Consider removing (Sugarlyzer debt).
-    @property
-    def oldconfig_location(self):
-        return self.try_resolve_path(self.__oldconfig_location, self.makefile_dir_path)
-
-    # TODO Consider removing (Sugarlyzer debt).
-    @property
-    def sample_directory(self):
-        return self.try_resolve_path(self.__sample_directory, importlib.resources.path('resources.programs', ''))
-
-    # TODO Consider removing (Sugarlyzer debt).
-    @property
-    def search_context(self):
-        p = Path(self.__search_context)
-        if not p.exists():
-            raise RuntimeError(f"Search context {p} does not exist.")
-        else:
-            return p
 
     def get_source_files(self) -> Iterable[Path]:
         """
@@ -307,13 +284,6 @@ class ProgramSpecification(ABC):
         source_file: Path
         configuration: List[Tuple[str, str]] | Path
 
-    def get_baseline_configurations(self) -> Iterable[Path]:
-        if self.sample_directory is None:
-            # If we don't have a sample directory, we use the get_all_macros function to get every possible configuration.
-            raise RuntimeError("Need to reimplement this.")
-        else:
-            yield from self.try_resolve_path(self.sample_directory).iterdir()
-
     def get_all_macros(self, fpa):
         parser = MacroDiscoveryPreprocessor()
         with open(fpa, 'r') as f:
@@ -321,10 +291,6 @@ class ProgramSpecification(ABC):
         parser.write(StringIO())
         logger.debug(f"Discovered the following macros in file {fpa}: {parser.collected}")
         return parser.collected
-
-    @search_context.setter
-    def search_context(self, value):
-        self.__search_context = value
 
     def create_config_header_and_mapping(self):
         """
