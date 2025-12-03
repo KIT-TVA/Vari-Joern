@@ -13,9 +13,11 @@ import org.apache.logging.log4j.io.IoBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -93,7 +95,11 @@ public class CPGGenerationVisitor extends LanguageInformationVisitor<AnalyzerFai
         ).toList();
         Process parserProcess;
         try {
-            parserProcess = new ProcessBuilder(command).start();
+            // This is a workaround for a bug with `joern-parse`.
+            // When calling `joern-parse` from the root directory (`/`), an empty CPG is generated.
+            // We therefore call `joern-parse` from another directory.
+            File tmpDirOutsideRoot = Paths.get("/tmp").toFile();
+            parserProcess = new ProcessBuilder(command).directory(tmpDirOutsideRoot).start();
         } catch (IOException e) {
             throw new AnalyzerFailureException("Failed to parse source code", e);
         }
