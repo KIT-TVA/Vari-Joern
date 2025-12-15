@@ -143,12 +143,12 @@ findings to the console.
 Vari-Joern currently supports the following subject systems for analysis (C-LoC as reported by 
 [Cloc](https://github.com/AlDanial/cloc)):
 
-|                     System                      |    Version     | Kind                         |  C-LoC  | Supported Vari-Joern Strategy  |
-|:-----------------------------------------------:|:--------------:|------------------------------|:-------:|--------------------------------|
-|     [axTLS](https://axtls.sourceforge.net/)     |     2.1.5      | SSL Client/Server Library    | 17,556  | Product-Based and Family-Based |
-| [Fiasco](https://github.com/kernkonzept/fiasco) | Commit 4076045 | Microkernel                  | 46,013  | Product-Based                  |
-|      [Toybox](https://landley.net/toybox/)      |     0.8.11     | Linux Command Line Utilities | 58,127  | Product-Based and Family-Based |
-|       [BusyBox](https://www.busybox.net/)       |     1.36.1     | Collection of UNIX Utilities | 182,966 | Product-Based and Family-Based |
+|                      System                       |    Versions    | Kind                         |      C-LoC       | Supported Vari-Joern Strategy  |
+|:-------------------------------------------------:|:--------------:|------------------------------|:----------------:|--------------------------------|
+|      [axTLS](https://axtls.sourceforge.net/)      |     2.1.5      | SSL Client/Server Library    |      17,556      | Product-Based and Family-Based |
+|  [Fiasco](https://github.com/kernkonzept/fiasco)  | Commit 4076045 | Microkernel                  |      46,013      | Product-Based                  |
+|       [Toybox](https://landley.net/toybox/)       | 0.8.11, 0.8.12 | Linux Command Line Utilities | 61,324 (v0.8.12) | Product-Based and Family-Based |
+|        [BusyBox](https://www.busybox.net/)        |     1.36.1     | Collection of UNIX Utilities |     182,966      | Product-Based and Family-Based |
 
 > **Note**: Other versions of the subject systems might also work but have not yet been tested. 
 
