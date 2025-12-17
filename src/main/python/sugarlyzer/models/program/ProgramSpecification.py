@@ -35,6 +35,7 @@ class ProgramSpecification(ABC):
                  remove_errors: bool = False,
                  config_prefix: str = None,
                  source_dirs: list[str] = None,
+                 excluded_source_paths: list[str] = None,
                  make_target: str = None,
                  makefile_dir_path: str = None,
                  kconfig_root_file_path: str = None,
@@ -80,6 +81,13 @@ class ProgramSpecification(ABC):
                 self.source_dirs.append(self.try_resolve_path(path=source_dir,
                                                               root=self.project_root))
 
+        self.excluded_source_paths: list[Path] = []
+        if excluded_source_paths is not None:
+            for excluded_path in excluded_source_paths:
+                self.excluded_source_paths.append(self.try_resolve_path(
+                    path=excluded_path,
+                    root=self.project_root))
+
         self.make_target: str | None = make_target
         self.makefile_dir_path: Path = self.try_resolve_path(path=makefile_dir_path, root=self.project_root) \
             if makefile_dir_path is not None else self.project_root
@@ -114,14 +122,22 @@ class ProgramSpecification(ABC):
         """
         Collect the C source files contained in the program.
 
-        :return: All .c or .i files that are contained in the program's source directory but have not been produced
-            by earlier desugaring.
+        :return: All .c or .i files that are contained in the program's source
+            directories (except the excplicitly excluded ones) but have not been
+            produced by earlier desugaring.
         """
         for source_dir in self.source_dirs:
-            for root, dirs, files in os.walk(source_dir):
+            for root, dirs, files in os.walk(source_dir, topdown=True):
+                dirs[:] = [d for d in dirs
+                           if Path(root) / d not in self.excluded_source_paths]
                 for f in files:
-                    if (f.endswith(".c") or f.endswith(".i")) and not ("sugarlyzer.desugared" in f):
-                        yield Path(root) / f
+                    path = Path(root) / f
+                    if (
+                        (f.endswith(".c") or f.endswith(".i"))
+                        and "sugarlyzer.desugared" not in f
+                        and path not in self.excluded_source_paths
+                    ):
+                        yield path
 
     def clean_intermediary_results(self):
         """
