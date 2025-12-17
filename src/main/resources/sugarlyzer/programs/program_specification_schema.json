@@ -57,6 +57,13 @@
         "type": "string"
       }
     },
+    "excluded_source_paths": {
+      "description": "Paths to directories or files inside the project_root to exclude analyzing.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "sample_dir": {
       "description": "A directory containing configuration samples.",
       "type": "string"
