@@ -166,7 +166,7 @@ corresponding subdirectory.
 
 [![Paper](https://img.shields.io/badge/Paper-Read-purple)](https://dl.acm.org/doi/10.1145/3744915.3748462)
 [![Slides](https://img.shields.io/badge/Slides-Here-purple)](https://github.com/TDot305/Presentation-SPLC-2025/blob/cdc7bc0abb8e24cfccc1950bb36cf3316b5b7282/presentation.pdf)
-[![Replication Package_Vari_Joern](https://img.shields.io/badge/Replication_Package-Vari_Joern-blue)](https://zenodo.org/records/15647964)
+[![Replication Package_Vari_Joern](https://img.shields.io/badge/Replication_Package-Vari--Joern-blue)](https://zenodo.org/records/15647964)
 [![Replication Package_Evaluation](https://img.shields.io/badge/Replication_Package-Evaluation-blue)](https://zenodo.org/records/15849290)
 
 > Tim Bächle, Erik Hofmayer, Christoph König, Tobias Pett, and Ina Schaefer. 2025. Investigating the Effects of T-Wise Interaction Sampling for Vulnerability Discovery in Highly-Configurable Software Systems. In Proceedings of the 29th ACM International Systems and Software Product Line Conference - Volume A (SPLC-A '25). Association for Computing Machinery, New York, NY, USA, 45–56. https://doi.org/10.1145/3744915.3748462
@@ -178,4 +178,4 @@ corresponding subdirectory.
 
 The paper investigates t-wise interaction sampling for vulnerability discovery in highly-configurable software and 
 introduces Vari-Joern. An evaluation on real-world systems shows that low sampling strengths, especially 2-wise, detect 
-most vulnerabilities, with higher strengths yielding diminishing returns
+most vulnerabilities, with higher strengths yielding diminishing returns.
