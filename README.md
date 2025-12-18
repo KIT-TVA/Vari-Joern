@@ -1,5 +1,7 @@
 # Vari-Joern
 
+[![Docker Image CI](https://github.com/KIT-TVA/Vari-Joern/actions/workflows/docker-image.yml/badge.svg)](https://github.com/KIT-TVA/Vari-Joern/actions/workflows/docker-image.yml)
+
 Vari-Joern is an analysis platform for analyzing highly-configurable software systems for the presence of potential
 vulnerabilities using the Q-SAST tool [Joern](https://joern.io).
 It features two analysis strategies:
@@ -157,3 +159,23 @@ Vari-Joern is licensed under a GNU General Public License version 3 (GPLv3). Mor
 in the [LICENSE](LICENSE) file.
 Third-party software that was reused is licensed under its respective license, as indicated by the license files in the
 corresponding subdirectory.
+
+## Publications
+
+### Investigating the Effects of T-Wise Interaction Sampling for Vulnerability Discovery in Highly-Configurable Software Systems (SPLC 2025, ⭐ [Best Artifact Award](https://2025.splc.net/awards/) ⭐)
+
+[![Paper](https://img.shields.io/badge/Paper-Read-purple)](https://dl.acm.org/doi/10.1145/3744915.3748462)
+[![Slides](https://img.shields.io/badge/Slides-Here-purple)](https://github.com/TDot305/Presentation-SPLC-2025/blob/cdc7bc0abb8e24cfccc1950bb36cf3316b5b7282/presentation.pdf)
+[![Replication Package_Vari_Joern](https://img.shields.io/badge/Replication_Package-Vari_Joern-blue)](https://zenodo.org/records/15647964)
+[![Replication Package_Evaluation](https://img.shields.io/badge/Replication_Package-Evaluation-blue)](https://zenodo.org/records/15849290)
+
+> Tim Bächle, Erik Hofmayer, Christoph König, Tobias Pett, and Ina Schaefer. 2025. Investigating the Effects of T-Wise Interaction Sampling for Vulnerability Discovery in Highly-Configurable Software Systems. In Proceedings of the 29th ACM International Systems and Software Product Line Conference - Volume A (SPLC-A '25). Association for Computing Machinery, New York, NY, USA, 45–56. https://doi.org/10.1145/3744915.3748462
+
+<img padding="10" align="right" src="https://www.acm.org/binaries/content/gallery/acm/publications/artifact-review-v1_1-badges/artifacts_available_v1_1.png" alt="ACM Artifacts Available" width="114" height="113"/>
+<img padding="10" align="right" src="https://www.acm.org/binaries/content/gallery/acm/publications/artifact-review-v1_1-badges/artifacts_evaluated_functional_v1_1.png" alt="ACM Artifacts Evaluated Functional" width="114" height="113"/>
+<img padding="10" align="right" src="https://www.acm.org/binaries/content/gallery/acm/publications/artifact-review-v1_1-badges/artifacts_evaluated_reusable_v1_1.png" alt="ACM Artifacts Evaluated Reusable" width="114" height="113"/>
+
+
+The paper investigates t-wise interaction sampling for vulnerability discovery in highly-configurable software and 
+introduces Vari-Joern. An evaluation on real-world systems shows that low sampling strengths, especially 2-wise, detect 
+most vulnerabilities, with higher strengths yielding diminishing returns
