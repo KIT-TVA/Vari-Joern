@@ -45,6 +45,10 @@ public final class SamplerConfigFactory extends NamedComponentConfigFactory<Samp
             case FixedSampler.NAME -> new FixedSamplerConfig(toml);
             case TWiseSampler.NAME -> new TWiseSamplerConfig(toml);
             case UniformSampler.NAME -> new UniformSamplerConfig(toml);
+            case BaitalSampler.NAME -> new BaitalSamplerConfig(toml);
+            case LSSamplingPlusSampler.NAME -> new LSSamplingPlusSamplerConfig(toml);
+            case UniformBddSampler.NAME -> new UniformBddSamplerConfig(toml);
+            case HSCASampler.NAME -> new HSCASamplerConfig(toml);
             default -> throw new InvalidConfigException(String.format("Unknown sampler \"%s\"", componentName));
         };
     }

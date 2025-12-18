@@ -5,7 +5,7 @@ This sampler returns a sample by choosing configurations from a uniform distribu
 
 ## Configuration
 
-The t-wise sampler is configured using the following option:
+The uniform sampler is configured using the following option:
 
 - `sample-size`
     - The number of configurations to generate.

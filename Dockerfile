@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
     # Required for building SuperC and for executing Vari-Joern's KconfigComposer.
     make \
     # Required by Sugarlyzer.
-    python3.10 python3-pip python3-apt python3.10-venv
+    python3.10 python3-pip python3-apt python3.10-venv python3.10-dev
 
 FROM base-system AS build
 RUN apt-get install -y \
@@ -62,10 +62,16 @@ RUN python -m pip install -r requirements.txt
 RUN python -m pip install build
 RUN python -m build
 
+RUN python -m pip install -r baital_requirements.txt
+
 RUN ./gradlew distTar
 
 FROM base-system
 RUN apt-get update && apt-get install -y \
+    # Required by BDDSampler
+    automake \
+    # Required by BDDSampler
+    autoconf \
     # Required by fiasco
     bison \
     # Required by BusyBox
@@ -78,14 +84,32 @@ RUN apt-get update && apt-get install -y \
     flex \
     # Required by torte
     git \
+    # Required by BDDSampler
+    gperf \
+    # Required by Baital
+    graphviz\
+    # Required by BDDSampler
+    m4 \
+    # Required by Baital
+    libboost-program-options-dev \
+    # Required by Baital
+    libboost-serialization-dev \
+    # Required by BDDSampler
+    libfl-dev \
     # Required by Smarch
     libgmp-dev \
+    # Required by Baital
+    libmpfr-dev \
+    # Required by Baital
+    libmpc-dev \
     # Required by fiasco
     libsdl-dev \
     # Required by Vari-Joern and Joern
     openjdk-21-jdk \
     # Required for installing kmax
     pipx \
+    # Required by BDDSampler
+    perl \
     # Required for executing kmax
     python3.11-dev \
     # Useful for timing Vari-Joern runs
@@ -94,6 +118,10 @@ RUN apt-get update && apt-get install -y \
     unzip \
     # Handy for quickly viewing and altering files within the container.
     nano \
+    # Required by Baital
+    z3 \
+    # Required by Baital
+    zlib1g-dev \
     # `&& exit` is necessary because otherwise `pipx ensurepath` would not be started in a new `bash` process.
     # This would then make it detect that it runs in `sh` and not in `bash` and therefore not add the necessary
     # line to the `.bashrc` file.
@@ -115,6 +143,36 @@ ENV PATH="/opt/joern/joern-cli:${PATH}"
 RUN joern-scan --updatedb --dbversion 4.0.407
 
 RUN pipx install --python=$(which python3.11) kmax git+https://github.com/KIT-TVA/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
+
+ADD https://github.com/meelgroup/baital.git#100b51da8ba8879e9b72f2bb463c1d7efe41a8f7 /baital
+COPY --from=build /venv /venv
+ENV PATH=/venv/bin:$PATH
+
+ADD https://github.com/chuanluocs/LS-Sampling-Plus.git#581718a8f22df0365154e30f29e13b3318f42b3f /ls
+WORKDIR /ls
+RUN make
+WORKDIR ..
+
+ADD https://github.com/chuanluocs/HSCA.git#8d3df8ffa37f5133794249d909e3637e93797c21 /hsca
+WORKDIR /hsca
+RUN sh build.sh && chmod +x bin/coprocessor
+WORKDIR ..
+COPY --from=build /vari-joern/scripts/run_HSCA.py /hsca/run_HSCA.py
+
+ADD https://github.com/davidfa71/Extending-Logic.git#63ce01c9d4ab8a3604dcfcd6e85b714b6ef759bc /BDDCreator
+WORKDIR /BDDCreator/code
+ENV AUTOMAKE=:
+ENV ACLOCAL=:
+RUN make
+WORKDIR /
+COPY --from=build /vari-joern/scripts/create_dddmp.sh /BDDSampler/create_dddmp.sh
+
+ADD https://github.com/davidfa71/BDDSampler.git#56f30584d5266a372a4bb0ac48e375d07f20bc44 /BDDSampler
+WORKDIR /BDDSampler
+RUN chmod +x create_dddmp.sh \
+    && ./configure \
+    && make
+WORKDIR ..
 
 # Responsible for making the lib directory available to the container.
 COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar

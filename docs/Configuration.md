@@ -62,7 +62,11 @@ The resulting code is analyzed by Joern.
 The following samplers are available:
 
 - [T-Wise sampler](samplers/T-Wise.md): Returns a set of configurations that achieves t-wise coverage.
+- [HSCA sampler](samplers/HSCA.md): Returns a set of configurations that achieves t-wise coverage.
+- [LS-Sampling-Plus](samplers/LS-Sampling-Plus.md): Returns a set of configurations that approximates t-wise coverage.
+- [Baital sampler](samplers/Baital.md): Returns a set of configurations chosen using weighted random sampling.
 - [Uniform sampler](samplers/Uniform.md): Returns a set of uniformly chosen configurations.
+- [BDD sampler](samplers/BDDSampler.md): Returns a set of uniformly chosen configurations using BDDs.
 - [Fixed sampler](samplers/Fixed.md): Always returns the same pre-defined set of configurations.
 
 ### Composers
