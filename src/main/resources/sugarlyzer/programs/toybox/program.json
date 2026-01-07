@@ -2,6 +2,7 @@
   "remove_errors": false,
   "config_prefix": "KGENMACRO_",
 
+  "excluded_source_paths": ["./kconfig/", "./mkroot/", "./scripts/", "./tests/", "./www/", "./generated/"],
   "make_target": "defconfig",
   "kconfig_root_file_path": "Config.in",
   "kconfig_file_names": ["Config.in", "Config.probed"],

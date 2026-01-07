@@ -3,7 +3,7 @@
   "config_prefix": "KGENMACRO_",
 
   "source_dirs": ["."],
-  "excluded_source_paths": ["./config/scripts/config/"],
+  "excluded_source_paths": ["./config/", "./ssl/test/"],
   "make_target": "linuxconf",
   "makefile_dir_path": ".",
   "kconfig_root_path": ".",
