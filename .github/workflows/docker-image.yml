@@ -12,5 +12,22 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag vari-joern:$(date +%s)
+    - run: docker build . --file Dockerfile --tag vari-joern
+    - run: docker save vari-joern | gzip > Vari-Joern-Image.tar.gz
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Vari-Joern-Image
+        path: Vari-Joern-Image.zar.gz
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: Vari-Joern-Image
+    - run: gunzip -c Vari-Joern-Image.tar.gz | docker load
+    - uses: actions/checkout@v4
+    - run: docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp -v "$GITHUB_WORKSPACE":/Vari-Joern vari-joern
+
