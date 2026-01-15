@@ -149,7 +149,7 @@ Vari-Joern currently supports the following subject systems for analysis (C-LoC 
 |:-------------------------------------------------:|:----------------------:|------------------------------|:----------------:|--------------------------------|
 |      [axTLS](https://axtls.sourceforge.net/)      |          2.1.5         | SSL Client/Server Library    |      17,556      | Product-Based and Family-Based |
 |  [Fiasco](https://github.com/kernkonzept/fiasco)  |      Commit 4076045    | Microkernel                  |      46,013      | Product-Based                  |
-|       [Toybox](https://landley.net/toybox/)       | 0.8.11, 0.8.12, 0.8.13 | Linux Command Line Utilities | 61,324 (v0.8.12) | Product-Based and Family-Based |
+|       [Toybox](https://landley.net/toybox/)       | 0.8.11, 0.8.12, 0.8.13 | Linux Command Line Utilities | 61,463 (v0.8.13) | Product-Based and Family-Based |
 |        [BusyBox](https://www.busybox.net/)        |         1.36.1         | Collection of UNIX Utilities |     182,966      | Product-Based and Family-Based |
 
 > **Note**: Other versions of the subject systems might also work but have not yet been tested. 
