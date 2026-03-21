@@ -3,6 +3,7 @@ import formatencoding
 import uuid
 import secrets
 
+# Modified version of the script provided by Luo et al. https://github.com/chuanluocs/HSCA
 def generate_random_hex(n):
     return secrets.token_hex(n)
 
@@ -37,6 +38,7 @@ if __name__ == "__main__":
     cutoff_time = 1000
 
     use_group = 1
+    optimizer = 1
 
     candidate_set_size = 100
 
@@ -57,6 +59,9 @@ if __name__ == "__main__":
         elif sys.argv[i] == "-use_group":
             use_group = int(sys.argv[i + 1])
             i += 2
+        elif sys.argv[i] == "-use_second_optimization":
+            optimizer = int(sys.argv[i + 1])
+            i += 2
         else:
             print("argv Error !")
             i = argv_num
@@ -72,15 +77,17 @@ if __name__ == "__main__":
     command += f"-candidate_set_size {candidate_set_size}"
     os.system(command)
 
-    if use_group == 0:
-        ranName = uuid.uuid4()
-        tmp_model_path = f"tmp/{ranName}.model"
-        tmp_constr_path = f"tmp/{ranName}.constraints"
-        formatEncoder = formatencoding.FormatEncoder(cnf_path, strength, tmp_model_path, tmp_constr_path)
-        formatEncoder.encoding()
-        command = f"./Optimizer {tmp_model_path} {tmp_constr_path} {cutoff_time} {seed} {boolean_CA_path} {output_path} {use_weight} {thread_num} {choices_num}"
+    if optimizer == 0:
+        command = f"python3 format_converter/turnCA.py {cnf_path} {model_path} {boolean_CA_path} {output_path}"
         os.system(command)
-        formatEncoder.clear()
+
+        if os.path.exists(cnf_path):
+            os.remove(cnf_path)
+        if os.path.exists(group_path):
+            os.remove(group_path)
+        if os.path.exists(boolean_CA_path):
+            os.remove(boolean_CA_path)
+
 
     else:
         tmp_path = f"tmp/tmpfile_{generate_random_hex(32)}.out"

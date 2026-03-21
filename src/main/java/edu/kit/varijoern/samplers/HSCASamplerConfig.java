@@ -14,10 +14,12 @@ public class HSCASamplerConfig extends SamplerConfig {
     private static final String T_FIELD_NAME = "t";
     private static final String CUTOFF_TIME_FIELD_NAME = "cutoff-time";
     private static final String L_FIELD_NAME = "l";
+    private static final String USE_SECOND_OPTIMIZATION_FIELD_NAME = "use-second-optimization";
 
     private final int t;
     private final int cutoffTime;
     private final int l;
+    private final boolean useSecondOptimization;
 
     /**
      * Creates a new {@link HSCASamplerConfig} by extracting data from the specified TOML section.
@@ -34,7 +36,7 @@ public class HSCASamplerConfig extends SamplerConfig {
 
         long cutoffTime;
         try {
-            cutoffTime = toml.getLong(CUTOFF_TIME_FIELD_NAME, () -> 60);
+            cutoffTime = toml.getLong(CUTOFF_TIME_FIELD_NAME, () -> 15);
         } catch (TomlInvalidTypeException e) {
             throw new InvalidConfigException("Cutoff time must be an integer value", e);
         }
@@ -53,10 +55,16 @@ public class HSCASamplerConfig extends SamplerConfig {
             throw new InvalidConfigException("Parameter l must be >= 1 and <= " + Integer.MAX_VALUE);
         }
         this.l = (int) l;
+
+        try {
+            useSecondOptimization = toml.getBoolean(USE_SECOND_OPTIMIZATION_FIELD_NAME, () -> true);
+        } catch (TomlInvalidTypeException e) {
+            throw new InvalidConfigException("Second optimization toggle must be a boolean", e);
+        }
     }
 
     @Override
     public @NotNull Sampler newSampler(@NotNull IFeatureModel featureModel) {
-        return new HSCASampler(featureModel, this.t, this.cutoffTime, this.l);
+        return new HSCASampler(featureModel, this.t, this.cutoffTime, this.l, this.useSecondOptimization);
     }
 }

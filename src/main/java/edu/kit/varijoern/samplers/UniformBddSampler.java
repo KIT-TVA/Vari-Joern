@@ -138,7 +138,7 @@ public class UniformBddSampler extends DimacsSampler {
             expLines.add(expLine);
         }
         try {
-            Files.write(Paths.get(file.toString()), expLines);
+            Files.write(file, expLines);
         } catch (IOException e) {
             throw new SamplerException("Could not write exp file", e);
         }

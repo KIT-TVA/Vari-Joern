@@ -19,7 +19,11 @@ The HSCA sampler is configured using the following options:
 - `cutoff-time`
   - the cutoff time for the second optimization pass.
   - Optional: yes
-  - Default: 60
+  - Default: 15
+- `use-second-optimization`
+  - controls if the second optimization pass is enabled
+  - Optional: yes
+  - Default: true
 
 For example, the sampler could be configured as follows:
 
@@ -29,4 +33,5 @@ name = "hsca"
 t = 2
 l = 4000
 cutoff-time = 30
+use-second-optimization = false
 ```

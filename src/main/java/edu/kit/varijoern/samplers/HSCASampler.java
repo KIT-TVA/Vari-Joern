@@ -32,6 +32,7 @@ public class HSCASampler extends DimacsSampler {
     private final int t;
     private final int cutoffTime;
     private final int l;
+    private final boolean useSecondOptimization;
 
     /**
      * Creates a new {@link HSCASampler} which generates samples for the specified feature model.
@@ -41,11 +42,13 @@ public class HSCASampler extends DimacsSampler {
      * @param cutoffTime   the cutoff time for the second optimization pass
      * @param l            the termination criterion for the first optimization pass
      */
-    public HSCASampler(@NotNull IFeatureModel featureModel, int t, int cutoffTime, int l) {
+    public HSCASampler(@NotNull IFeatureModel featureModel, int t, int cutoffTime, int l,
+                       boolean useSecondOptimization) {
         super(featureModel);
         this.t = t;
         this.cutoffTime = cutoffTime;
         this.l = l;
+        this.useSecondOptimization = useSecondOptimization;
     }
 
     @Override
@@ -74,11 +77,13 @@ public class HSCASampler extends DimacsSampler {
         // Run HSCA
         Path outputFile = tmpPath.resolve(HSCA_OUTPUT_FILE_NAME);
         Random random = new Random();
+        int useSecondOptimizationInt = useSecondOptimization ? 1 : 0;
         ProcessBuilder samplerPB = new ProcessBuilder("python3", "run_HSCA.py",
                 modelFile.toString(), constraintsFile.toString(), outputFile.toString(),
                 "-seed", Integer.toString(random.nextInt()),
                 "-cutoff_time", Integer.toString(this.cutoffTime),
-                "-L", Integer.toString(this.l)
+                "-L", Integer.toString(this.l),
+                "-use_second_optimization", Integer.toString(useSecondOptimizationInt)
         );
         samplerPB.directory(new File(HSCA_DIR));
         int samplerExitCode = this.runSamplerProcess(samplerPB);
