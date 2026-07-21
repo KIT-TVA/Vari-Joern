@@ -3,6 +3,7 @@
   "config_prefix": "KGENMACRO_",
   "source_file_encoding": "iso-8859-1",
 
+  "excluded_source_paths": ["./scripts/", "./applets/"],
   "make_target": "defconfig",
   "kconfig_root_file_path": "Config.in",
   "config_header_path": "include/autoconf.h",
