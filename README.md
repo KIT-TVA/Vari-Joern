@@ -10,6 +10,8 @@ It features two analysis strategies:
 - **Family-Based Strategy**: Analyze a configurable software system as a whole by transforming its variable C code into
   plain C in a process commonly referred to as variability encoding. The plain C code that can then be analyzed by Joern.
 
+![Diagram of Vari-Joern's internal structure.](docs/images/Vari-Joern_Diagram.png)
+
 
 Vari-Joern is intended to be run on an x86-based Linux system running either Ubuntu or Debian. For its installation and 
 subsequent execution, there are two options:

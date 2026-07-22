@@ -11,10 +11,10 @@ The uniform sampler is configured using the following option:
     - The number of configurations to generate.
     - Optional: no
 
-For example, the uniform sampler could be configured as follows:
+For example, the sampler could be configured as follows:
 
 ```toml
 [product.sampler]
-name = "uniform"
+name = "smarch"
 sample-size = 10
 ```

@@ -57,17 +57,17 @@ The following feature model readers are available:
 ### Samplers
 
 Samplers return a set of configurations which are then used by a composer to configure a variant of the software.
-The resulting code is analyzed by Joern.
+The resulting code is analyzed by Joern. Currently, the following samplers are available:
 
-The following samplers are available:
-
-- [T-Wise sampler](samplers/T-Wise.md): Returns a set of configurations that achieves t-wise coverage.
-- [HSCA sampler](samplers/HSCA.md): Returns a set of configurations that achieves t-wise coverage.
-- [LS-Sampling-Plus](samplers/LS-Sampling-Plus.md): Returns a set of configurations that approximates t-wise coverage.
-- [Baital sampler](samplers/Baital.md): Returns a set of configurations chosen using weighted random sampling.
-- [Uniform sampler](samplers/Uniform.md): Returns a set of uniformly chosen configurations.
-- [BDD sampler](samplers/BDDSampler.md): Returns a set of uniformly chosen configurations using BDDs.
-- [Fixed sampler](samplers/Fixed.md): Always returns the same pre-defined set of configurations.
+|                      Sampler                       | Type                                            |
+|:--------------------------------------------------:|-------------------------------------------------|
+|             [Fixed](samplers/Fixed.md)             | Fixed pre-defined set of configurations         |
+|               [YASA](samplers/YASA)                | T-wise feature interaction coverage             |
+|              [HSCA](samplers/HSCA.md)              | T-wise feature interaction coverage             |
+|  [LS-Sampling-Plus](samplers/LS-Sampling-Plus.md)  | Approximate t-wise feature interaction coverage |
+|            [Baital](samplers/Baital.md)            | Weighted random sampling                        |
+|             [Uniform](samplers/Smarch)             | Uniform random sampling                         |
+|           [BDD](samplers/BDDSampler.md)            | Uniform random sampling                         |
 
 ### Composers
 
