@@ -51,23 +51,25 @@ Feature model readers create a feature model by reading it from a single file or
 
 The following feature model readers are available:
 
-- [FeatureIDE feature model reader](feature-model-readers/FeatureIDE.md): Reads FeatureIDE models in XML format.
-- [Torte-kmax feature model reader](feature-model-readers/Torte-kmax.md): Extracts a feature model from Kconfig files.
+|                          Feature Model Reader                           | Description                                 |
+|:-----------------------------------------------------------------------:|---------------------------------------------|
+|            [FeatureIDE](feature-model-readers/FeatureIDE.md)            | Reads FeatureIDE models in XML format       |
+|            [Torte-kmax](feature-model-readers/Torte-kmax.md)            | Extracts a feature model from Kconfig files |
 
 ### Samplers
 
 Samplers return a set of configurations which are then used by a composer to configure a variant of the software.
 The resulting code is analyzed by Joern. Currently, the following samplers are available:
 
-|                      Sampler                       | Type                                            |
-|:--------------------------------------------------:|-------------------------------------------------|
-|             [Fixed](samplers/Fixed.md)             | Fixed pre-defined set of configurations         |
-|               [YASA](samplers/YASA)                | T-wise feature interaction coverage             |
-|              [HSCA](samplers/HSCA.md)              | T-wise feature interaction coverage             |
-|  [LS-Sampling-Plus](samplers/LS-Sampling-Plus.md)  | Approximate t-wise feature interaction coverage |
-|            [Baital](samplers/Baital.md)            | Weighted random sampling                        |
-|             [Uniform](samplers/Smarch)             | Uniform random sampling                         |
-|           [BDD](samplers/BDDSampler.md)            | Uniform random sampling                         |
+|                     Sampler                      | Type                                            |
+|:------------------------------------------------:|-------------------------------------------------|
+|            [Fixed](samplers/Fixed.md)            | Fixed pre-defined set of configurations         |
+|             [YASA](samplers/YASA.md)             | T-wise feature interaction coverage             |
+|             [HSCA](samplers/HSCA.md)             | T-wise feature interaction coverage             |
+| [LS-Sampling-Plus](samplers/LS-Sampling-Plus.md) | Approximate t-wise feature interaction coverage |
+|           [Baital](samplers/Baital.md)           | Weighted random sampling                        |
+|           [Smarch](samplers/Smarch.md)           | Uniform random sampling                         |
+|       [BDDSampler](samplers/BDDSampler.md)       | Uniform random sampling                         |
 
 ### Composers
 
@@ -76,8 +78,10 @@ later analyzed by Joern. They are also responsible for determining the presence 
 
 The following composers are available:
 
-- [Kconfig composer](composers/Kconfig.md): A composer for Kconfig, the Linux kernel configuration system.
-- [Antenna composer](composers/Antenna.md): A simple preprocessor for Java source files.
+| Composer                        | Description                                                   |
+|---------------------------------|---------------------------------------------------------------|
+| [Kconfig](composers/Kconfig.md) | A composer for Kconfig, the Linux kernel configuration system |
+| [Antenna](composers/Antenna.md) | A simple preprocessor for Java source files.                  |
 
 ### Analyzers
 
@@ -125,7 +129,7 @@ path = "."
 
 # Mandatory table for product-based strategy.
 [product.sampler]
-name = "uniform"
+name = "smarch"
 sample-size = 10
 
 # Mandatory table for product-based strategy.

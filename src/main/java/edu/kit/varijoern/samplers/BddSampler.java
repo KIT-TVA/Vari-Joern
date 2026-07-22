@@ -19,7 +19,7 @@ import java.util.*;
 /**
  * This sampler chooses a sample of configurations uniformly at random using BDDs.
  */
-public class UniformBddSampler extends DimacsSampler {
+public class BddSampler extends DimacsSampler {
     public static final String NAME = "bddsampler";
 
     private static final String BDD_DIR = "/BDDSampler";
@@ -30,12 +30,12 @@ public class UniformBddSampler extends DimacsSampler {
     private final int sampleSize;
 
     /**
-     * Creates a new {@link UniformBddSampler} which generates samples for the specified feature model.
+     * Creates a new {@link BddSampler} which generates samples for the specified feature model.
      *
      * @param featureModel the feature model
      * @param sampleSize   the number of configurations to be generated
      */
-    public UniformBddSampler(@NotNull IFeatureModel featureModel, int sampleSize) {
+    public BddSampler(@NotNull IFeatureModel featureModel, int sampleSize) {
         super(featureModel);
         this.sampleSize = sampleSize;
     }

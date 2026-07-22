@@ -15,10 +15,10 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * This sampler chooses a sample of configurations uniformly at random.
+ * This sampler chooses a sample of configurations uniformly at random using Smarch.
  */
-public class UniformSampler extends DimacsSampler {
-    public static final String NAME = "uniform";
+public class SmarchSampler extends DimacsSampler {
+    public static final String NAME = "smarch";
 
     private static final String SMARCH_OUTPUT_DIR = "smarch";
     private static final String SMARCH_INPUT_FILE = "model.dimacs";
@@ -27,12 +27,12 @@ public class UniformSampler extends DimacsSampler {
     private final int sampleSize;
 
     /**
-     * Creates a new {@link UniformSampler} which generates samples for the specified feature model.
+     * Creates a new {@link SmarchSampler} which generates samples for the specified feature model.
      *
      * @param featureModel the feature model
      * @param sampleSize   the number of configurations to be generated
      */
-    public UniformSampler(@NotNull IFeatureModel featureModel, int sampleSize) {
+    public SmarchSampler(@NotNull IFeatureModel featureModel, int sampleSize) {
         super(featureModel);
         this.sampleSize = sampleSize;
     }
