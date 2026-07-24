@@ -66,6 +66,11 @@ RUN python -m pip install -r baital_requirements.txt
 
 RUN ./gradlew distTar
 
+# Build LS-Sampling-Plus.
+ADD https://github.com/chuanluocs/LS-Sampling-Plus.git#581718a8f22df0365154e30f29e13b3318f42b3f /ls_sampling_plus
+WORKDIR /ls_sampling_plus
+RUN make
+
 FROM base-system
 RUN apt-get update && apt-get install -y \
     # Required by BDDSampler
@@ -120,7 +125,7 @@ RUN apt-get update && apt-get install -y \
     nano \
     # Required by Baital
     z3 \
-    # Required by Baital
+    # Required by Baital and LS-Sampling-Plus
     zlib1g-dev \
     # `&& exit` is necessary because otherwise `pipx ensurepath` would not be started in a new `bash` process.
     # This would then make it detect that it runs in `sh` and not in `bash` and therefore not add the necessary
@@ -135,6 +140,7 @@ RUN apt-get install -y \
     libselinux* \
     build-essential
 
+# Install Joern.
 ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
     && /joern-install.sh --version=v4.0.407 \
@@ -142,15 +148,16 @@ RUN chmod +x joern-install.sh \
 ENV PATH="/opt/joern/joern-cli:${PATH}"
 RUN joern-scan --updatedb --dbversion 4.0.407
 
+# Install kmax and Smarch.
 RUN pipx install --python=$(which python3.11) kmax git+https://github.com/KIT-TVA/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
 
+# "Install" Baital.
 ADD https://github.com/meelgroup/baital.git#100b51da8ba8879e9b72f2bb463c1d7efe41a8f7 /baital
 COPY --from=build /venv /venv
 ENV PATH=/venv/bin:$PATH
 
-ADD https://github.com/chuanluocs/LS-Sampling-Plus.git#581718a8f22df0365154e30f29e13b3318f42b3f /ls
-WORKDIR /ls
-RUN make
+# Copy over LS-Sampling-Plus binary from build stage. TODO Test
+COPY --from=build /ls_sampling_plus/LS-Sampling-Plus /LS-Sampling-Plus
 WORKDIR ..
 
 ADD https://github.com/chuanluocs/HSCA.git#8d3df8ffa37f5133794249d909e3637e93797c21 /hsca
