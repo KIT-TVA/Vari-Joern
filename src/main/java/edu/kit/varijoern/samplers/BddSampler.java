@@ -22,7 +22,7 @@ import java.util.*;
 public class BddSampler extends DimacsSampler {
     public static final String NAME = "bddsampler";
 
-    private static final String BDD_DIR = "/BDDSampler";
+    private static final String BDD_DIR = "/samplers/bddsampler";
     private static final String EXP_FILE = "subject-noXOR.exp";
     private static final String VAR_FILE = "subject-noXOR.var";
     private static final String DDDMP_FILE = "subject-noXOR.dddmp";

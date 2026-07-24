@@ -70,7 +70,35 @@ RUN ./gradlew distTar
 ADD https://github.com/chuanluocs/LS-Sampling-Plus.git#581718a8f22df0365154e30f29e13b3318f42b3f /ls_sampling_plus
 WORKDIR /ls_sampling_plus
 RUN make
+WORKDIR ..
 
+# Build HSCA.
+ADD https://github.com/chuanluocs/HSCA.git#8d3df8ffa37f5133794249d909e3637e93797c21 /hsca
+WORKDIR /hsca
+RUN sh build.sh && chmod +x bin/coprocessor
+WORKDIR ..
+
+# Build BDDCreator.
+ADD https://github.com/davidfa71/Extending-Logic.git#63ce01c9d4ab8a3604dcfcd6e85b714b6ef759bc /bddcreator
+WORKDIR /bddcreator/code
+ENV AUTOMAKE=:
+ENV ACLOCAL=:
+RUN make
+WORKDIR /
+
+# Build BDDSampler. TODO Complete (path of script?) and test
+# Apparently, there is also a python wrapper that could be used: https://github.com/rheradio/bdd4va/
+ADD https://github.com/davidfa71/BDDSampler.git#9d03c33c0791efbebc382b25816baa8b186ba137 /bddsampler
+WORKDIR /BDDSampler
+RUN chmod +x create_dddmp.sh \
+    && ./configure \
+    && make
+WORKDIR ..
+
+
+#######################################
+# Specification of final environment.
+#######################################
 FROM base-system
 RUN apt-get update && apt-get install -y \
     # Required by BDDSampler
@@ -125,7 +153,7 @@ RUN apt-get update && apt-get install -y \
     nano \
     # Required by Baital
     z3 \
-    # Required by Baital and LS-Sampling-Plus
+    # Required by Baital
     zlib1g-dev \
     # `&& exit` is necessary because otherwise `pipx ensurepath` would not be started in a new `bash` process.
     # This would then make it detect that it runs in `sh` and not in `bash` and therefore not add the necessary
@@ -148,38 +176,37 @@ RUN chmod +x joern-install.sh \
 ENV PATH="/opt/joern/joern-cli:${PATH}"
 RUN joern-scan --updatedb --dbversion 4.0.407
 
-# Install kmax and Smarch.
-RUN pipx install --python=$(which python3.11) kmax git+https://github.com/KIT-TVA/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
+# Install kmax.
+RUN pipx install --python=$(which python3.11) kmax
 
-# "Install" Baital.
-ADD https://github.com/meelgroup/baital.git#100b51da8ba8879e9b72f2bb463c1d7efe41a8f7 /baital
+
+############################
+# Installation of samplers.
+############################
+
+# Smarch.
+RUN pipx install --python=$(which python3.11) git+https://github.com/KIT-TVA/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
+
+# Baital.
+ADD https://github.com/meelgroup/baital.git#100b51da8ba8879e9b72f2bb463c1d7efe41a8f7 /samplers/baital
 COPY --from=build /venv /venv
 ENV PATH=/venv/bin:$PATH
 
-# Copy over LS-Sampling-Plus binary from build stage. TODO Test
-COPY --from=build /ls_sampling_plus/LS-Sampling-Plus /LS-Sampling-Plus
+# LS-Sampling-Plus.
+COPY --from=build /ls_sampling_plus /samplers/ls_sampling_plus
 WORKDIR ..
 
-ADD https://github.com/chuanluocs/HSCA.git#8d3df8ffa37f5133794249d909e3637e93797c21 /hsca
-WORKDIR /hsca
-RUN sh build.sh && chmod +x bin/coprocessor
-WORKDIR ..
-COPY --from=build /vari-joern/scripts/run_HSCA.py /hsca/run_HSCA.py
+# HSCA.
+COPY --from=build /hsca /samplers/hsca
+COPY --from=build /vari-joern/src/main/resources/samplers/run_HSCA.py /samplers/hsca/run_HSCA.py
 
-ADD https://github.com/davidfa71/Extending-Logic.git#63ce01c9d4ab8a3604dcfcd6e85b714b6ef759bc /BDDCreator
-WORKDIR /BDDCreator/code
-ENV AUTOMAKE=:
-ENV ACLOCAL=:
-RUN make
-WORKDIR /
-COPY --from=build /vari-joern/scripts/create_dddmp.sh /BDDSampler/create_dddmp.sh
+# BDDCreator (used for BDDSampler).
+COPY --from=build /bddcreator /samplers/bddcreator
+COPY --from=build /vari-joern/src/main/resources/samplers/create_dddmp.sh /samplers/BDDSampler/create_dddmp.sh
 
-ADD https://github.com/davidfa71/BDDSampler.git#56f30584d5266a372a4bb0ac48e375d07f20bc44 /BDDSampler
-WORKDIR /BDDSampler
-RUN chmod +x create_dddmp.sh \
-    && ./configure \
-    && make
-WORKDIR ..
+# BDDSampler. TODO Test
+COPY --from=build /bddsampler/bin/BDDSampler /samplers/bddsampler/bin/BDDSampler
+COPY --from=build /bddsampler/lib /samplers/bddsampler/lib
 
 # Responsible for making the lib directory available to the container.
 COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar

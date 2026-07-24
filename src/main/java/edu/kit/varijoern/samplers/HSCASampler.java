@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 public class HSCASampler extends DimacsSampler {
     public static final String NAME = "hsca";
 
-    private static final String HSCA_DIR = "/hsca";
+    private static final String HSCA_DIR = "/samplers/hsca";
     private static final String HSCA_INPUT_FILE_NAME = "model.cnf";
     private static final String HSCA_OUTPUT_FILE_NAME = "model.out";
     private static final String HSCA_MODEL_FILE_NAME = "model.model";

@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 public class LSSamplingPlusSampler extends DimacsSampler {
     public static final String NAME = "ls-sampling-plus";
 
-    private static final String LS_DIR = "/ls";
+    private static final String LS_DIR = "/samplers/ls-sampling-plus";
     private static final String LS_INPUT_FILE_NAME = "model.cnf";
     private static final String LS_OUTPUT_FILE = LS_DIR + "/model_testcase_set.txt";
 
