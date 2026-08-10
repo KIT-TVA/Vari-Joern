@@ -49,7 +49,7 @@ public class YASASampler extends FeatureIDEGeneratorSampler {
                     return generator;
                 }
         );
-        LOGGER.info("Generated {} configurations", result.size());
+        LOGGER.info("Sampled {} configurations using YASA.", result.size());
         return result;
     }
 }

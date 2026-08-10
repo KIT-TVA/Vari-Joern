@@ -58,7 +58,7 @@ public class SmarchSampler extends DimacsSampler {
         Path smarchOutputFile = smarchOutputDir.resolve(String.format(SMARCH_OUTPUT_FILE_PATTERN, this.sampleSize));
         List<Map<String, Boolean>> result = parseSmarchOutput(smarchOutputFile, cnf);
 
-        LOGGER.info("Generated {} configurations", result.size());
+        LOGGER.info("Sampled {} configurations using Smarch.", result.size());
         return result;
     }
 
