@@ -29,20 +29,34 @@ RUN apt-get update && apt-get install -y \
     # Required by Sugarlyzer.
     python3.10 python3-pip python3-apt python3.10-venv python3.10-dev
 
+RUN apt-get install -y \
+    # Required for building BDDSampler and in execution environment for fiasco.
+    flex \
+    # Required for building BDDSampler and SuperC/SugarC. Additionally, required in execution environment for fiasco.
+    bison
+
 
 #######################################
 # Specification of build environment.
 #######################################
 FROM base-system AS build
 RUN apt-get install -y \
-    # Required for building SuperC
-    bison \
     # Required for building SuperC and Vari-Joern
     openjdk-21-jdk \
     # Required for building SuperC
     libjson-java \
     # Required for building SuperC
-    sat4j
+    sat4j \
+    # Required for building BDDSampler
+    gperf \
+    # Required for building BDDSampler
+    libfl-dev \
+    # Required for building BDDSampler
+    automake \
+    # Required for building BDDSampler
+    autoconf \
+    # Required for building BDDSampler
+    libgmp3-dev
 
 # Build SuperC.
 ADD https://github.com/KIT-TVA/superc.git#a900004207849cca9ba3ae6b0e3e01bafc6b9a4a /superc
@@ -71,7 +85,7 @@ RUN python -m pip install -r requirements.txt
 RUN python -m pip install build
 RUN python -m build
 
-#
+# Installs requirements for Baital into venv.
 RUN python -m pip install -r baital_requirements.txt
 
 # Build Vari-Joern.
@@ -81,15 +95,15 @@ RUN ./gradlew distTar
 ADD https://github.com/chuanluocs/LS-Sampling-Plus.git#581718a8f22df0365154e30f29e13b3318f42b3f /ls_sampling_plus
 WORKDIR /ls_sampling_plus
 RUN make
-WORKDIR ..
+WORKDIR /
 
 # Build HSCA.
 ADD https://github.com/chuanluocs/HSCA.git#8d3df8ffa37f5133794249d909e3637e93797c21 /hsca
 WORKDIR /hsca
 RUN sh build.sh && chmod +x bin/coprocessor
-WORKDIR ..
+WORKDIR /
 
-# Build BDDCreator.
+# Build BDDCreator. TODO Needed?
 ADD https://github.com/davidfa71/Extending-Logic.git#63ce01c9d4ab8a3604dcfcd6e85b714b6ef759bc /bddcreator
 WORKDIR /bddcreator/code
 ENV AUTOMAKE=:
@@ -100,11 +114,9 @@ WORKDIR /
 # Build BDDSampler. TODO Complete (path of script?) and test
 # Apparently, there is also a python wrapper that could be used: https://github.com/rheradio/bdd4va/
 ADD https://github.com/davidfa71/BDDSampler.git#9d03c33c0791efbebc382b25816baa8b186ba137 /bddsampler
-WORKDIR /BDDSampler
-RUN chmod +x create_dddmp.sh \
-    && ./configure \
-    && make
-WORKDIR ..
+WORKDIR /bddsampler
+RUN ./configure && make
+WORKDIR /
 
 
 #######################################
@@ -112,24 +124,14 @@ WORKDIR ..
 #######################################
 FROM base-system
 RUN apt-get update && apt-get install -y \
-    # Required by BDDSampler
-    automake \
-    # Required by BDDSampler
-    autoconf \
-    # Required by fiasco
-    bison \
     # Required by BusyBox
     bzip2 \
     # Required for installing Smarch
     cmake \
     # Required by torte
     docker-ce-cli \
-    # Required by fiasco
-    flex \
     # Required by torte
     git \
-    # Required by BDDSampler
-    gperf \
     # Required by Baital
     graphviz\
     # Required by BDDSampler
@@ -138,8 +140,6 @@ RUN apt-get update && apt-get install -y \
     libboost-program-options-dev \
     # Required by Baital
     libboost-serialization-dev \
-    # Required by BDDSampler
-    libfl-dev \
     # Required by Smarch
     libgmp-dev \
     # Required by Baital
@@ -214,6 +214,7 @@ COPY --from=build /vari-joern/src/main/resources/samplers/run_HSCA.py /samplers/
 # BDDCreator (used for BDDSampler).
 COPY --from=build /bddcreator /samplers/bddcreator
 COPY --from=build /vari-joern/src/main/resources/samplers/create_dddmp.sh /samplers/BDDSampler/create_dddmp.sh
+RUN chmod +x /samplers/BDDSampler/create_dddmp.sh
 
 # BDDSampler. TODO Test
 COPY --from=build /bddsampler/bin/BDDSampler /samplers/bddsampler/bin/BDDSampler
@@ -229,7 +230,7 @@ RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
 ENV CLASSPATH="${CLASSPATH}:/opt/vari-joern/lib/xtc.jar:/opt/vari-joern/lib/superc.jar:/opt/vari-joern/lib/junit.jar:/opt/vari-joern/lib/antlr.jar:/opt/vari-joern/lib/javabdd.jar:/opt/vari-joern/lib/json-simple-1.1.1.jar:/opt/vari-joern/lib/org.sat4j.core.jar:/opt/vari-joern/lib/com.microsoft.z3.jar:/opt/vari-joern/lib/json-lib.jar"
 
 # Copy over built Sugarlyzer from build stage and install it.
-RUN python3.10 -m pip install --upgrade setuptools
+RUN python3.10 -m pip install "setuptools<82" # Baital relies on pkg_resources which was removed from setuptools in version 82.
 COPY --from=build /vari-joern/dist/sugarlyzer-0.0.1a0-py3-none-any.whl /sugarlyzer-0.0.1a0-py3-none-any.whl
 RUN python3.10 -m pip install /sugarlyzer-0.0.1a0-py3-none-any.whl
 
