@@ -8,7 +8,7 @@ import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
 
 /**
- * Contains the configuration of the baital sampler.
+ * Contains the configuration of the Baital sampler.
  */
 public class BaitalSamplerConfig extends SamplerConfig {
     private static final String SAMPLE_SIZE_FIELD_NAME = "sample-size";
@@ -26,8 +26,8 @@ public class BaitalSamplerConfig extends SamplerConfig {
     /**
      * Creates a new {@link BaitalSamplerConfig} by extracting data from the specified TOML section.
      *
-     * @param toml the TOML section
-     * @throws InvalidConfigException if the TOML section does not represent a valid configuration
+     * @param toml the TOML section.
+     * @throws InvalidConfigException if the TOML section does not represent a valid configuration.
      */
     protected BaitalSamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
@@ -72,6 +72,6 @@ public class BaitalSamplerConfig extends SamplerConfig {
 
     @Override
     public @NotNull Sampler newSampler(@NotNull IFeatureModel featureModel) {
-        return new  BaitalSampler(featureModel, this.sampleSize, this.t, this.strategy, this.rounds, this.extraSamples);
+        return new BaitalSampler(featureModel, this.sampleSize, this.t, this.strategy, this.rounds, this.extraSamples);
     }
 }
