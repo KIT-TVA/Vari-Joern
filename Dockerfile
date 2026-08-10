@@ -1,3 +1,6 @@
+#######################################
+# Specification of base environment.
+#######################################
 FROM ubuntu:noble AS base-system
 # Prepare for installation of Docker and Python 3.11
 RUN apt-get update && apt-get install -y \
@@ -26,6 +29,10 @@ RUN apt-get update && apt-get install -y \
     # Required by Sugarlyzer.
     python3.10 python3-pip python3-apt python3.10-venv python3.10-dev
 
+
+#######################################
+# Specification of build environment.
+#######################################
 FROM base-system AS build
 RUN apt-get install -y \
     # Required for building SuperC
@@ -37,6 +44,7 @@ RUN apt-get install -y \
     # Required for building SuperC
     sat4j
 
+# Build SuperC.
 ADD https://github.com/KIT-TVA/superc.git#a900004207849cca9ba3ae6b0e3e01bafc6b9a4a /superc
 WORKDIR /superc
 RUN JAVA_DEV_ROOT=/superc \
@@ -47,11 +55,12 @@ RUN JAVA_DEV_ROOT=/superc \
     && make jars \
     && unset JAVA_DEV_ROOT CLASSPATH
 
+# Copy SuperC/SugarC jars into lib.
 COPY . /vari-joern
 WORKDIR /vari-joern
 RUN cp /superc/bin/xtc.jar /superc/bin/superc.jar lib
 
-# External dependencies of SuperC/SugarC.
+# Copy external dependencies of SuperC/SugarC into lib.
 RUN cp /superc/bin/junit.jar /superc/bin/antlr.jar /superc/bin/javabdd.jar /superc/bin/json-simple-1.1.1.jar lib \
     && cp /usr/share/java/org.sat4j.core.jar /usr/share/java/com.microsoft.z3.jar /usr/share/java/json-lib.jar lib
 
@@ -62,8 +71,10 @@ RUN python -m pip install -r requirements.txt
 RUN python -m pip install build
 RUN python -m build
 
+#
 RUN python -m pip install -r baital_requirements.txt
 
+# Build Vari-Joern.
 RUN ./gradlew distTar
 
 # Build LS-Sampling-Plus.
@@ -169,7 +180,8 @@ RUN apt-get install -y \
     build-essential
 
 # Install Joern.
-ADD https://github.com/joernio/joern/releases/latest/download/joern-install.sh /joern-install.sh
+# TODO Update to newer Joern version (e.g., v.4.0.600)
+ADD https://github.com/joernio/joern/releases/download/v4.0.407/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
     && /joern-install.sh --version=v4.0.407 \
     && rm /joern-install.sh /joern-cli.zip
@@ -194,7 +206,6 @@ ENV PATH=/venv/bin:$PATH
 
 # LS-Sampling-Plus.
 COPY --from=build /ls_sampling_plus /samplers/ls_sampling_plus
-WORKDIR ..
 
 # HSCA.
 COPY --from=build /hsca /samplers/hsca
@@ -217,6 +228,7 @@ RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
 # Ensure that SuperC/SugarC and its dependencies are added to the classpath.
 ENV CLASSPATH="${CLASSPATH}:/opt/vari-joern/lib/xtc.jar:/opt/vari-joern/lib/superc.jar:/opt/vari-joern/lib/junit.jar:/opt/vari-joern/lib/antlr.jar:/opt/vari-joern/lib/javabdd.jar:/opt/vari-joern/lib/json-simple-1.1.1.jar:/opt/vari-joern/lib/org.sat4j.core.jar:/opt/vari-joern/lib/com.microsoft.z3.jar:/opt/vari-joern/lib/json-lib.jar"
 
+# Copy over built Sugarlyzer from build stage and install it.
 RUN python3.10 -m pip install --upgrade setuptools
 COPY --from=build /vari-joern/dist/sugarlyzer-0.0.1a0-py3-none-any.whl /sugarlyzer-0.0.1a0-py3-none-any.whl
 RUN python3.10 -m pip install /sugarlyzer-0.0.1a0-py3-none-any.whl
