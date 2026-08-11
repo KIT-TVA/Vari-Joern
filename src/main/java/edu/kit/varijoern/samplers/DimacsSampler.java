@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Abstract class for samplers using the dimacs format as input.
+ * Abstract class for samplers using the DIMACS format as input.
  */
 public abstract class DimacsSampler implements Sampler {
     protected static final OutputStream STREAM_LOGGER = IoBuilder.forLogger().setLevel(Level.DEBUG).buildOutputStream();
@@ -47,7 +47,7 @@ public abstract class DimacsSampler implements Sampler {
      * @throws IOException          if an I/O error occurs in the process.
      * @throws InterruptedException if the process is interrupted.
      */
-    protected int runSamplerProcess(ProcessBuilder processBuilder) throws IOException, InterruptedException {
+    protected int runSamplerProcess(@NotNull ProcessBuilder processBuilder) throws IOException, InterruptedException {
         Process process = processBuilder.start();
         int exitCode;
         try {
@@ -75,7 +75,7 @@ public abstract class DimacsSampler implements Sampler {
      * @param cnf      the {@link CNF} of the feature model.
      * @return a {@link Map} describing the configuration.
      */
-    protected Map<String, Boolean> literalsToConfiguration(String[] literals, CNF cnf) {
+    protected Map<String, Boolean> literalsToConfiguration(@NotNull String[] literals, @NotNull CNF cnf) {
         Map<String, Boolean> configuration = new HashMap<>();
         for (String literalString : literals) {
             int literal = Integer.parseInt(literalString);
@@ -89,14 +89,17 @@ public abstract class DimacsSampler implements Sampler {
     }
 
     /**
-     * Converts an array of literals to a configuration and verifies it against the feature model.
-     * The literals have to be in the same order as the variables in the CNF and positive for true / negative for false.
+     * Converts an array of literals (i.e., feature indices with positive sign for selected / negative sign for
+     * unselected) to a configuration and verifies it against the feature model.
+     * Contrary to {@link DimacsSampler#literalsToConfiguration(String[], CNF)}, it assumes that the index of the
+     * literals in the array represents their feature index.
      *
-     * @param literals an array of literals
-     * @param cnf      the cnf of the feature model
-     * @return a map describing the configuration
+     * @param literals an array of literals expressed as an array of {@link String}s (e.g., for the deselection of
+     *                 feature 5, the entry at index 4 would be a negative number).
+     * @param cnf      the {@link CNF} of the feature model.
+     * @return a {@link Map} describing the configuration.
      */
-    protected Map<String, Boolean> literalsToConfigurationNoIndexes(String[] literals, CNF cnf) {
+    protected Map<String, Boolean> literalsToConfigurationNoIndexes(@NotNull String[] literals, @NotNull CNF cnf) {
         Map<String, Boolean> configuration = new HashMap<>();
         for (int i = 0; i < literals.length; i++) {
             int literal = Integer.parseInt(literals[i]);
@@ -114,7 +117,7 @@ public abstract class DimacsSampler implements Sampler {
      * @param configuration the configuration to verify (expressed as a {@link Map} mapping feature names to their
      *                      boolean selection status).
      */
-    protected void verifyConfiguration(Map<String, Boolean> configuration) {
+    protected void verifyConfiguration(@NotNull Map<String, Boolean> configuration) {
         for (IConstraint constraint : this.featureModel.getConstraints()) {
             if (!constraint.getNode().getValue(Collections.unmodifiableMap(configuration))) {
                 throw new RuntimeException("Configuration does not satisfy constraint " + constraint);
@@ -129,7 +132,7 @@ public abstract class DimacsSampler implements Sampler {
      * @param cnf          the {@link CNF} of the feature model.
      * @throws SamplerException if I/O error occurs while writing the file.
      */
-    protected void writeDimacsFile(Path dimacsOutput, CNF cnf) throws SamplerException {
+    protected void writeDimacsFile(@NotNull Path dimacsOutput, @NotNull CNF cnf) throws SamplerException {
         try {
             Files.writeString(dimacsOutput, new DimacsWriter(cnf).write(), StandardCharsets.UTF_8);
         } catch (IOException e) {

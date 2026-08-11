@@ -98,7 +98,8 @@ public class BaitalSampler extends DimacsSampler {
      * selection status.
      * @throws IOException
      */
-    private @NotNull List<Map<String, Boolean>> parseBaitalOutput(Path baitalOutputFile, CNF cnf) throws IOException {
+    private @NotNull List<Map<String, Boolean>> parseBaitalOutput(@NotNull Path baitalOutputFile,
+                                                                  @NotNull CNF cnf) throws IOException {
         try (Stream<String> lines = Files.lines(baitalOutputFile)) {
             return lines.map(line -> {
                 // Baital output Format: index_in_sample, x y z
