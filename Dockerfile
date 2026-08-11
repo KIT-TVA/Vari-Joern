@@ -92,8 +92,8 @@ RUN python -m pip install -r baital_requirements.txt
 RUN ./gradlew distTar
 
 # Build LS-Sampling-Plus.
-ADD https://github.com/chuanluocs/LS-Sampling-Plus.git#581718a8f22df0365154e30f29e13b3318f42b3f /ls_sampling_plus
-WORKDIR /ls_sampling_plus
+ADD https://github.com/chuanluocs/LS-Sampling-Plus.git#581718a8f22df0365154e30f29e13b3318f42b3f /ls-sampling-plus
+WORKDIR /ls-sampling-plus
 RUN make
 WORKDIR /
 
@@ -205,7 +205,7 @@ COPY --from=build /venv /venv
 ENV PATH=/venv/bin:$PATH
 
 # LS-Sampling-Plus.
-COPY --from=build /ls_sampling_plus /samplers/ls_sampling_plus
+COPY --from=build /ls-sampling-plus /samplers/ls-sampling-plus
 
 # HSCA.
 COPY --from=build /hsca /samplers/hsca

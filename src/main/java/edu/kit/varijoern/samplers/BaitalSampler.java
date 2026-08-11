@@ -16,7 +16,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * This sampler chooses a sample of configurations using weighted random sampling as implemented in Baital.
+ * This sampler chooses a sample of configurations using weighted random sampling as implemented in
+ * <a href="https://github.com/meelgroup/baital">Baital</a>.
  */
 public class BaitalSampler extends DimacsSampler {
     public static final String NAME = "baital";
@@ -34,7 +35,7 @@ public class BaitalSampler extends DimacsSampler {
      * Creates a new {@link BaitalSampler} which can generate samples for the specified feature model (expressed as
      * {@link IFeatureModel}).
      *
-     * @param featureModel the feature model.
+     * @param featureModel the feature model (expressed as {@link IFeatureModel}).
      * @param sampleSize   the number of configurations to be generated.
      * @param t            the t-wise feature interaction coverage to aim for.
      * @param strategy     the weight generation strategy.
@@ -55,7 +56,7 @@ public class BaitalSampler extends DimacsSampler {
     public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults,
                                                       @NotNull Path tmpPath)
             throws SamplerException, InterruptedException, IOException {
-        LOGGER.info("Calculating weighted sample");
+        LOGGER.info("Calculating weighted sample.");
         // Transform feature model to CNF and then from CNF to DIMACS.
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
         this.writeDimacsFile(tmpPath.resolve(BaitalSampler.BAITAL_INPUT_FILE), cnf);
@@ -78,7 +79,7 @@ public class BaitalSampler extends DimacsSampler {
         // Execute Baital.
         int exitCode = runSamplerProcess(processBuilder);
         if (exitCode != 0) {
-            throw new SamplerException("baital exited with code " + exitCode);
+            throw new SamplerException(String.format("Baital exited with code %d.", exitCode));
         }
 
         // Process Baital output.
@@ -91,12 +92,12 @@ public class BaitalSampler extends DimacsSampler {
     /**
      * Parse Baital output into a sample, i.e., a {@link List} of {@link Map}s mapping features to their selection status.
      *
-     * @param baitalOutputFile The {@link Path} at which the output by Baital can be found.
-     * @param cnf              The {@link CNF} of the feature model used to translate the feature literals returned by Baital into
-     *                         their correct feature names.
-     * @return The sample created by Baital represented as a {@link List} of {@link Map}s mapping features to their
+     * @param baitalOutputFile the {@link Path} at which the output by Baital can be found.
+     * @param cnf              the {@link CNF} of the feature model used to translate the feature literals returned by
+     *                         Baital into their correct feature names.
+     * @return the sample created by Baital represented as a {@link List} of {@link Map}s mapping features to their
      * selection status.
-     * @throws IOException
+     * @throws IOException if an I/O error occurs opening the file.
      */
     private @NotNull List<Map<String, Boolean>> parseBaitalOutput(@NotNull Path baitalOutputFile,
                                                                   @NotNull CNF cnf) throws IOException {
@@ -105,7 +106,7 @@ public class BaitalSampler extends DimacsSampler {
                 // Baital output Format: index_in_sample, x y z
                 String[] parts = line.split(",");
                 if (parts.length < 2) {
-                    throw new RuntimeException("Invalid output line: " + line);
+                    throw new RuntimeException(String.format("Invalid output line \"%s\"", line));
                 }
                 String[] literals = parts[1].trim().split(" ");
                 return literalsToConfiguration(literals, cnf);

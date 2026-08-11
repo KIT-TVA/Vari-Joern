@@ -1,11 +1,11 @@
-# The Uniform Sampler
+# The Smarch Sampler
 
 This sampler returns a sample by choosing configurations from a uniform distribution using
 [Smarch](https://github.com/jeho-oh/Smarch).
 
 ## Configuration
 
-The uniform sampler is configured using the following option:
+The Smarch sampler is configured using the following option:
 
 - `sample-size`
     - The number of configurations to generate.

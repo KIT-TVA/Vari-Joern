@@ -35,15 +35,16 @@ public class BaitalSamplerConfig extends SamplerConfig {
         super(toml);
 
         // Target sample size.
-        this.sampleSize = TomlUtils.getMandatoryInt(SAMPLE_SIZE_FIELD_NAME, toml, "Sample size is missing or invalid");
+        this.sampleSize = TomlUtils.getMandatoryInt(SAMPLE_SIZE_FIELD_NAME, toml, "Sample size is " +
+                "missing or invalid.");
         if (this.sampleSize <= 0) {
-            throw new InvalidConfigException("Sample size must be >= 1");
+            throw new InvalidConfigException("Sample size must be >= 1.");
         }
 
         // Target feature interaction coverage.
-        this.t = TomlUtils.getMandatoryInt(T_FIELD_NAME, toml, "Parameter t is missing or invalid");
+        this.t = TomlUtils.getMandatoryInt(T_FIELD_NAME, toml, "Parameter t is missing or invalid.");
         if (this.t <= 0) {
-            throw new InvalidConfigException("Parameter t must be >= 1");
+            throw new InvalidConfigException("Parameter t must be >= 1.");
         }
 
         // Weight generation strategy.
@@ -51,10 +52,10 @@ public class BaitalSamplerConfig extends SamplerConfig {
         try {
             strategy = toml.getLong(STRATEGY_FIELD_NAME, () -> 5);
         } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Strategy must be an integer value" + e);
+            throw new InvalidConfigException("Strategy must be an integer value.", e);
         }
         if (strategy < 1 || strategy > 5) {
-            throw new InvalidConfigException("Strategy must be >= 1 and <= 5");
+            throw new InvalidConfigException("Strategy must be >= 1 and <= 5.");
         }
         this.strategy = (int) strategy;
 
@@ -63,10 +64,10 @@ public class BaitalSamplerConfig extends SamplerConfig {
         try {
             rounds = toml.getLong(ROUNDS_FIELD_NAME, () -> 10);
         } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Rounds must be an integer value" + e);
+            throw new InvalidConfigException("Rounds must be an integer value.", e);
         }
         if (rounds < 1) {
-            throw new InvalidConfigException("Rounds must be >= 1");
+            throw new InvalidConfigException("Rounds must be >= 1.");
         }
         this.rounds = (int) rounds;
 
@@ -74,7 +75,7 @@ public class BaitalSamplerConfig extends SamplerConfig {
         try {
             this.extraSamples = toml.getBoolean(EXTRA_SAMPLES_FIELD_NAME, () -> false);
         } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Extra samples must be a boolean" + e);
+            throw new InvalidConfigException("Extra samples must be a boolean.", e);
         }
     }
 
