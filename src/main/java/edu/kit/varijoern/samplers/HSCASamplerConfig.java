@@ -11,14 +11,16 @@ import org.tomlj.TomlTable;
  * Contains the configuration of the HSCA sampler.
  */
 public class HSCASamplerConfig extends SamplerConfig {
+    // Literals used in the TOML file for the configuration of the HSCA sampler.
     private static final String T_FIELD_NAME = "t";
-    private static final String CUTOFF_TIME_FIELD_NAME = "cutoff-time";
     private static final String L_FIELD_NAME = "l";
+    private static final String CUTOFF_TIME_FIELD_NAME = "cutoff-time";
     private static final String USE_SECOND_OPTIMIZATION_FIELD_NAME = "use-second-optimization";
 
+    // Fields for the configuration of the HSCA sampler.
     private final int t;
-    private final int cutoffTime;
     private final int l;
+    private final int cutoffTime;
     private final boolean useSecondOptimization;
 
     /**
@@ -29,42 +31,48 @@ public class HSCASamplerConfig extends SamplerConfig {
      */
     protected HSCASamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
-        this.t = TomlUtils.getMandatoryInt(T_FIELD_NAME, toml, "Parameter t is missing or invalid");
+
+        // Target feature interaction coverage.
+        this.t = TomlUtils.getMandatoryInt(HSCASamplerConfig.T_FIELD_NAME, toml,
+                "Parameter t is missing or invalid.");
         if (this.t <= 1) {
-            throw new InvalidConfigException("Parameter t must be >= 2");
+            throw new InvalidConfigException("Parameter t must be >= 2.");
         }
 
-        long cutoffTime;
-        try {
-            cutoffTime = toml.getLong(CUTOFF_TIME_FIELD_NAME, () -> 15);
-        } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Cutoff time must be an integer value", e);
-        }
-        if (cutoffTime <= 0 || cutoffTime > Integer.MAX_VALUE) {
-            throw new InvalidConfigException("cutoff-time must be >= 1 and <= " + Integer.MAX_VALUE);
-        }
-        this.cutoffTime = (int) cutoffTime;
-
+        // Termination criterion for the first optimization pass
         long l;
         try {
-            l = toml.getLong(L_FIELD_NAME, () -> 5000);
+            l = toml.getLong(HSCASamplerConfig.L_FIELD_NAME, () -> 5000);
         } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Parameter l must be an integer value", e);
+            throw new InvalidConfigException("Parameter l must be an integer value.", e);
         }
         if (l <= 0 || l > Integer.MAX_VALUE) {
-            throw new InvalidConfigException("Parameter l must be >= 1 and <= " + Integer.MAX_VALUE);
+            throw new InvalidConfigException(String.format("Parameter l must be >= 1 and <= %d.", Integer.MAX_VALUE));
         }
         this.l = (int) l;
 
+        // Cutoff time for the second optimization pass.
+        long cutoffTime;
         try {
-            useSecondOptimization = toml.getBoolean(USE_SECOND_OPTIMIZATION_FIELD_NAME, () -> true);
+            cutoffTime = toml.getLong(HSCASamplerConfig.CUTOFF_TIME_FIELD_NAME, () -> 15);
         } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Second optimization toggle must be a boolean", e);
+            throw new InvalidConfigException("Cutoff time must be an integer value.", e);
+        }
+        if (cutoffTime <= 0 || cutoffTime > Integer.MAX_VALUE) {
+            throw new InvalidConfigException(String.format("Cutoff time must be >= 1 and <= %d.", Integer.MAX_VALUE));
+        }
+        this.cutoffTime = (int) cutoffTime;
+
+        // Whether the second optimization pass is enabled.
+        try {
+            this.useSecondOptimization = toml.getBoolean(HSCASamplerConfig.USE_SECOND_OPTIMIZATION_FIELD_NAME, () -> true);
+        } catch (TomlInvalidTypeException e) {
+            throw new InvalidConfigException("Second optimization toggle must be a boolean.", e);
         }
     }
 
     @Override
     public @NotNull Sampler newSampler(@NotNull IFeatureModel featureModel) {
-        return new HSCASampler(featureModel, this.t, this.cutoffTime, this.l, this.useSecondOptimization);
+        return new HSCASampler(featureModel, this.t, this.l, this.cutoffTime, this.useSecondOptimization);
     }
 }

@@ -15,8 +15,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * This sampler always returns the same sample. This sample is specified by the user in the configuration
- * file.
+ * This sampler always returns the same sample. This sample is specified by the user in the configuration file.
  */
 public class FixedSampler implements Sampler {
     /**
@@ -29,8 +28,8 @@ public class FixedSampler implements Sampler {
     /**
      * Creates a new {@link FixedSampler} which always returns the specified configurations.
      *
-     * @param enabledFeaturesOfConfigurations the features enabled in the configuration
-     * @param featureModel                    the feature model
+     * @param enabledFeaturesOfConfigurations the features enabled in the configuration.
+     * @param featureModel                    the feature model.
      */
     public FixedSampler(@NotNull List<List<String>> enabledFeaturesOfConfigurations,
                         @NotNull IFeatureModel featureModel) {
@@ -50,12 +49,12 @@ public class FixedSampler implements Sampler {
                     .collect(Collectors.toMap(IFeature::getName, feature -> false));
             for (String feature : enabledFeaturesOfConfiguration) {
                 if (configuration.put(feature, true) == null) {
-                    throw new SamplerException("Feature %s does not exist in the feature model".formatted(feature));
+                    throw new SamplerException("Feature %s does not exist in the feature model.".formatted(feature));
                 }
             }
             for (IConstraint constraint : this.featureModel.getConstraints()) {
                 if (!constraint.getNode().getValue(Collections.unmodifiableMap(configuration))) {
-                    throw new SamplerException("Configuration does not satisfy constraint %s".formatted(constraint));
+                    throw new SamplerException("Configuration does not satisfy constraint %s.".formatted(constraint));
                 }
             }
             result.add(configuration);

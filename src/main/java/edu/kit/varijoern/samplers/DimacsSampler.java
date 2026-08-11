@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+// TODO Consider moving the parseXYZOutput method of the inheritors to this class.
+
 /**
  * Abstract class for samplers using the DIMACS format as input.
  */
@@ -40,7 +42,7 @@ public abstract class DimacsSampler implements Sampler {
 
     /**
      * Runs processes used for the sampler.
-     * TODO Consider pushing the method up to the Sampler interface.
+     * TODO Consider pushing the method up to the Sampler interface or a util class.
      *
      * @param processBuilder the {@link ProcessBuilder} of the process to run.
      * @return the exit code of the process.

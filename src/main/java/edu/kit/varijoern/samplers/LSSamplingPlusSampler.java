@@ -79,7 +79,7 @@ public class LSSamplingPlusSampler extends DimacsSampler {
         // Process LS-Sampling-Plus output.
         Path lsSamplingPlusOutputFile = Paths.get(LS_OUTPUT_FILE);
         List<Map<String, Boolean>> result = parseLSSamplingPlusOutput(lsSamplingPlusOutputFile, cnf);
-        LOGGER.info("Generated {} configurations", result.size());
+        LOGGER.info("Sampled {} configurations using LS-Sampling-Plus.", result.size());
         return result;
     }
 
