@@ -10,30 +10,38 @@ import org.apache.commons.io.input.TeeInputStream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
- * This sampler chooses a sample of configurations uniformly at random using BDDs.
+ * This sampler uses <a href="https://github.com/davidfa71/BDDSampler">BDDSampler</a> to choose a sample of
+ * configurations uniformly at random using BDDs.
  */
 public class BddSampler extends DimacsSampler {
     public static final String NAME = "bddsampler";
-
     private static final String BDD_DIR = "/samplers/bddsampler";
-    private static final String EXP_FILE = "subject-noXOR.exp";
     private static final String VAR_FILE = "subject-noXOR.var";
+    private static final String EXP_FILE = "subject-noXOR.exp";
     private static final String DDDMP_FILE = "subject-noXOR.dddmp";
 
+    // BDDSampler parameters.
     private final int sampleSize;
 
     /**
-     * Creates a new {@link BddSampler} which generates samples for the specified feature model.
+     * Creates a new {@link BddSampler} which generates samples for the specified feature model (expressed as
+     * {@link IFeatureModel}).
      *
-     * @param featureModel the feature model
-     * @param sampleSize   the number of configurations to be generated
+     * @param featureModel the feature model (expressed as {@link IFeatureModel}).
+     * @param sampleSize   the number of configurations to be generated.
      */
     public BddSampler(@NotNull IFeatureModel featureModel, int sampleSize) {
         super(featureModel);
@@ -44,31 +52,30 @@ public class BddSampler extends DimacsSampler {
     public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults,
                                                       @NotNull Path tmpPath)
             throws SamplerException, InterruptedException, IOException {
-        LOGGER.info("Calculating uniform sample using BDDSampler");
+        LOGGER.info("Calculating uniform sample using BDDSampler.");
 
+        // Transform feature model to CNF and then from CNF to the formats required for building the BDD.
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
-        this.writeExpFile(tmpPath.resolve(EXP_FILE), cnf);
-        this.writeVarFile(tmpPath.resolve(VAR_FILE), cnf);
+        this.writeVarFile(tmpPath.resolve(BddSampler.VAR_FILE), cnf);
+        this.writeExpFile(tmpPath.resolve(BddSampler.EXP_FILE), cnf);
 
-        // Building BDD
+        // Build BDD.
+        LOGGER.info("Building BDD...");
         ProcessBuilder bddCreatorPB = new ProcessBuilder("./create_dddmp.sh",
-                tmpPath.resolve(VAR_FILE).toString(), tmpPath.resolve(EXP_FILE).toString());
-        bddCreatorPB.directory(new File(BDD_DIR));
+                tmpPath.resolve(BddSampler.VAR_FILE).toString(), tmpPath.resolve(BddSampler.EXP_FILE).toString());
+        bddCreatorPB.directory(new File(BddSampler.BDD_DIR));
         this.runSamplerProcess(bddCreatorPB);
-        Path dddmpFilePath = Paths.get(BDD_DIR, DDDMP_FILE);
+        Path dddmpFilePath = Paths.get(BddSampler.BDD_DIR, BddSampler.DDDMP_FILE);
+        LOGGER.info("Finished building BDD.");
 
-        // Executing Sampler
-        ProcessBuilder samplerPB  = new ProcessBuilder("./BDDSampler", Integer.toString(this.sampleSize),
+        // Configure ProcessBuilder.
+        ProcessBuilder samplerPB = new ProcessBuilder("./BDDSampler", Integer.toString(this.sampleSize),
                 dddmpFilePath.toString());
-        samplerPB.directory(new File(BDD_DIR + "/bin"));
+        samplerPB.directory(new File(BddSampler.BDD_DIR + "/bin"));
 
-        String oldLdPath = samplerPB.environment().get("LD_LIBRARY_PATH");
-        String newLdPath = BDD_DIR + "/lib";
-        if (oldLdPath != null && !oldLdPath.isBlank() ) {
-            newLdPath = newLdPath + ":" + oldLdPath;
-        }
-        samplerPB.environment().put("LD_LIBRARY_PATH", newLdPath);
-
+        // Execute BDDSampler.
+        // BDDSampler prints its sample to the standard output.
+        LOGGER.info("Execute BDDSampler.");
         Process bddSamplerProcess = samplerPB.start();
         int exitCode;
         BufferedReader reader;
@@ -88,15 +95,25 @@ public class BddSampler extends DimacsSampler {
             throw e;
         }
         if (exitCode != 0) {
-            throw new SamplerException("BDDSampler exited with code " + exitCode);
+            throw new SamplerException(String.format("BDDSampler exited with code %d.", exitCode));
         }
-        List<Map<String, Boolean>> result = this.parseBDDSamplerOutput(lines, cnf);
 
-        LOGGER.info("Generated {} configurations", result.size());
+        List<Map<String, Boolean>> result = this.parseBDDSamplerOutput(lines, cnf);
+        LOGGER.info("Sampled {} configurations using BDDSampler.", result.size());
         return result;
     }
 
-    private @NotNull List<Map<String, Boolean>> parseBDDSamplerOutput(List<String> lines, CNF cnf) {
+    /**
+     * Parse BDDSampler output into a sample, i.e., a {@link List} of {@link Map}s mapping features to their
+     * selection status.
+     *
+     * @param lines the lines output to standard output by BDDSampler.
+     * @param cnf   the {@link CNF} of the feature model used to translate the feature literals returned by BDDSampler
+     *              into their correct feature names.
+     * @return the sample created by BDDSampler represented as a {@link List} of {@link Map}s mapping features to
+     * their selection status.
+     */
+    private @NotNull List<Map<String, Boolean>> parseBDDSamplerOutput(@NotNull List<String> lines, @NotNull CNF cnf) {
         List<Map<String, Boolean>> result = new ArrayList<>();
         for (String line : lines) {
             if (line.matches("^([01] )+$")) {
@@ -108,39 +125,64 @@ public class BddSampler extends DimacsSampler {
         return result;
     }
 
-    private void writeVarFile(Path file, CNF cnf) throws SamplerException {
-        int numberVars = cnf.getVariables().size();
+    /**
+     * Build a file specifying all variables (i.e., features) of the feature model. This file is required for building
+     * the BDD.
+     *
+     * @param file the {@link Path} to the output file to which the variables (i.e., feature of the feature model)
+     *             should be written.
+     * @param cnf  the {@link CNF} representing the feature model.
+     * @throws SamplerException if an I/O error occurs when trying to write to <code>file</code>.
+     */
+    private void writeVarFile(@NotNull Path file, @NotNull CNF cnf) throws SamplerException {
+        int numberOfVariables = cnf.getVariables().size();
         StringBuilder sb = new StringBuilder();
-        for (int i = 1; i <= numberVars; i++) {
+        for (int i = 1; i <= numberOfVariables; i++) {
             sb.append(i).append(" ");
         }
+
         try {
             Files.writeString(file, sb.toString());
         } catch (IOException e) {
-            throw new SamplerException("Could not write var file", e);
+            throw new SamplerException("Could not write var file.", e);
         }
     }
 
-    private void writeExpFile(Path file, CNF cnf) throws SamplerException {
+    /**
+     * Build a file specifying all expressions/clauses (i.e., constraints) of the feature model. This file is required
+     * for building the BDD.
+     *
+     * @param file the {@link Path} to the output file to which the expressions/clauses (i.e., constraints of the
+     *             feature model) should be written.
+     * @param cnf  the {@link CNF} representing the feature model.
+     * @throws SamplerException if an I/O error occurs when trying to write to <code>file</code> or if invalid
+     * expressions/clauses were extracted from <code>cnf</code>.
+     */
+    private void writeExpFile(@NotNull Path file, @NotNull CNF cnf) throws SamplerException {
         DimacsWriter dimacsWriter = new DimacsWriter(cnf);
         dimacsWriter.setWritingVariableDirectory(false);
-        String dimacsString = dimacsWriter.write();
-        String[] dimacsLines = dimacsString.split("\n");
+        String[] dimacsLines = dimacsWriter.write().split("\n");
+
         List<String> expLines = new ArrayList<>();
         for (String line : dimacsLines) {
             if (!line.matches("^(-?\\d+ )+0$")) {
                 continue;
             }
             if (line.length() < 3) {
-                throw new SamplerException("Invalid dimacs line: " + line);
+                throw new SamplerException(String.format("Found invalid DIMACS line \"%s\" when extracting " +
+                        "expressions/clauses from the feature model.", line));
             }
-            String expLine = line.substring(0, line.length() - 2).replaceAll(" ", " or ").replaceAll("-", "not ");
+
+            String expLine = line.substring(0, line.length() - 2)
+                    .replaceAll(" ", " or ")
+                    .replaceAll("-", "not ");
             expLines.add(expLine);
         }
+
         try {
             Files.write(file, expLines);
         } catch (IOException e) {
-            throw new SamplerException("Could not write exp file", e);
+            throw new SamplerException("Could not write exp file.", e);
         }
     }
 }

@@ -27,10 +27,11 @@ public class SmarchSampler extends DimacsSampler {
     private final int sampleSize;
 
     /**
-     * Creates a new {@link SmarchSampler} which generates samples for the specified feature model.
+     * Creates a new {@link SmarchSampler} which generates samples for the specified feature model (expressed as
+     * {@link IFeatureModel}).
      *
-     * @param featureModel the feature model
-     * @param sampleSize   the number of configurations to be generated
+     * @param featureModel the feature model (expressed as {@link IFeatureModel}).
+     * @param sampleSize   the number of configurations to be generated.
      */
     public SmarchSampler(@NotNull IFeatureModel featureModel, int sampleSize) {
         super(featureModel);
@@ -62,6 +63,13 @@ public class SmarchSampler extends DimacsSampler {
         return result;
     }
 
+    /**
+     *  TODO
+     * @param smarchOutputFile
+     * @param cnf
+     * @return
+     * @throws IOException
+     */
     private @NotNull List<Map<String, Boolean>> parseSmarchOutput(Path smarchOutputFile, CNF cnf) throws IOException {
         try (Stream<String> lines = Files.lines(smarchOutputFile)) {
             return lines.map(line -> this.literalsToConfiguration(line.split(","), cnf)).toList();

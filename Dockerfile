@@ -103,16 +103,16 @@ WORKDIR /hsca
 RUN sh build.sh && chmod +x bin/coprocessor
 WORKDIR /
 
-# Build BDDCreator. TODO Needed?
+# Build BDDCreator.
 ADD https://github.com/davidfa71/Extending-Logic.git#63ce01c9d4ab8a3604dcfcd6e85b714b6ef759bc /bddcreator
 WORKDIR /bddcreator/code
+# TODO needed?
 ENV AUTOMAKE=:
 ENV ACLOCAL=:
 RUN make
 WORKDIR /
 
-# Build BDDSampler. TODO Complete (path of script?) and test
-# Apparently, there is also a python wrapper that could be used: https://github.com/rheradio/bdd4va/
+# Build BDDSampler.
 ADD https://github.com/davidfa71/BDDSampler.git#9d03c33c0791efbebc382b25816baa8b186ba137 /bddsampler
 WORKDIR /bddsampler
 RUN ./configure && make
@@ -197,7 +197,7 @@ RUN pipx install --python=$(which python3.11) kmax
 ############################
 
 # Smarch.
-RUN pipx install --python=$(which python3.11) git+https://github.com/KIT-TVA/Smarch.git@c573704bcfc85cc58e359926bac0143cd9ff308c
+RUN pipx install --python=$(which python3.11) git+https://github.com/KIT-TVA/Smarch.git@22d7214512439d36b2c4cfb219c070df9e25bc9e
 
 # Baital.
 ADD https://github.com/meelgroup/baital.git#100b51da8ba8879e9b72f2bb463c1d7efe41a8f7 /samplers/baital
@@ -213,12 +213,11 @@ COPY --from=build /vari-joern/src/main/resources/samplers/run_HSCA.py /samplers/
 
 # BDDCreator (used for BDDSampler).
 COPY --from=build /bddcreator /samplers/bddcreator
-COPY --from=build /vari-joern/src/main/resources/samplers/create_dddmp.sh /samplers/BDDSampler/create_dddmp.sh
-RUN chmod +x /samplers/BDDSampler/create_dddmp.sh
-
-# BDDSampler. TODO Test
-COPY --from=build /bddsampler/bin/BDDSampler /samplers/bddsampler/bin/BDDSampler
-COPY --from=build /bddsampler/lib /samplers/bddsampler/lib
+# BDDSampler.
+COPY --from=build /bddsampler /samplers/bddsampler
+ENV LD_LIBRARY_PATH="/samplers/bddsampler/lib"
+COPY --from=build /vari-joern/src/main/resources/samplers/create_dddmp.sh /samplers/bddsampler/create_dddmp.sh
+RUN chmod +x /samplers/bddsampler/create_dddmp.sh
 
 # Responsible for making the lib directory available to the container.
 COPY --from=build /vari-joern/build/distributions/Vari-Joern-1.0-SNAPSHOT.tar /Vari-Joern-1.0-SNAPSHOT.tar
@@ -227,7 +226,7 @@ RUN tar -xf /Vari-Joern-1.0-SNAPSHOT.tar -C /opt \
     && rm /Vari-Joern-1.0-SNAPSHOT.tar
 
 # Ensure that SuperC/SugarC and its dependencies are added to the classpath.
-ENV CLASSPATH="${CLASSPATH}:/opt/vari-joern/lib/xtc.jar:/opt/vari-joern/lib/superc.jar:/opt/vari-joern/lib/junit.jar:/opt/vari-joern/lib/antlr.jar:/opt/vari-joern/lib/javabdd.jar:/opt/vari-joern/lib/json-simple-1.1.1.jar:/opt/vari-joern/lib/org.sat4j.core.jar:/opt/vari-joern/lib/com.microsoft.z3.jar:/opt/vari-joern/lib/json-lib.jar"
+ENV CLASSPATH="/opt/vari-joern/lib/xtc.jar:/opt/vari-joern/lib/superc.jar:/opt/vari-joern/lib/junit.jar:/opt/vari-joern/lib/antlr.jar:/opt/vari-joern/lib/javabdd.jar:/opt/vari-joern/lib/json-simple-1.1.1.jar:/opt/vari-joern/lib/org.sat4j.core.jar:/opt/vari-joern/lib/com.microsoft.z3.jar:/opt/vari-joern/lib/json-lib.jar"
 
 # Copy over built Sugarlyzer from build stage and install it.
 RUN python3.10 -m pip install "setuptools<82" # Baital relies on pkg_resources which was removed from setuptools in version 82.
