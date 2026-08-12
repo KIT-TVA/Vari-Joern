@@ -1,9 +1,11 @@
-package edu.kit.varijoern.samplers;
+package edu.kit.varijoern.samplers.searchbasedsampling;
 
 import de.ovgu.featureide.fm.core.analysis.cnf.CNF;
 import de.ovgu.featureide.fm.core.analysis.cnf.FeatureModelCNF;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.samplers.DimacsSampler;
+import edu.kit.varijoern.samplers.SamplerException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

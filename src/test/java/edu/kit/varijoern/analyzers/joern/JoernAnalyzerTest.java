@@ -16,6 +16,7 @@ import edu.kit.varijoern.composers.kconfig.subjects.FiascoStrategyFactory;
 import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.*;
+import edu.kit.varijoern.samplers.other.FixedSampler;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

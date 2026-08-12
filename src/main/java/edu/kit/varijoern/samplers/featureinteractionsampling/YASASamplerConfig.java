@@ -1,8 +1,10 @@
-package edu.kit.varijoern.samplers;
+package edu.kit.varijoern.samplers.featureinteractionsampling;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import edu.kit.varijoern.samplers.Sampler;
+import edu.kit.varijoern.samplers.SamplerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;

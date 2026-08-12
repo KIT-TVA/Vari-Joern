@@ -1,8 +1,10 @@
-package edu.kit.varijoern.samplers;
+package edu.kit.varijoern.samplers.featureinteractionsampling;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import edu.kit.varijoern.samplers.Sampler;
+import edu.kit.varijoern.samplers.SamplerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
@@ -29,7 +31,7 @@ public class HSCASamplerConfig extends SamplerConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    protected HSCASamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
+    public HSCASamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
 
         // Target feature interaction coverage.

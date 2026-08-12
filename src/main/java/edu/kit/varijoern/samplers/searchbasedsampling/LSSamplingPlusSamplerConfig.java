@@ -1,8 +1,10 @@
-package edu.kit.varijoern.samplers;
+package edu.kit.varijoern.samplers.searchbasedsampling;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.TomlUtils;
+import edu.kit.varijoern.samplers.Sampler;
+import edu.kit.varijoern.samplers.SamplerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlInvalidTypeException;
 import org.tomlj.TomlTable;
@@ -29,7 +31,7 @@ public class LSSamplingPlusSamplerConfig extends SamplerConfig {
      * @param toml the TOML section
      * @throws InvalidConfigException if the TOML section does not represent a valid configuration
      */
-    protected LSSamplingPlusSamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
+    public LSSamplingPlusSamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
 
         // Target sample size.

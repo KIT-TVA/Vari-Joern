@@ -1,8 +1,10 @@
-package edu.kit.varijoern.samplers;
+package edu.kit.varijoern.samplers.featureinteractionsampling;
 
 import de.ovgu.featureide.fm.core.analysis.cnf.generator.configuration.twise.TWiseConfigurationGenerator;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.samplers.FeatureIDEGeneratorSampler;
+import edu.kit.varijoern.samplers.SamplerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;

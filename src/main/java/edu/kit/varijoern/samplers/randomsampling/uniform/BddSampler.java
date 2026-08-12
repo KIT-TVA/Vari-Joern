@@ -1,10 +1,12 @@
-package edu.kit.varijoern.samplers;
+package edu.kit.varijoern.samplers.randomsampling.uniform;
 
 import de.ovgu.featureide.fm.core.analysis.cnf.CNF;
 import de.ovgu.featureide.fm.core.analysis.cnf.FeatureModelCNF;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.io.dimacs.DimacsWriter;
 import edu.kit.varijoern.analyzers.AnalysisResult;
+import edu.kit.varijoern.samplers.DimacsSampler;
+import edu.kit.varijoern.samplers.SamplerException;
 import jodd.io.StreamGobbler;
 import org.apache.commons.io.input.TeeInputStream;
 import org.jetbrains.annotations.NotNull;
