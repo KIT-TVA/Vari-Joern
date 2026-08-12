@@ -7,23 +7,29 @@ import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
 /**
- * Contains the configuration of the uniform BDD sampler.
+ * Contains the configuration of the BDDSampler sampler.
  */
 public class BddSamplerConfig extends SamplerConfig {
+    // Literals used in the TOML file for the configuration of the BDDSampler sampler.
     private static final String SAMPLE_SIZE_FIELD_NAME = "sample-size";
+
+    // Fields for the configuration of the BDDSampler sampler.
     private final int sampleSize;
 
     /**
      * Creates a new {@link BddSamplerConfig} by extracting data from the specified TOML section.
      *
-     * @param toml the TOML section
-     * @throws InvalidConfigException if the TOML section does not represent a valid configuration
+     * @param toml the TOML section.
+     * @throws InvalidConfigException if the TOML section does not represent a valid configuration.
      */
     protected BddSamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
-        this.sampleSize = TomlUtils.getMandatoryInt(SAMPLE_SIZE_FIELD_NAME, toml, "Sample size is missing or invalid");
+
+        // Target sample size.
+        this.sampleSize = TomlUtils.getMandatoryInt(SAMPLE_SIZE_FIELD_NAME, toml, "Sample size is " +
+                "missing or invalid.");
         if (this.sampleSize <= 0) {
-            throw new InvalidConfigException("Sample size must be >= 1");
+            throw new InvalidConfigException("Sample size must be >= 1.");
         }
     }
 
