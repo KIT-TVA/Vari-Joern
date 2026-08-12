@@ -2,7 +2,7 @@
 
 This sampler always returns the configuration that enables the specified features. If this configuration contradicts the
 constraints of the feature model, the sampler will fail. It is useful for debugging purposes or when you want to
-analyze a specific configuration of the software product line.
+analyze a specific configuration of the highly-configurable software system.
 
 ## Configuration
 

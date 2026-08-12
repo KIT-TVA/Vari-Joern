@@ -1,7 +1,7 @@
 # The HSCA Sampler
 
-This sampler returns a sample that achieves t-wise feature interaction coverage. Internally, it uses 
-the [HSCA](https://github.com/chuanluocs/HSCA) sampler. To enable statistical analysis, the internally used random 
+This sampler returns a sample that achieves t-wise feature interaction coverage. Internally, it uses
+the [HSCA](https://github.com/chuanluocs/HSCA) sampler. To enable statistical analysis, the internally used random
 number generator is initialized with a random seed.
 
 ## Configuration
@@ -9,20 +9,20 @@ number generator is initialized with a random seed.
 The HSCA sampler is configured using the following options:
 
 - `t`
-  - The parameter t for t-wise feature interaction coverage.
-  - Optional: no
+    - The parameter t for t-wise feature interaction coverage.
+    - Optional: no
 - `l`
-  - The termination criterion for the first optimization pass.
-  - Optional: yes
-  - Default: 5000
+    - The termination criterion for the first optimization pass.
+    - Optional: yes
+    - Default: 5000
 - `cutoff-time`
-  - The cutoff time for the second optimization pass.
-  - Optional: yes
-  - Default: 15
+    - The cutoff time for the second optimization pass.
+    - Optional: yes
+    - Default: 15
 - `use-second-optimization`
-  - Controls if the second optimization pass is enabled
-  - Optional: yes
-  - Default: true
+    - Controls if the second optimization pass is enabled.
+    - Optional: yes
+    - Default: true
 
 For example, the sampler could be configured as follows:
 

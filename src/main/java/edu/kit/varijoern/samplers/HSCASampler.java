@@ -58,7 +58,7 @@ public class HSCASampler extends DimacsSampler {
     public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults,
                                                       @NotNull Path tmpPath)
             throws SamplerException, InterruptedException, IOException {
-        LOGGER.info("Calculating HSCA t-wise sample");
+        LOGGER.info("Calculating t-wise sample using HSCA.");
 
         // Transform feature model to CNF and then from CNF to DIMACS.
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
@@ -80,7 +80,7 @@ public class HSCASampler extends DimacsSampler {
         converterPB.directory(new File(HSCASampler.HSCA_DIR));
         int converterExitCode = this.runSamplerProcess(converterPB);
         if (converterExitCode != 0) {
-            throw new SamplerException(String.format("Model converter exited with code %d", converterExitCode));
+            throw new SamplerException(String.format("Model converter exited with code %d.", converterExitCode));
         }
 
         // Configure ProcessBuilder.
@@ -97,7 +97,7 @@ public class HSCASampler extends DimacsSampler {
         // Execute HSCA.
         int samplerExitCode = this.runSamplerProcess(samplerPB);
         if (samplerExitCode != 0) {
-            throw new SamplerException(String.format("HSCA exited with code %d", samplerExitCode));
+            throw new SamplerException(String.format("HSCA exited with code %d.", samplerExitCode));
         }
         List<Map<String, Boolean>> result = parseHSCAOutput(outputFile, cnf);
         LOGGER.info("Sampled {} configurations using HSCA.", result.size());

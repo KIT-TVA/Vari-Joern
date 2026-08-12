@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * This sampler chooses a set of features that achieves t-wise coverage using the YASA algorithm.
+ * This sampler chooses a set of features that achieves t-wise feature interaction coverage using YASA.
  */
 public class YASASampler extends FeatureIDEGeneratorSampler {
     public static final String NAME = "yasa";
@@ -24,11 +24,12 @@ public class YASASampler extends FeatureIDEGeneratorSampler {
     private final int maxSampleSize;
 
     /**
-     * Creates a new {@link YASASampler} which generates samples for the specified feature model.
+     * Creates a new {@link YASASampler} which generates samples for the specified feature model (expressed as
+     * {@link IFeatureModel}).
      *
-     * @param featureModel  the feature model
-     * @param t             the parameter t
-     * @param maxSampleSize the maximum number of configurations to be generated
+     * @param featureModel  the feature model (expressed as {@link IFeatureModel}).
+     * @param t             the t-wise feature interaction coverage that should be achieved.
+     * @param maxSampleSize the maximum number of configurations to be generated.
      */
     public YASASampler(@NotNull IFeatureModel featureModel, int t, int maxSampleSize) {
         super(featureModel);
@@ -38,13 +39,11 @@ public class YASASampler extends FeatureIDEGeneratorSampler {
 
     @Override
     public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults,
-                                                      @NotNull Path tmpPath)
-            throws SamplerException {
-        LOGGER.info("Calculating {}-wise sample", this.t);
-        List<Map<String, Boolean>> result
-                = calculateSample(cnf -> {
-                    TWiseConfigurationGenerator generator
-                            = new TWiseConfigurationGenerator(cnf, this.t, this.maxSampleSize);
+                                                      @NotNull Path tmpPath) throws SamplerException {
+        LOGGER.info("Calculating {}-wise sample.", this.t);
+        List<Map<String, Boolean>> result = calculateSample(cnf -> {
+                    TWiseConfigurationGenerator generator = new TWiseConfigurationGenerator(cnf, this.t,
+                            this.maxSampleSize);
                     generator.setRandom(new Random()); // By default, the generator uses a fixed seed.
                     return generator;
                 }

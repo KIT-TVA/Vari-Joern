@@ -19,11 +19,11 @@ import java.util.stream.Stream;
  */
 public class SmarchSampler extends DimacsSampler {
     public static final String NAME = "smarch";
-
     private static final String SMARCH_OUTPUT_DIR = "smarch";
     private static final String SMARCH_INPUT_FILE = "model.dimacs";
     private static final String SMARCH_OUTPUT_FILE_PATTERN = "model_%d.samples";
 
+    // Smarch parameters.
     private final int sampleSize;
 
     /**
@@ -43,34 +43,43 @@ public class SmarchSampler extends DimacsSampler {
                                                       @NotNull Path tmpPath)
             throws SamplerException, InterruptedException, IOException {
         LOGGER.info("Calculating uniform sample");
-        CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
-        this.writeDimacsFile(tmpPath.resolve(SMARCH_INPUT_FILE), cnf);
 
-        Path smarchOutputDir = tmpPath.resolve(SMARCH_OUTPUT_DIR);
+        // Transform feature model to CNF and then the CNF to DIMACS.
+        CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
+        this.writeDimacsFile(tmpPath.resolve(SmarchSampler.SMARCH_INPUT_FILE), cnf);
+
+        // Configure ProcessBuilder.
+        Path smarchOutputDir = tmpPath.resolve(SmarchSampler.SMARCH_OUTPUT_DIR);
         ProcessBuilder processBuilder = new ProcessBuilder("smarch_opt",
                 "-o", smarchOutputDir.toString(),
                 "-p", String.valueOf(Runtime.getRuntime().availableProcessors()),
                 tmpPath.resolve("model.dimacs").toString(), Integer.toString(this.sampleSize));
+
+        // Execute Smarch.
         int exitCode = this.runSamplerProcess(processBuilder);
         if (exitCode != 0) {
-            throw new SamplerException("smarch_opt exited with code " + exitCode);
+            throw new SamplerException(String.format("Smarch exited with code %d", exitCode));
         }
 
         Path smarchOutputFile = smarchOutputDir.resolve(String.format(SMARCH_OUTPUT_FILE_PATTERN, this.sampleSize));
         List<Map<String, Boolean>> result = parseSmarchOutput(smarchOutputFile, cnf);
-
         LOGGER.info("Sampled {} configurations using Smarch.", result.size());
         return result;
     }
 
     /**
-     *  TODO
-     * @param smarchOutputFile
-     * @param cnf
-     * @return
-     * @throws IOException
+     * Parse Smarch output into a sample, i.e., a {@link List} of {@link Map}s mapping features to their
+     * selection status.
+     *
+     * @param smarchOutputFile the {@link Path} at which the output by Smarch can be found.
+     * @param cnf              the {@link CNF} of the feature model used to translate the feature literals returned by
+     *                         Smarch into their correct feature names.
+     * @return the sample created by Smarch represented as a {@link List} of {@link Map}s mapping features to
+     * their selection status.
+     * @throws IOException if an I/O error occurs opening the file.
      */
-    private @NotNull List<Map<String, Boolean>> parseSmarchOutput(Path smarchOutputFile, CNF cnf) throws IOException {
+    private @NotNull List<Map<String, Boolean>> parseSmarchOutput(@NotNull Path smarchOutputFile,
+                                                                  @NotNull CNF cnf) throws IOException {
         try (Stream<String> lines = Files.lines(smarchOutputFile)) {
             return lines.map(line -> this.literalsToConfiguration(line.split(","), cnf)).toList();
         }
