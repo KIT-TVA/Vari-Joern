@@ -3,11 +3,11 @@
 This sampler returns a sample that achieves t-wise feature interaction coverage. Internally, it uses the
 [YASA](https://dl.acm.org/doi/10.1145/3377024.3377042) implementation provided
 by [FeatureIDE](https://featureide.github.io/). To enable statistical analysis,
-the internally used random number generator is initialized with a random seed.
+the random number generator used internally is initialized with a random seed.
 
 ## Configuration
 
-The YASA sampler is configured using the following option:
+The YASA sampler is configured using the following options:
 
 - `t`
     - The parameter t for t-wise feature interaction coverage.
