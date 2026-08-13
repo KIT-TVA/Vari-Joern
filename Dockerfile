@@ -106,7 +106,8 @@ WORKDIR /
 # Build BDDCreator.
 ADD https://github.com/davidfa71/Extending-Logic.git#63ce01c9d4ab8a3604dcfcd6e85b714b6ef759bc /bddcreator
 WORKDIR /bddcreator/code
-# TODO needed?
+# Clear AUTOMAKE and ACLOCAL env. variables to prevent regenration of the projects build system.
+# This prevents a build error due to the project expecting a particular version of automake etc.
 ENV AUTOMAKE=:
 ENV ACLOCAL=:
 RUN make
@@ -180,13 +181,13 @@ RUN apt-get install -y \
     build-essential
 
 # Install Joern.
-# TODO Update to newer Joern version (e.g., v.4.0.600)
-ADD https://github.com/joernio/joern/releases/download/v4.0.407/joern-install.sh /joern-install.sh
+ARG JOERN_VERSION=4.0.600
+ADD https://github.com/joernio/joern/releases/download/v${JOERN_VERSION}/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
-    && /joern-install.sh --version=v4.0.407 \
-    && rm /joern-install.sh /joern-cli.zip
+    && /joern-install.sh --version=v${JOERN_VERSION} \
+    && rm /joern-install.sh /joern-cli-*.zip
 ENV PATH="/opt/joern/joern-cli:${PATH}"
-RUN joern-scan --updatedb --dbversion 4.0.407
+RUN joern-scan --updatedb --dbversion ${JOERN_VERSION}
 
 # Install kmax.
 RUN pipx install --python=$(which python3.11) kmax
@@ -232,6 +233,7 @@ ENV CLASSPATH="/opt/vari-joern/lib/xtc.jar:/opt/vari-joern/lib/superc.jar:/opt/v
 RUN python3.10 -m pip install "setuptools<82" # Baital relies on pkg_resources which was removed from setuptools in version 82.
 COPY --from=build /vari-joern/dist/sugarlyzer-0.0.1a0-py3-none-any.whl /sugarlyzer-0.0.1a0-py3-none-any.whl
 RUN python3.10 -m pip install /sugarlyzer-0.0.1a0-py3-none-any.whl
+RUN rm /sugarlyzer-0.0.1a0-py3-none-any.whl
 
 # If the Docker daemon has been started in rootless mode, torte runs `whoami` to ensure that it does not run as root.
 # If the daemon has not been started in rootless mode, torte wants to run as root. We can fake the user by overriding
