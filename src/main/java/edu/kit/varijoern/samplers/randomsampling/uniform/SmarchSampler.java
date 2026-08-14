@@ -44,7 +44,7 @@ public class SmarchSampler extends DimacsSampler {
     public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults,
                                                       @NotNull Path tmpPath)
             throws SamplerException, InterruptedException, IOException {
-        LOGGER.info("Calculating uniform sample");
+        LOGGER.info("Calculating uniform sample using Smarch.");
 
         // Transform feature model to CNF and then the CNF to DIMACS.
         CNF cnf = FeatureModelCNF.fromFeatureModel(this.featureModel);
@@ -60,7 +60,7 @@ public class SmarchSampler extends DimacsSampler {
         // Execute Smarch.
         int exitCode = this.runSamplerProcess(processBuilder);
         if (exitCode != 0) {
-            throw new SamplerException(String.format("Smarch exited with code %d", exitCode));
+            throw new SamplerException(String.format("Smarch exited with code %d.", exitCode));
         }
 
         Path smarchOutputFile = smarchOutputDir.resolve(String.format(SMARCH_OUTPUT_FILE_PATTERN, this.sampleSize));

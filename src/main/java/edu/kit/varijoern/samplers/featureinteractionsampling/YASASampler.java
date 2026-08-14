@@ -42,7 +42,7 @@ public class YASASampler extends FeatureIDEGeneratorSampler {
     @Override
     public @NotNull List<Map<String, Boolean>> sample(@Nullable List<AnalysisResult<?>> analysisResults,
                                                       @NotNull Path tmpPath) throws SamplerException {
-        LOGGER.info("Calculating {}-wise sample.", this.t);
+        LOGGER.info("Calculating {}-wise sample using YASA.", this.t);
         List<Map<String, Boolean>> result = calculateSample(cnf -> {
                     TWiseConfigurationGenerator generator = new TWiseConfigurationGenerator(cnf, this.t,
                             this.maxSampleSize);
