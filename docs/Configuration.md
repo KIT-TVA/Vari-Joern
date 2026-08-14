@@ -61,15 +61,15 @@ The following feature model readers are available:
 Samplers return a set of configurations which are then used by a composer to configure a variant of the software.
 The resulting code is analyzed by Joern. Currently, the following samplers are available:
 
-|                     Sampler                      | Type                                            |
-|:------------------------------------------------:|-------------------------------------------------|
-|            [Fixed](samplers/Fixed.md)            | Fixed pre-defined set of configurations         |
-|             [YASA](samplers/YASA.md)             | T-wise feature interaction coverage             |
-|             [HSCA](samplers/HSCA.md)             | T-wise feature interaction coverage             |
-| [LS-Sampling-Plus](samplers/LS-Sampling-Plus.md) | Approximate t-wise feature interaction coverage |
-|           [Baital](samplers/Baital.md)           | Weighted random sampling                        |
-|           [Smarch](samplers/Smarch.md)           | Uniform random sampling                         |
-|       [BDDSampler](samplers/BDDSampler.md)       | Uniform random sampling                         |
+|                      Sampler                      | Type                                                                             |
+|:-------------------------------------------------:|----------------------------------------------------------------------------------|
+|            [Fixed](samplers/Fixed.md)             | Fixed pre-defined set of configurations                                          |
+|             [YASA](samplers/YASA.md)              | T-wise feature interaction coverage                                              |
+|             [HSCA](samplers/HSCA.md)              | T-wise feature interaction coverage                                              |
+| [LS-Sampling-Plus](samplers/LS-Sampling-Plus.md)  | Search-based sampling aiming for approximate t-wise feature interaction coverage |
+|           [Baital](samplers/Baital.md)            | Weighted random sampling                                                         |
+|           [Smarch](samplers/Smarch.md)            | Uniform random sampling                                                          |
+|       [BDDSampler](samplers/BDDSampler.md)        | Uniform random sampling                                                          |
 
 ### Composers
 
