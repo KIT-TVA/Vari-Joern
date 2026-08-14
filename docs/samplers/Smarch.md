@@ -1,20 +1,20 @@
-# The Uniform Sampler
+# The Smarch Sampler
 
 This sampler returns a sample by choosing configurations from a uniform distribution using
 [Smarch](https://github.com/jeho-oh/Smarch).
 
 ## Configuration
 
-The t-wise sampler is configured using the following option:
+The Smarch sampler is configured using the following option:
 
 - `sample-size`
     - The number of configurations to generate.
     - Optional: no
 
-For example, the uniform sampler could be configured as follows:
+For example, the sampler could be configured as follows:
 
 ```toml
 [product.sampler]
-name = "uniform"
+name = "smarch"
 sample-size = 10
 ```

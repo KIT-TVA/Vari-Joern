@@ -1,0 +1,42 @@
+package edu.kit.varijoern.samplers.randomsampling.uniform;
+
+import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import edu.kit.varijoern.config.InvalidConfigException;
+import edu.kit.varijoern.config.TomlUtils;
+import edu.kit.varijoern.samplers.Sampler;
+import edu.kit.varijoern.samplers.SamplerConfig;
+import org.jetbrains.annotations.NotNull;
+import org.tomlj.TomlTable;
+
+/**
+ * Contains the configuration of the BDDSampler sampler.
+ */
+public class BddSamplerConfig extends SamplerConfig {
+    // Literals used in the TOML file for the configuration of the BDDSampler sampler.
+    private static final String SAMPLE_SIZE_FIELD_NAME = "sample-size";
+
+    // Fields for the configuration of the BDDSampler sampler.
+    private final int sampleSize;
+
+    /**
+     * Creates a new {@link BddSamplerConfig} by extracting data from the specified TOML section.
+     *
+     * @param toml the TOML section.
+     * @throws InvalidConfigException if the TOML section does not represent a valid configuration.
+     */
+    public BddSamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
+        super(toml);
+
+        // Target sample size.
+        this.sampleSize = TomlUtils.getMandatoryInt(SAMPLE_SIZE_FIELD_NAME, toml, "Sample size is " +
+                "missing or invalid.");
+        if (this.sampleSize <= 0) {
+            throw new InvalidConfigException("Sample size must be >= 1.");
+        }
+    }
+
+    @Override
+    public @NotNull Sampler newSampler(@NotNull IFeatureModel featureModel) {
+        return new BddSampler(featureModel, this.sampleSize);
+    }
+}

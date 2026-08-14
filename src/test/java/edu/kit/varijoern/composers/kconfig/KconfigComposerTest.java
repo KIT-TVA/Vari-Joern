@@ -20,7 +20,7 @@ import edu.kit.varijoern.composers.sourcemap.SourceLocation;
 import edu.kit.varijoern.composers.sourcemap.SourceMap;
 import edu.kit.varijoern.featuremodel.FeatureModelReaderException;
 import edu.kit.varijoern.samplers.Configuration;
-import edu.kit.varijoern.samplers.FixedSampler;
+import edu.kit.varijoern.samplers.other.FixedSampler;
 import edu.kit.varijoern.samplers.SampleTracker;
 import edu.kit.varijoern.samplers.SamplerException;
 import org.eclipse.jgit.api.errors.GitAPIException;

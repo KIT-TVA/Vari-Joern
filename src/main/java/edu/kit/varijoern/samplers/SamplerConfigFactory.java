@@ -3,6 +3,20 @@ package edu.kit.varijoern.samplers;
 import edu.kit.varijoern.config.InvalidConfigException;
 import edu.kit.varijoern.config.NamedComponentConfigFactory;
 import edu.kit.varijoern.config.SubjectConfig;
+import edu.kit.varijoern.samplers.featureinteractionsampling.HSCASampler;
+import edu.kit.varijoern.samplers.featureinteractionsampling.HSCASamplerConfig;
+import edu.kit.varijoern.samplers.featureinteractionsampling.YASASampler;
+import edu.kit.varijoern.samplers.featureinteractionsampling.YASASamplerConfig;
+import edu.kit.varijoern.samplers.other.FixedSampler;
+import edu.kit.varijoern.samplers.other.FixedSamplerConfig;
+import edu.kit.varijoern.samplers.randomsampling.uniform.BddSampler;
+import edu.kit.varijoern.samplers.randomsampling.uniform.BddSamplerConfig;
+import edu.kit.varijoern.samplers.randomsampling.uniform.SmarchSampler;
+import edu.kit.varijoern.samplers.randomsampling.uniform.SmarchSamplerConfig;
+import edu.kit.varijoern.samplers.randomsampling.weighted.BaitalSampler;
+import edu.kit.varijoern.samplers.randomsampling.weighted.BaitalSamplerConfig;
+import edu.kit.varijoern.samplers.searchbasedsampling.LSSamplingPlusSampler;
+import edu.kit.varijoern.samplers.searchbasedsampling.LSSamplingPlusSamplerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.tomlj.TomlTable;
 
@@ -42,10 +56,18 @@ public final class SamplerConfigFactory extends NamedComponentConfigFactory<Samp
                                                        @NotNull SubjectConfig subjectConfig)
             throws InvalidConfigException {
         return switch (componentName) {
+            // t-wise FIS.
+            case YASASampler.NAME -> new YASASamplerConfig(toml);
+            case HSCASampler.NAME -> new HSCASamplerConfig(toml);
+            // Random sampling.
+            case SmarchSampler.NAME -> new SmarchSamplerConfig(toml);
+            case BddSampler.NAME -> new BddSamplerConfig(toml);
+            case BaitalSampler.NAME -> new BaitalSamplerConfig(toml);
+            // Search-based sampling.
+            case LSSamplingPlusSampler.NAME -> new LSSamplingPlusSamplerConfig(toml);
+            // Other sampling strategies.
             case FixedSampler.NAME -> new FixedSamplerConfig(toml);
-            case TWiseSampler.NAME -> new TWiseSamplerConfig(toml);
-            case UniformSampler.NAME -> new UniformSamplerConfig(toml);
-            default -> throw new InvalidConfigException(String.format("Unknown sampler \"%s\"", componentName));
+            default -> throw new InvalidConfigException(String.format("Unknown sampler \"%s\".", componentName));
         };
     }
 
