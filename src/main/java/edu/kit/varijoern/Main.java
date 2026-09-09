@@ -290,7 +290,10 @@ public class Main {
 
         args.getResultOutputArgs().getDestination().getPath().ifPresent((path) -> {
             sugarlyzerCommandList.add("--output-path");
-            sugarlyzerCommandList.add(path.toString());
+            // Use an absolute path here, otherwise the Sugarlyzer assumes it is relative to it's own CWD,
+            // which is set to the user's home directory. This might seem unintuitive for a user of Vari-Joern.
+            // Instead, the path should be relative to Vari-Joern's CWD.
+            sugarlyzerCommandList.add(path.toAbsolutePath().toString());
         });
 
         // Add mandatory arguments.
