@@ -59,7 +59,7 @@ RUN apt-get install -y \
     libgmp3-dev
 
 # Build SuperC.
-ADD https://github.com/KIT-TVA/superc.git#a900004207849cca9ba3ae6b0e3e01bafc6b9a4a /superc
+ADD https://github.com/KIT-TVA/superc.git#d07a75cde4926677d3f3997d6d1f6237db8a3c0a /superc
 WORKDIR /superc
 RUN JAVA_DEV_ROOT=/superc \
     && CLASSPATH=$CLASSPATH:$JAVA_DEV_ROOT/classes:$JAVA_DEV_ROOT/bin/junit.jar:$JAVA_DEV_ROOT/bin/antlr.jar:$JAVA_DEV_ROOT/bin/javabdd.jar:$JAVA_DEV_ROOT/bin/json-simple-1.1.1.jar \
@@ -181,7 +181,7 @@ RUN apt-get install -y \
     build-essential
 
 # Install Joern.
-ARG JOERN_VERSION=4.0.600
+ARG JOERN_VERSION=4.0.666
 ADD https://github.com/joernio/joern/releases/download/v${JOERN_VERSION}/joern-install.sh /joern-install.sh
 RUN chmod +x joern-install.sh \
     && /joern-install.sh --version=v${JOERN_VERSION} \
