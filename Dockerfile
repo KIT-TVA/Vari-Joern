@@ -216,8 +216,8 @@ RUN chmod +x joern-install.sh \
     && rm /joern-install.sh /joern-cli-*.zip
 ENV PATH="/opt/joern/joern-cli:${PATH}"
 RUN joern --remove-plugin querydb && \
-    joern --add-plugin /querydb.zip \
-    && rm /querydb.zip
+    joern --add-plugin /querydb.zip && \
+    rm /querydb.zip
 
 # Install kmax.
 RUN pipx install --python=$(which python3.11) kmax
