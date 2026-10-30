@@ -1,3 +1,4 @@
+ARG JOERN_VERSION=4.0.666
 #######################################
 # Specification of base environment.
 #######################################
@@ -56,7 +57,33 @@ RUN apt-get install -y \
     # Required for building BDDSampler
     autoconf \
     # Required for building BDDSampler
-    libgmp3-dev
+    libgmp3-dev \
+    # Required for installing sbt
+    apt-transport-https \
+    # Required for installing sbt
+    gnupg
+
+# Install sbt (required for building the query database of Joern).
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" > /etc/apt/sources.list.d/sbt.list && \
+    echo "deb https://repo.scala-sbt.org/scalasbt/debian /" > /etc/apt/sources.list.d/sbt_old.list && \
+    curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | \
+    gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/scalasbt-release.gpg --import && \
+    chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
+RUN apt-get update && \
+    apt-get install -y sbt
+
+
+ARG JOERN_VERSION
+# Build our version of the query database used for Joern.
+ADD https://github.com/joernio/joern/archive/refs/tags/v${JOERN_VERSION}.tar.gz /
+RUN tar -xzf v${JOERN_VERSION}.tar.gz -C / && \
+    rm -rf /joern-${JOERN_VERSION}/querydb
+COPY ./querydb /joern-${JOERN_VERSION}/querydb
+WORKDIR /joern-${JOERN_VERSION}
+RUN sbt querydb/createDistribution
+RUN QUERY_DB_ZIP=$(find /joern-${JOERN_VERSION}/target/out/jvm -name querydb.zip 2>/dev/null | head -n1) && \
+    mv ${QUERY_DB_ZIP} /
+WORKDIR /
 
 # Build SuperC.
 ADD https://github.com/KIT-TVA/superc.git#d07a75cde4926677d3f3997d6d1f6237db8a3c0a /superc
@@ -180,14 +207,17 @@ RUN apt-get install -y \
     libselinux* \
     build-essential
 
-# Install Joern.
-ARG JOERN_VERSION=4.0.666
-ADD https://github.com/joernio/joern/releases/download/v${JOERN_VERSION}/joern-install.sh /joern-install.sh
+ARG JOERN_VERSION
+# Install Joern and our custom Joern query database.
+COPY --from=build /joern-${JOERN_VERSION}/joern-install.sh /joern-install.sh
+COPY --from=build /querydb.zip /querydb.zip
 RUN chmod +x joern-install.sh \
     && /joern-install.sh --version=v${JOERN_VERSION} \
     && rm /joern-install.sh /joern-cli-*.zip
 ENV PATH="/opt/joern/joern-cli:${PATH}"
-RUN joern-scan --updatedb --dbversion ${JOERN_VERSION}
+RUN joern --remove-plugin querydb && \
+    joern --add-plugin /querydb.zip \
+    && rm /querydb.zip
 
 # Install kmax.
 RUN pipx install --python=$(which python3.11) kmax
