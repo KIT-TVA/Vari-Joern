@@ -99,8 +99,6 @@ Vari-Joern currently supports the following subject systems for analysis (C-LoC 
 
 > **Note**: Other versions of the subject systems might also work but have not yet been tested. 
 
-> **Note**: Other versions of the subject systems might also work but have not yet been tested.
-
 ## Publications
 
 ### Investigating the Effects of T-Wise Interaction Sampling for Vulnerability Discovery in Highly-Configurable Software Systems (SPLC 2025, ⭐ [Best Artifact Award](https://2025.splc.net/awards/) ⭐)
