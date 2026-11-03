@@ -39,5 +39,22 @@ class CQueryTestSuite[QB <: QueryBundle](val queryBundle: QB) extends DataFlowCo
       .toSetImmutable
   }
 
+  def findMatchingVariables(query: Query): Set[String] = {
+    query(cpg)
+      .flatMap(_.evidence)
+      .collect { case local: nodes.Local => local }
+      .name
+      .toSetImmutable
+  }
+
+  def findMatchingControlStructures(query: Query): Set[String] = {
+    query(cpg)
+      .flatMap(_.evidence)
+      .collect { case controlStructure: nodes.ControlStructure => controlStructure }
+      .method
+      .name
+      .toSetImmutable
+  }
+
   protected val cpg: TestCpg = code(concatQueryCodeExamples)
 }
