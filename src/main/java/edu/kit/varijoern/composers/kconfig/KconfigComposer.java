@@ -208,12 +208,12 @@ public class KconfigComposer implements Composer {
         LOGGER.info("Generating .config");
         this.composerStrategy.generateDefConfig();
 
-        writeToExistingConfig(features);
+        this.writeToExistingConfig(features);
 
         // Make sure that `include/autoconf.h` (or `build/globalconfig.out`) is generated
         this.composerStrategy.processWrittenConfig();
 
-        verifyConfig(features);
+        this.verifyConfig(features);
     }
 
     /**
@@ -318,7 +318,9 @@ public class KconfigComposer implements Composer {
 
         int makeExitCode;
         String output;
-        LOGGER.debug("Running make -in");
+        LOGGER.debug("Running make -in from directory {} with command: {}",
+                makeProcessBuilder.directory().toString(),
+                String.join(" ", makeProcessBuilder.command()));
         Process makeProcess = makeProcessBuilder.start();
         try {
             output = IOUtils.toString(makeProcess.getInputStream(), Charset.defaultCharset());
