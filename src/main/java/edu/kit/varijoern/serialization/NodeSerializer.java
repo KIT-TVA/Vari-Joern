@@ -20,7 +20,11 @@ public class NodeSerializer {
     }
 
     private void serialize(Node node, StringBuilder sb) {
-        if (node.getClass() == Literal.class) {
+        if (node.getClass().equals(True.class)) {
+            sb.append("true");
+        } else if (node.getClass().equals(False.class)) {
+            sb.append("false");
+        } else if (node.getClass() == Literal.class) {
             this.serializeLiteral((Literal) node, sb);
         } else {
             this.serializeOperator(node, sb);
