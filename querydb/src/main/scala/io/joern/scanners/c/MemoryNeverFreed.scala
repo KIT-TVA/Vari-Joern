@@ -13,7 +13,7 @@ object MemoryNeverFreed extends QueryBundle {
   def memoryNeverFreed()(implicit context: EngineContext): Query =
     Query.make(
       name = "memory-never-freed",
-      author = Crew.baechlehoche,
+      author = Crew.tbaechle,
       title = "Memory is never freed",
       description = """
         |A function always returns before freeing memory that was allocated in the function.

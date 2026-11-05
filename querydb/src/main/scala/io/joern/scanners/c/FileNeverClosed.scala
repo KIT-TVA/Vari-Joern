@@ -14,7 +14,7 @@ object FileNeverClosed extends QueryBundle {
   def fileNeverClosed()(implicit context: EngineContext): Query =
     Query.make(
       name = "file-never-closed",
-      author = Crew.baechlehoche,
+      author = Crew.tbaechle,
       title = "Open file is not closed",
       description = """
         |A function always returns before closing a file that was opened in the function.

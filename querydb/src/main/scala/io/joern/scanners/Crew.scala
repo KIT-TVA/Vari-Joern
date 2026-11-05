@@ -11,5 +11,5 @@ object Crew {
   val SJ1iu    = "@piggyctf"
   val yichao   = "@yichaoxu"
   val penghui  = "@peng-hui"
-  val baechlehoche = "@TDot305 and Thierry Hoche"
+  val tbaechle = "@TDot305"
 }

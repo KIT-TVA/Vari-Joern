@@ -13,18 +13,18 @@ object DoubleFree extends QueryBundle {
   def doubleFree()(implicit context: EngineContext): Query =
     Query.make(
       name = "double-free",
-      author = Crew.baechlehoche,
+      author = Crew.tbaechle,
       title = "Potential double free",
       description = """
         |Freeing a resource more than once can lead to undefined behavior and cause memory corruption.
         |""".stripMargin,
       score = 9,
       withStrRep({ cpg =>
-        for {
-          dealloc1 <- cpg.call.name("free").l
-          dealloc2 <- cpg.call.name("free").l
-          if dealloc1 != dealloc2 && dealloc2.argument(1).reachableBy(dealloc1.argument(1)).nonEmpty
-        } yield dealloc2
+        cpg.call.name("free").where { freeCall =>
+            cpg.call.name("free").filter { otherFreeCall =>
+              freeCall != otherFreeCall && otherFreeCall.argument(1).reachableBy(freeCall.argument(1)).nonEmpty
+            }
+        }
       }),
       tags = List(QueryTags.default),
       codeExamples = CodeExamples(
