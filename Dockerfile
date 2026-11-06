@@ -41,7 +41,7 @@ RUN apt-get install -y \
 # Specification of build environment.
 #######################################
 FROM base-system AS build
-RUN apt-get install -y \
+RUN apt-get update && apt-get install -y \
     # Required for building SuperC and Vari-Joern
     openjdk-21-jdk \
     # Required for building SuperC
@@ -58,8 +58,6 @@ RUN apt-get install -y \
     autoconf \
     # Required for building BDDSampler
     libgmp3-dev \
-    # Required for installing sbt
-    apt-transport-https \
     # Required for installing sbt
     gnupg
 
