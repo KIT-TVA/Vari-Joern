@@ -7,23 +7,27 @@ import io.shiftleft.semanticcpg.language.*
 import io.joern.dataflowengineoss.language.*
 import io.joern.dataflowengineoss.queryengine.EngineContext
 
-object DoubleFree extends QueryBundle {
+object DoubleFreeInsideFunction extends QueryBundle {
 
   @q
-  def doubleFree()(implicit context: EngineContext): Query =
+  def doubleFreeInsideFunction()(implicit context: EngineContext): Query =
     Query.make(
-      name = "double-free",
+      name = "double-free-in-function",
       author = Crew.tbaechle,
-      title = "Potential double free",
+      title = "Potential double free inside function",
       description = """
-        |Freeing a resource more than once can lead to undefined behavior and cause memory corruption.
+        |Freeing a resource more than once inside a function can lead to undefined behavior and cause memory corruption.
         |""".stripMargin,
       score = 9,
       withStrRep({ cpg =>
-        cpg.call.name("free").where { freeCall =>
-            cpg.call.name("free").filter { otherFreeCall =>
-              freeCall != otherFreeCall && otherFreeCall.argument(1).reachableBy(freeCall.argument(1)).nonEmpty
-            }
+        cpg.call.name("free").filter { secondFree =>
+          val otherFreeCalls = secondFree.method.call.name("free")
+
+          otherFreeCalls.exists { firstFree =>
+            firstFree != secondFree &&
+              firstFree.argument(1).code == secondFree.argument(1).code &&
+              secondFree.argument(1).reachableBy(firstFree.argument(1)).nonEmpty
+          }
         }
       }),
       tags = List(QueryTags.default),
