@@ -2,7 +2,7 @@
 # The following line uses curl to reproducibly install and run the specified revision of torte.
 # Alternatively, torte can be installed manually (see https://github.com/ekuiter/torte).
 # In that case, make sure to check out the correct revision manually and run ./torte.sh <this-file>.
-TORTE_REVISION=v1.0.0; [[ $TOOL != torte ]] && builtin source /dev/stdin <<<"$(curl -fsSL https://raw.githubusercontent.com/ekuiter/torte/$TORTE_REVISION/torte.sh)" "$@"
+TORTE_REVISION=16700af390514ade30e4c48456287f7ba075015f; [[ $TOOL != torte ]] && builtin source <(curl -fsSL https://raw.githubusercontent.com/TDot305/torte/$TORTE_REVISION/torte.sh) "$@"
 
 experiment-systems() {
     # Inject our own variant of add-system. We don't want to clone the Linux kernel with all its history.
