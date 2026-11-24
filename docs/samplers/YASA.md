@@ -16,6 +16,10 @@ The YASA sampler is configured using the following options:
     - The maximum number of configurations to generate.
     - Optional: yes
     - Default: 2.147.483.647
+- `iterations`
+    - The number how often the process of removing and resampling shall be repeated to improve the overall result.
+    - Optional: yes
+    - Default: 5
 
 For example, the sampler could be configured as follows:
 

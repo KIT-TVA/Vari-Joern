@@ -16,10 +16,12 @@ public class YASASamplerConfig extends SamplerConfig {
     // Literals used in the TOML file for the configuration of the YASA sampler.
     private static final String T_FIELD_NAME = "t";
     private static final String SAMPLE_SIZE_FIELD_NAME = "max-samples";
+    private static final String ITERATIONS_FIELD_NAME = "iterations";
 
     // Fields for the configuration of the YASA sampler.
     private final int t;
     private final int maxSampleSize;
+    private final int iterations;
 
     /**
      * Creates a new {@link YASASamplerConfig} by extracting data from the specified TOML section.
@@ -37,7 +39,7 @@ public class YASASamplerConfig extends SamplerConfig {
             throw new InvalidConfigException("Parameter t must be >= 1.");
         }
 
-        // Maximum sample size.
+        // Maximum sample size (default value: Integer.MAX_VALUE).
         long maxSampleSize;
         try {
             maxSampleSize = toml.getLong(YASASamplerConfig.SAMPLE_SIZE_FIELD_NAME, () -> (long) Integer.MAX_VALUE);
@@ -49,10 +51,23 @@ public class YASASamplerConfig extends SamplerConfig {
                     Integer.MAX_VALUE));
         }
         this.maxSampleSize = (int) maxSampleSize;
+
+        // Iterations (default value: 5).
+        long iterations;
+        try {
+            iterations = toml.getLong(YASASamplerConfig.ITERATIONS_FIELD_NAME, () -> 5L);
+        } catch (TomlInvalidTypeException e) {
+            throw new InvalidConfigException("Number of iterations must be an integer value.", e);
+        }
+        if (iterations < 0 || iterations > Integer.MAX_VALUE) {
+            throw new InvalidConfigException(String.format("Number of iterations must be >= 0 and < %d.",
+                    Integer.MAX_VALUE));
+        }
+        this.iterations = (int) iterations;
     }
 
     @Override
     public @NotNull Sampler newSampler(@NotNull IFeatureModel featureModel) {
-        return new YASASampler(featureModel, this.t, this.maxSampleSize);
+        return new YASASampler(featureModel, this.t, this.maxSampleSize, this.iterations);
     }
 }

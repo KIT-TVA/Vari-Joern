@@ -24,6 +24,7 @@ public class YASASampler extends FeatureIDEGeneratorSampler {
 
     private final int t;
     private final int maxSampleSize;
+    private final int iterations;
 
     /**
      * Creates a new {@link YASASampler} which generates samples for the specified feature model (expressed as
@@ -32,11 +33,14 @@ public class YASASampler extends FeatureIDEGeneratorSampler {
      * @param featureModel  the feature model (expressed as {@link IFeatureModel}).
      * @param t             the t-wise feature interaction coverage that should be achieved.
      * @param maxSampleSize the maximum number of configurations to be generated.
+     * @param iterations the number how often the process of removing and resampling shall be repeated to improve the
+     *                   overall result.
      */
-    public YASASampler(@NotNull IFeatureModel featureModel, int t, int maxSampleSize) {
+    public YASASampler(@NotNull IFeatureModel featureModel, int t, int maxSampleSize, int iterations) {
         super(featureModel);
         this.t = t;
         this.maxSampleSize = maxSampleSize;
+        this.iterations = iterations;
     }
 
     @Override
@@ -46,6 +50,7 @@ public class YASASampler extends FeatureIDEGeneratorSampler {
         List<Map<String, Boolean>> result = calculateSample(cnf -> {
                     TWiseConfigurationGenerator generator = new TWiseConfigurationGenerator(cnf, this.t,
                             this.maxSampleSize);
+                    generator.setIterations(this.iterations);
                     generator.setRandom(new Random()); // By default, the generator uses a fixed seed.
                     return generator;
                 }
