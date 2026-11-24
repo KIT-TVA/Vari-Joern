@@ -6,10 +6,10 @@
 #else
 #define IF_$0(...) __VA_ARGS__
 #endif
-#define IF_NOT_$0(...) __VA_ARGS__
+#define IF_NOT_$0(...)
 #else
 #undef CONFIG_$0
 #define ENABLE_$0 0
 #define IF_$0(...)
-#define IF_NOT_$0(...)
+#define IF_NOT_$0(...) __VA_ARGS__
 :end:

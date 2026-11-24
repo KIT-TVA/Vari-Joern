@@ -292,6 +292,25 @@ def parse_format(format_file_path: Path) -> dict[str, str]:
     return res
 
 
+def _disabled_lines(block):
+    depth = 0
+    out = None
+    for l in block.splitlines():
+        t = l.strip()
+        if t.startswith('#if'):
+            depth += 1
+        elif t.startswith('#endif'):
+            depth -= 1
+            if depth == 0:
+                break
+        elif t.startswith('#else') and depth == 1:
+            out = []
+            continue
+        if out is not None:
+            out.append(l)
+    return ''.join(x + '\n' for x in (out or []))
+
+
 def generate_header(configuration_variables: list[ConfigurationVariable],
                     prevars, choice: str | None,
                     format_file_path: Path):
@@ -305,11 +324,12 @@ def generate_header(configuration_variables: list[ConfigurationVariable],
     #      header_content += f"#if ({choice})\n"
 
     for configuration_variable in configuration_variables:
+        block = configuration_variable.define(output_format)
         if configuration_variable.cond is not None:
             header_content += '#if ' + configuration_variable.cond + '\n'
-        header_content += configuration_variable.define(output_format)
+        header_content += block
         if configuration_variable.cond is not None:
-            header_content += '#endif\n'
+            header_content += '#else\n' + _disabled_lines(block) + '#endif\n'
     #   if choice != None:
     #      header_content += f"#else\n#error\n#endif"
     return header_content
