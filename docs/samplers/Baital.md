@@ -10,10 +10,12 @@ The Baital sampler is configured using the following options:
 
 - `sample-size`
     - The number of configurations to generate.
-    - Optional: no
+    - Optional: yes
+    - Default: 500
 - `t`
     - The t-wise feature interaction coverage to aim for.
-    - Optional: no
+    - Optional: yes
+    - Default: 2
 - `strategy`
     - The strategy for weight generation.
     - Optional: yes

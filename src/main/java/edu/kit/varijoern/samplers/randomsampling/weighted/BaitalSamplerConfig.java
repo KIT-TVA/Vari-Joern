@@ -2,7 +2,6 @@ package edu.kit.varijoern.samplers.randomsampling.weighted;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import edu.kit.varijoern.config.InvalidConfigException;
-import edu.kit.varijoern.config.TomlUtils;
 import edu.kit.varijoern.samplers.Sampler;
 import edu.kit.varijoern.samplers.SamplerConfig;
 import org.jetbrains.annotations.NotNull;
@@ -36,48 +35,59 @@ public class BaitalSamplerConfig extends SamplerConfig {
     public BaitalSamplerConfig(@NotNull TomlTable toml) throws InvalidConfigException {
         super(toml);
 
-        // Target sample size.
-        this.sampleSize = TomlUtils.getMandatoryInt(SAMPLE_SIZE_FIELD_NAME, toml, "Sample size is " +
-                "missing or invalid.");
-        if (this.sampleSize <= 0) {
-            throw new InvalidConfigException("Sample size must be >= 1.");
+        // Target sample size (default: 500).
+        long sampleSize;
+        try {
+            sampleSize = toml.getLong(BaitalSamplerConfig.SAMPLE_SIZE_FIELD_NAME, () -> 500L);
+        } catch (TomlInvalidTypeException e) {
+            throw new InvalidConfigException("Sample size must be an integer value.", e);
         }
-
-        // Target feature interaction coverage.
-        this.t = TomlUtils.getMandatoryInt(T_FIELD_NAME, toml, "Parameter t is missing or invalid.");
-        if (this.t <= 0) {
-            throw new InvalidConfigException("Parameter t must be >= 1.");
+        if (sampleSize <= 0L || sampleSize > Integer.MAX_VALUE) {
+            throw new InvalidConfigException(String.format("Sample size must be >= 1 and < %d.", Integer.MAX_VALUE));
         }
+        this.sampleSize = (int) sampleSize;
 
-        // Weight generation strategy.
+        // Target feature interaction coverage (default: 2).
+        long t;
+        try {
+            t = toml.getLong(BaitalSamplerConfig.T_FIELD_NAME, () -> 2L);
+        } catch (TomlInvalidTypeException e) {
+            throw new InvalidConfigException("Parameter t must be an integer value.", e);
+        }
+        if (t <= 0L || t > Integer.MAX_VALUE) {
+            throw new InvalidConfigException(String.format("Parameter t must be >= 1 and < %d.", Integer.MAX_VALUE));
+        }
+        this.t = (int) t;
+
+        // Weight generation strategy (default: 5).
         long strategy;
         try {
-            strategy = toml.getLong(STRATEGY_FIELD_NAME, () -> 5);
+            strategy = toml.getLong(BaitalSamplerConfig.STRATEGY_FIELD_NAME, () -> 5L);
         } catch (TomlInvalidTypeException e) {
             throw new InvalidConfigException("Strategy must be an integer value.", e);
         }
-        if (strategy < 1 || strategy > 5) {
+        if (strategy < 1L || strategy > 5L) {
             throw new InvalidConfigException("Strategy must be >= 1 and <= 5.");
         }
         this.strategy = (int) strategy;
 
-        // Rounds of sample generation.
+        // Rounds of sample generation (default: 10).
         long rounds;
         try {
-            rounds = toml.getLong(ROUNDS_FIELD_NAME, () -> 10);
+            rounds = toml.getLong(BaitalSamplerConfig.ROUNDS_FIELD_NAME, () -> 10L);
         } catch (TomlInvalidTypeException e) {
             throw new InvalidConfigException("Rounds must be an integer value.", e);
         }
-        if (rounds < 1) {
-            throw new InvalidConfigException("Rounds must be >= 1.");
+        if (rounds < 1L || rounds > Integer.MAX_VALUE) {
+            throw new InvalidConfigException(String.format("Rounds must be >= 1 and < %d.", Integer.MAX_VALUE));
         }
         this.rounds = (int) rounds;
 
-        // Whether extra samples for optimization should be generated.
+        // Whether extra samples for optimization should be generated (default: false).
         try {
-            this.extraSamples = toml.getBoolean(EXTRA_SAMPLES_FIELD_NAME, () -> false);
+            this.extraSamples = toml.getBoolean(BaitalSamplerConfig.EXTRA_SAMPLES_FIELD_NAME, () -> false);
         } catch (TomlInvalidTypeException e) {
-            throw new InvalidConfigException("Extra samples must be a boolean.", e);
+            throw new InvalidConfigException("Extra samples toggle must be a boolean.", e);
         }
     }
 
