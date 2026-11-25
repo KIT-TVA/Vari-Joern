@@ -35,6 +35,8 @@ public class HSCASampler extends DimacsSampler {
     private final int t;
     private final int l;
     private final int cutoffTime;
+    private final boolean useGroup;
+    private final boolean usePriority;
     private final boolean useSecondOptimization;
 
     /**
@@ -47,12 +49,14 @@ public class HSCASampler extends DimacsSampler {
      * @param cutoffTime            the cutoff time for the second optimization pass.
      * @param useSecondOptimization whether the second optimization pass should be enabled.
      */
-    public HSCASampler(@NotNull IFeatureModel featureModel, int t, int l, int cutoffTime,
-                       boolean useSecondOptimization) {
+    public HSCASampler(@NotNull IFeatureModel featureModel, int t,
+                       int l, int cutoffTime, boolean useGroup, boolean usePriority, boolean useSecondOptimization) {
         super(featureModel);
         this.t = t;
         this.l = l;
         this.cutoffTime = cutoffTime;
+        this.useGroup = useGroup;
+        this.usePriority = usePriority;
         this.useSecondOptimization = useSecondOptimization;
     }
 
@@ -75,7 +79,7 @@ public class HSCASampler extends DimacsSampler {
         ProcessBuilder converterPB = new ProcessBuilder(
                 "python3", "formatencoding.py",
                 inputFile.toString(), // DIMACS.
-                Integer.toString(t), // t.
+                Integer.toString(this.t), // t.
                 modelFile.toString(), // Output model file.
                 constraintsFile.toString() // Output constraints file.
         );
@@ -92,6 +96,8 @@ public class HSCASampler extends DimacsSampler {
                 "-seed", Integer.toString(new Random().nextInt()),
                 "-cutoff_time", Integer.toString(this.cutoffTime),
                 "-L", Integer.toString(this.l),
+                "-use_group", this.useGroup ? "1" : "0",
+                "-use_priority", this.usePriority ? "1" : "0",
                 "-use_second_optimization", this.useSecondOptimization ? "1" : "0"
         );
         samplerPB.directory(new File(HSCA_DIR));
