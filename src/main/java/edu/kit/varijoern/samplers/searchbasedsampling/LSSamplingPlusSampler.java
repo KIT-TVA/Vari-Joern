@@ -43,6 +43,7 @@ public class LSSamplingPlusSampler extends DimacsSampler {
      * @param t            the t-wise feature interaction coverage to aim for.
      * @param lambda       the number of candidates per iteration.
      * @param delta        the cardinality of the measuring set.
+     * @param dynamicSamplingProb whether sampling probabilities should be updated dynamically.
      */
     public LSSamplingPlusSampler(@NotNull IFeatureModel featureModel, int sampleSize, int t,
                                  int lambda, int delta, boolean dynamicSamplingProb) {
