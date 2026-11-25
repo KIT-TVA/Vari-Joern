@@ -32,6 +32,7 @@ public class LSSamplingPlusSampler extends DimacsSampler {
     private final int t;
     private final int lambda;
     private final int delta;
+    private final boolean dynamicSamplingProb;
 
     /**
      * Creates a new {@link LSSamplingPlusSampler} which generates samples for the specified feature model (expressed
@@ -43,12 +44,14 @@ public class LSSamplingPlusSampler extends DimacsSampler {
      * @param lambda       the number of candidates per iteration.
      * @param delta        the cardinality of the measuring set.
      */
-    public LSSamplingPlusSampler(@NotNull IFeatureModel featureModel, int sampleSize, int t, int lambda, int delta) {
+    public LSSamplingPlusSampler(@NotNull IFeatureModel featureModel, int sampleSize, int t,
+                                 int lambda, int delta, boolean dynamicSamplingProb) {
         super(featureModel);
         this.sampleSize = sampleSize;
         this.t = t;
         this.lambda = lambda;
         this.delta = delta;
+        this.dynamicSamplingProb = dynamicSamplingProb;
     }
 
     @Override
@@ -68,7 +71,8 @@ public class LSSamplingPlusSampler extends DimacsSampler {
                 "-k", Integer.toString(this.sampleSize),
                 "-t_wise", Integer.toString(this.t),
                 "-lambda", Integer.toString(this.lambda),
-                "-delta", Integer.toString(this.delta)
+                "-delta", Integer.toString(this.delta),
+                "-use_dynamic_updating_sampling_prob", this.dynamicSamplingProb ? "1" : "0"
         );
         processBuilder.directory(new File(LS_DIR));
 
